@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js
+.next/
+out/
+build/
+next-env.d.ts
+
+# Production / Docker
+dist/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+.mcp.json
+
+# Design handoff: keep extracted reference, ignore the bulky source zip
+*.zip
+
+# Drizzle
+drizzle/.migrations/.cache/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Test / coverage
+coverage/
+.nyc_output/
+playwright-report/
+test-results/

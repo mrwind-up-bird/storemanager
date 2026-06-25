@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+:root{
+  /* type */
+  --font-display:'Bricolage Grotesque',system-ui,sans-serif;
+  --font-body:'Hanken Grotesk',system-ui,-apple-system,sans-serif;
+  --font-mono:'Geist Mono',ui-monospace,SFMono-Regular,monospace;
+  /* primitives — coral */
+  --coral-50:#FDF1EC;--coral-100:#FADCD0;--coral-200:#F5B9A3;--coral-300:#F0917A;
+  --coral-400:#EC6F50;--coral-500:#E8552E;--coral-600:#CB4220;--coral-700:#A2351B;
+  --coral-800:#7B2916;--coral-900:#561D11;
+  /* primitives — amber/honey */
+  --amber-50:#FEF7EA;--amber-100:#FBEAC6;--amber-200:#F8D78D;--amber-300:#F5C357;
+  --amber-400:#F2A93B;--amber-500:#E08E18;--amber-600:#BB7211;--amber-700:#93590F;
+  /* primitives — warm neutral */
+  --n-0:#FFFFFF;--n-50:#FAF6F1;--n-100:#F2EBE2;--n-150:#EAE1D5;--n-200:#E0D5C6;
+  --n-300:#CDBEAB;--n-400:#AC9C86;--n-500:#857968;--n-600:#665C4E;--n-700:#4C443A;
+  --n-800:#332D26;--n-850:#26211B;--n-900:#1B1712;--n-950:#120F0B;
+  /* semantic primitives */
+  --green-500:#2F9E68;--green-600:#1F7E51;--green-50:#E8F5EE;
+  --red-500:#DC4B3E;--red-600:#B6362C;--red-50:#FCEDEB;
+  --blue-500:#3B82C4;--blue-600:#2C6AA3;--blue-50:#EAF2FA;
+  --honey-500:#E08E18;--honey-50:#FEF3E0;
+
+  /* ===== SEMANTIC (light) ===== */
+  --bg:var(--n-50);
+  --surface:var(--n-0);
+  --surface-2:var(--n-50);
+  --surface-3:var(--n-100);
+  --border:var(--n-200);
+  --border-strong:var(--n-300);
+  --text:var(--n-900);
+  --text-2:var(--n-600);
+  --text-3:var(--n-500);
+  --accent:var(--coral-500);
+  --accent-hover:var(--coral-600);
+  --accent-press:var(--coral-700);
+  --accent-soft:var(--coral-50);
+  --accent-soft-border:var(--coral-200);
+  --accent-ink:var(--coral-700);
+  --on-accent:#FFFFFF;
+  --honey:var(--amber-400);
+  --honey-soft:var(--amber-50);
+  --honey-ink:var(--amber-700);
+  --focus:var(--coral-500);
+  --ok:var(--green-600);--ok-soft:var(--green-50);
+  --warn:var(--honey-600,#BB7211);--warn-soft:var(--amber-50);
+  --bad:var(--red-600);--bad-soft:var(--red-50);
+  --info:var(--blue-600);--info-soft:var(--blue-50);
+  /* disc */
+  --disc-base:#15110D;--disc-groove-a:#1d1813;--disc-groove-b:#2a221b;
+  /* elevation */
+  --shadow-1:0 1px 2px rgba(40,28,16,.06),0 1px 3px rgba(40,28,16,.08);
+  --shadow-2:0 4px 10px -2px rgba(40,28,16,.10),0 2px 6px -2px rgba(40,28,16,.08);
+  --shadow-3:0 16px 32px -8px rgba(40,28,16,.16),0 6px 14px -6px rgba(40,28,16,.10);
+  /* radius */
+  --r-xs:6px;--r-sm:10px;--r-md:14px;--r-lg:20px;--r-xl:28px;--r-pill:999px;
+  /* spacing */
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;--s8:64px;
+  /* motion */
+  --ease:cubic-bezier(.2,.7,.2,1);--dur-1:120ms;--dur-2:220ms;--dur-3:380ms;
+  /* tap target */
+  --tap:44px;
+}
+[data-theme="dark"]{
+  --bg:var(--n-950);
+  --surface:var(--n-900);
+  --surface-2:var(--n-850);
+  --surface-3:var(--n-800);
+  --border:#352e26;
+  --border-strong:#4a4035;
+  --text:var(--n-100);
+  --text-2:#c3b6a4;
+  --text-3:#9b8f7d;
+  --accent:#F2734C;
+  --accent-hover:#F58A68;
+  --accent-press:#F7A085;
+  --accent-soft:#3a221880;
+  --accent-soft-border:#6e3a26;
+  --accent-ink:#F9B49C;
+  --on-accent:#2a0f06;
+  --honey:#F5C357;
+  --honey-soft:#3a2e1580;
+  --honey-ink:#F8D78D;
+  --focus:#F58A68;
+  --ok:#4FC489;--ok-soft:#16352580;
+  --warn:#F2A93B;--warn-soft:#3a2e1580;
+  --bad:#F0786C;--bad-soft:#3a1c1880;
+  --info:#6BA7DC;--info-soft:#16283a80;
+  --disc-base:#0a0805;--disc-groove-a:#16110c;--disc-groove-b:#231b14;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4);
+  --shadow-2:0 6px 16px -4px rgba(0,0,0,.5);
+  --shadow-3:0 20px 40px -10px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);-webkit-font-smoothing:antialiased;min-height:100vh;}
+[data-theme="light"]{background:#FAF6F1;}
+[data-theme="dark"]{background:#120F0B;}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes ds-pulse{0%,100%{opacity:1}50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}}
+</style>
+</helmet>
+<div data-theme="{{ theme }}" style="background:{{ bgColor }};color:var(--text);font-family:var(--font-body);min-height:100vh;">
+
+  <header style="position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--s4);padding:12px clamp(16px,4vw,40px);background:color-mix(in srgb,var(--surface) 86%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--border);">
+    <div style="display:flex;align-items:center;gap:10px;margin-right:auto;">
+      <div aria-hidden="true" style="width:34px;height:34px;border-radius:50%;flex:none;box-shadow:var(--shadow-1);background:radial-gradient(circle at 50% 50%,#0a0a0a 0 7%,#0000 7.5%),radial-gradient(circle at 50% 50%,var(--accent) 7.5% 34%,#0000 34.5%),repeating-radial-gradient(circle at 50% 50%,var(--disc-groove-a) 0 1.2px,var(--disc-groove-b) 1.2px 2.6px),var(--disc-base);"></div>
+      <div style="display:flex;flex-direction:column;line-height:1;">
+        <span style="font-family:var(--font-display);font-weight:800;font-size:17px;letter-spacing:-.02em;">q·records</span>
+        <span style="font-size:11px;color:var(--text-3);font-weight:500;letter-spacing:.04em;">STOREMANAGER · 2026</span>
+      </div>
+    </div>
+    <nav aria-label="Sections" style="display:none;gap:2px;" class="ds-topnav">
+      <a href="#colors" style="padding:8px 12px;border-radius:var(--r-pill);font-size:13px;font-weight:600;color:var(--text-2);text-decoration:none;">Colors</a>
+      <a href="#type" style="padding:8px 12px;border-radius:var(--r-pill);font-size:13px;font-weight:600;color:var(--text-2);text-decoration:none;">Type</a>
+      <a href="#components" style="padding:8px 12px;border-radius:var(--r-pill);font-size:13px;font-weight:600;color:var(--text-2);text-decoration:none;">Components</a>
+      <a href="#patterns" style="padding:8px 12px;border-radius:var(--r-pill);font-size:13px;font-weight:600;color:var(--text-2);text-decoration:none;">Patterns</a>
+    </nav>
+    <button type="button" onClick="{{ toggleTheme }}" aria-pressed="{{ isDark }}" aria-label="Toggle dark mode" style="display:inline-flex;align-items:center;gap:8px;min-height:var(--tap);padding:0 16px;border-radius:var(--r-pill);border:1px solid var(--border-strong);background:var(--surface);color:var(--text);font-family:var(--font-body);font-weight:600;font-size:13px;cursor:pointer;transition:all var(--dur-1) var(--ease);">
+      <span aria-hidden="true" style="font-size:15px;">{{ themeIcon }}</span><span>{{ themeLabel }}</span>
+    </button>
+  </header>
+
+  <main style="max-width:1120px;margin:0 auto;padding:clamp(28px,6vw,72px) clamp(16px,4vw,40px) 120px;">
+
+    <section style="display:grid;gap:clamp(24px,5vw,56px);grid-template-columns:1fr;align-items:center;">
+      <div>
+        <span style="display:inline-block;padding:6px 14px;border-radius:var(--r-pill);background:var(--accent-soft);border:1px solid var(--accent-soft-border);color:var(--accent-ink);font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase;">Design System Refresh</span>
+        <h1 style="font-family:var(--font-display);font-weight:800;font-size:clamp(40px,8vw,76px);line-height:.98;letter-spacing:-.03em;margin:18px 0 0;text-wrap:balance;">A lighter, friendlier<br><span style="color:var(--accent);">record store</span> manager.</h1>
+        <p style="max-width:54ch;font-size:clamp(16px,2.2vw,19px);line-height:1.6;color:var(--text-2);margin:20px 0 0;">A warm, vinyl-inspired system rebuilt for 2026 — mobile-first, WCAG-AA accessible, and ready for any language. Solid surfaces over heavy glass, built for the staff who use it all day.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:28px;">
+          <span style="display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:var(--r-pill);background:var(--surface);border:1px solid var(--border);font-size:13px;font-weight:600;box-shadow:var(--shadow-1);">◐ Light &amp; Dark</span>
+          <span style="display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:var(--r-pill);background:var(--surface);border:1px solid var(--border);font-size:13px;font-weight:600;box-shadow:var(--shadow-1);">▢ Mobile-first</span>
+          <span style="display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:var(--r-pill);background:var(--surface);border:1px solid var(--border);font-size:13px;font-weight:600;box-shadow:var(--shadow-1);">♿ WCAG AA</span>
+          <span style="display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:var(--r-pill);background:var(--surface);border:1px solid var(--border);font-size:13px;font-weight:600;box-shadow:var(--shadow-1);">🌐 i18n-ready</span>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:center;">
+        <div aria-hidden="true" style="position:relative;width:clamp(220px,52vw,300px);aspect-ratio:1;">
+          <div style="position:absolute;inset:0;border-radius:50%;box-shadow:var(--shadow-3);animation:spin 9s linear infinite;background:radial-gradient(circle at 50% 50%,var(--bg) 0 4.5%,#0000 5%),radial-gradient(circle at 50% 50%,#0a0a0a 0 5%,#0000 5.4%),radial-gradient(circle at 50% 50%,var(--accent) 5.4% 27%,#0000 27.4%),radial-gradient(circle at 38% 34%,rgba(255,255,255,.14),#0000 60%),repeating-radial-gradient(circle at 50% 50%,var(--disc-groove-a) 0 1.7px,var(--disc-groove-b) 1.7px 3.8px),var(--disc-base);"></div>
+          <div style="position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 210deg,#0000 0 40%,rgba(255,255,255,.10) 48%,#0000 56% 100%);"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="colors" style="margin-top:clamp(64px,10vw,120px);scroll-margin-top:80px;">
+      <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:8px;">
+        <span style="font-family:var(--font-mono);font-size:13px;color:var(--accent);font-weight:500;">01</span>
+        <h2 style="font-family:var(--font-display);font-weight:700;font-size:clamp(26px,4.5vw,38px);letter-spacing:-.02em;margin:0;">Color</h2>
+      </div>
+      <p style="max-width:62ch;color:var(--text-2);font-size:16px;line-height:1.6;margin:0 0 var(--s6);">Warm coral leads, honey amber supports. Primitive ramps feed semantic tokens, so light and dark are one swap away — components never reference a raw hex.</p>
+
+      <h3 style="font-family:var(--font-display);font-weight:600;font-size:15px;letter-spacing:.02em;text-transform:uppercase;color:var(--text-3);margin:0 0 12px;">Coral · primary</h3>
+      <div style="display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin-bottom:var(--s5);min-width:0;">
+        <div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(10,1fr);gap:6px;">
+          <div style="background:var(--coral-50);height:56px;border-radius:var(--r-sm);border:1px solid var(--border);"></div>
+          <div style="background:var(--coral-100);height:56px;border-radius:var(--r-sm);"></div>
+          <div style="background:var(--coral-200);height:56px;border-radius:var(--r-sm);"></div>
+          <div style="background:var(--coral-300);height:56px;border-radius:var(--r-sm);"></div>
+          <div style="background:var(--coral-400);height:56px;border-radius:var(--r-sm);"></div>
+          <div style="background:var(--coral-500);height:56px;border-radius:var(--r-sm);box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--coral-500);"></div>
+          <div style="background:var(--coral-600);height:56px;border-radius:var(--r-sm);"></div>
+          <div style="background:var(--coral-700);height:56px;border-radius:var(--r-sm);"></div>
+          <div style="background:var(--coral-800);height:56px;border-radius:var(--r-sm);"></div>
+          <div style="background:var(--coral-900);height:56px;border-radius:var(--r-sm);"></div>
+        </div>
+        <div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(10,1fr);gap:6px;font-family:var(--font-mono);font-size:10px;color:var(--text-3);text-align:center;">
+          <span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span style="color:var(--accent);font-weight:500;">500</span><span>600</span><span>700</span><span>800</span><span>900</span>
+        </div>
+      </div>
+
+      <h3 style="font-family:var(--font-display);font-weight:600;font-size:15px;letter-spacing:.02em;text-transform:uppercase;color:var(--text-3);margin:0 0 12px;">Honey · amber support</h3>
+      <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin-bottom:var(--s5);">
+        <div style="background:var(--amber-50);height:48px;border-radius:var(--r-sm);border:1px solid var(--border);"></div>
+        <div style="background:var(--amber-100);height:48px;border-radius:var(--r-sm);"></div>
+        <div style="background:var(--amber-200);height:48px;border-radius:var(--r-sm);"></div>
+        <div style="background:var(--amber-300);height:48px;border-radius:var(--r-sm);"></div>
+        <div style="background:var(--amber-400);height:48px;border-radius:var(--r-sm);"></div>
+        <div style="background:var(--amber-500);height:48px;border-radius:var(--r-sm);"></div>
+        <div style="background:var(--amber-600);height:48px;border-radius:var(--r-sm);"></div>
+        <div style="background:var(--amber-700);height:48px;border-radius:var(--r-sm);"></div>
+      </div>
+
+      <h3 style="font-family:var(--font-display);font-weight:600;font-size:15px;letter-spacing:.02em;text-transform:uppercase;color:var(--text-3);margin:0 0 12px;">Warm neutrals</h3>
+      <div style="display:grid;grid-template-columns:repeat(11,1fr);gap:6px;margin-bottom:var(--s6);">
+        <div style="background:var(--n-0);height:48px;border-radius:var(--r-sm);border:1px solid var(--border);"></div>
+        <div style="background:var(--n-50);height:48px;border-radius:var(--r-sm);border:1px solid var(--border);"></div>
+        <div style="background:var(--n-100);height:48px;border-radius:var(--r-sm);"></div>
+        <div style="background:var(--n-200);height:48px;border-radius:var(--r-sm);"></div>
+        <div style="background:var(--n-300);height:48px;border-radius:var(--r-sm);"></div>
+        <div style="background:var(--n-400);height:48px;border-radius:var(--r-sm);"></div>
+        <div style="background:var(--n-500);height:48px;border-radius:var(--r-sm);"></div>
+        <div style="background:var(--n-600);height:48px;border-radius:var(--r-sm);"></div>
+        <div style="background:var(--n-700);height:48px;border-radius:var(--r-sm);"></div>
+        <div style="background:var(--n-800);height:48px;border-radius:var(--r-sm);"></div>
+        <div style="background:var(--n-900);height:48px;border-radius:var(--r-sm);"></div>
+      </div>
+
+      <h3 style="font-family:var(--font-display);font-weight:600;font-size:15px;letter-spacing:.02em;text-transform:uppercase;color:var(--text-3);margin:0 0 12px;">Semantic feedback</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
+        <div style="border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;background:var(--surface);">
+          <div style="height:52px;background:var(--ok);"></div>
+          <div style="padding:10px 12px;"><div style="font-weight:700;font-size:14px;">Success</div><div style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);">--ok · im Lager</div></div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;background:var(--surface);">
+          <div style="height:52px;background:var(--warn);"></div>
+          <div style="padding:10px 12px;"><div style="font-weight:700;font-size:14px;">Warning</div><div style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);">--warn · Ankauf</div></div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;background:var(--surface);">
+          <div style="height:52px;background:var(--bad);"></div>
+          <div style="padding:10px 12px;"><div style="font-weight:700;font-size:14px;">Danger</div><div style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);">--bad · Gelöscht</div></div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;background:var(--surface);">
+          <div style="height:52px;background:var(--info);"></div>
+          <div style="padding:10px 12px;"><div style="font-weight:700;font-size:14px;">Info</div><div style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);">--info · Verliehen</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="type" style="margin-top:clamp(64px,10vw,120px);scroll-margin-top:80px;">
+      <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:8px;">
+        <span style="font-family:var(--font-mono);font-size:13px;color:var(--accent);font-weight:500;">02</span>
+        <h2 style="font-family:var(--font-display);font-weight:700;font-size:clamp(26px,4.5vw,38px);letter-spacing:-.02em;margin:0;">Type &amp; scale</h2>
+      </div>
+      <p style="max-width:62ch;color:var(--text-2);font-size:16px;line-height:1.6;margin:0 0 var(--s6);"><strong style="color:var(--text);">Bricolage Grotesque</strong> for friendly, characterful headings · <strong style="color:var(--text);">Hanken Grotesk</strong> for highly legible body · <strong style="color:var(--text);">Geist Mono</strong> for catalog IDs, prices and conditions.</p>
+
+      <div style="display:grid;gap:14px;border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:clamp(18px,3vw,28px);box-shadow:var(--shadow-1);">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;border-bottom:1px dashed var(--border);padding-bottom:12px;">
+          <span style="font-family:var(--font-display);font-weight:800;font-size:clamp(34px,6vw,56px);line-height:1;letter-spacing:-.03em;">Display</span>
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);white-space:nowrap;">Bricolage 800 · clamp 56</span>
+        </div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;border-bottom:1px dashed var(--border);padding-bottom:12px;">
+          <span style="font-family:var(--font-display);font-weight:700;font-size:32px;line-height:1.1;letter-spacing:-.02em;">Heading · Bestandsübersicht</span>
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);white-space:nowrap;">700 · 32</span>
+        </div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;border-bottom:1px dashed var(--border);padding-bottom:12px;">
+          <span style="font-family:var(--font-display);font-weight:600;font-size:22px;letter-spacing:-.01em;">Subhead · Section title</span>
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);white-space:nowrap;">600 · 22</span>
+        </div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;border-bottom:1px dashed var(--border);padding-bottom:12px;">
+          <span style="font-size:16px;line-height:1.6;max-width:48ch;">Body — the readable default at 16px. Never smaller than 14px for staff reading records all day, with 1.6 line-height for long inventory notes.</span>
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);white-space:nowrap;">Hanken 400 · 16</span>
+        </div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;">
+          <span style="font-family:var(--font-mono);font-size:14px;color:var(--text-2);">€ 24,90 · VG+ · #QR-08815</span>
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);white-space:nowrap;">Geist Mono · data</span>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:24px;">
+        <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:20px;box-shadow:var(--shadow-1);">
+          <h3 style="font-family:var(--font-display);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3);margin:0 0 14px;">Radius</h3>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:center;gap:12px;"><div style="width:44px;height:28px;background:var(--accent-soft);border:1.5px solid var(--accent);border-radius:var(--r-xs);"></div><span style="font-family:var(--font-mono);font-size:12px;color:var(--text-2);">xs · 6</span></div>
+            <div style="display:flex;align-items:center;gap:12px;"><div style="width:44px;height:28px;background:var(--accent-soft);border:1.5px solid var(--accent);border-radius:var(--r-md);"></div><span style="font-family:var(--font-mono);font-size:12px;color:var(--text-2);">md · 14</span></div>
+            <div style="display:flex;align-items:center;gap:12px;"><div style="width:44px;height:28px;background:var(--accent-soft);border:1.5px solid var(--accent);border-radius:var(--r-xl);"></div><span style="font-family:var(--font-mono);font-size:12px;color:var(--text-2);">xl · 28</span></div>
+            <div style="display:flex;align-items:center;gap:12px;"><div style="width:44px;height:28px;background:var(--accent-soft);border:1.5px solid var(--accent);border-radius:var(--r-pill);"></div><span style="font-family:var(--font-mono);font-size:12px;color:var(--text-2);">pill</span></div>
+          </div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:20px;box-shadow:var(--shadow-1);">
+          <h3 style="font-family:var(--font-display);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3);margin:0 0 14px;">Spacing · 4px base</h3>
+          <div style="display:flex;align-items:flex-end;gap:6px;height:64px;">
+            <div style="width:4px;height:4px;background:var(--accent);border-radius:2px;"></div>
+            <div style="width:8px;height:8px;background:var(--accent);border-radius:2px;"></div>
+            <div style="width:12px;height:12px;background:var(--accent);border-radius:2px;"></div>
+            <div style="width:16px;height:16px;background:var(--accent);border-radius:2px;"></div>
+            <div style="width:24px;height:24px;background:var(--accent);border-radius:3px;"></div>
+            <div style="width:32px;height:32px;background:var(--accent);border-radius:3px;"></div>
+            <div style="width:48px;height:48px;background:var(--accent);border-radius:4px;"></div>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);margin-top:10px;">4 · 8 · 12 · 16 · 24 · 32 · 48</div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:20px;box-shadow:var(--shadow-1);">
+          <h3 style="font-family:var(--font-display);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3);margin:0 0 18px;">Elevation</h3>
+          <div style="display:flex;gap:16px;align-items:center;justify-content:space-around;">
+            <div style="width:48px;height:48px;border-radius:var(--r-md);background:var(--surface);box-shadow:var(--shadow-1);"></div>
+            <div style="width:48px;height:48px;border-radius:var(--r-md);background:var(--surface);box-shadow:var(--shadow-2);"></div>
+            <div style="width:48px;height:48px;border-radius:var(--r-md);background:var(--surface);box-shadow:var(--shadow-3);"></div>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);margin-top:18px;text-align:center;">1 · 2 · 3</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="components" style="margin-top:clamp(64px,10vw,120px);scroll-margin-top:80px;">
+      <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:8px;">
+        <span style="font-family:var(--font-mono);font-size:13px;color:var(--accent);font-weight:500;">03</span>
+        <h2 style="font-family:var(--font-display);font-weight:700;font-size:clamp(26px,4.5vw,38px);letter-spacing:-.02em;margin:0;">Components</h2>
+      </div>
+      <p style="max-width:62ch;color:var(--text-2);font-size:16px;line-height:1.6;margin:0 0 var(--s6);">Every interactive element clears a 44px tap target and shows a visible focus ring. Built for quick, repetitive use behind the counter.</p>
+
+      <h3 style="font-family:var(--font-display);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3);margin:0 0 14px;">Buttons</h3>
+      <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:clamp(18px,3vw,28px);box-shadow:var(--shadow-1);display:flex;flex-direction:column;gap:22px;">
+        <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+          <button type="button" style="min-height:var(--tap);padding:0 22px;border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:15px;cursor:pointer;box-shadow:var(--shadow-1);transition:all var(--dur-1) var(--ease);" style-hover="background:var(--accent-hover);transform:translateY(-1px);box-shadow:var(--shadow-2);" style-focus="outline:3px solid var(--focus);outline-offset:2px;">Artikel ankaufen</button>
+          <button type="button" style="min-height:var(--tap);padding:0 22px;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface);color:var(--text);font-family:var(--font-body);font-weight:600;font-size:15px;cursor:pointer;transition:all var(--dur-1) var(--ease);" style-hover="border-color:var(--accent);color:var(--accent-ink);" style-focus="outline:3px solid var(--focus);outline-offset:2px;">Sekundär</button>
+          <button type="button" style="min-height:var(--tap);padding:0 18px;border:none;border-radius:var(--r-pill);background:transparent;color:var(--accent-ink);font-family:var(--font-body);font-weight:600;font-size:15px;cursor:pointer;transition:all var(--dur-1) var(--ease);" style-hover="background:var(--accent-soft);" style-focus="outline:3px solid var(--focus);outline-offset:2px;">Ghost</button>
+          <button type="button" style="min-height:var(--tap);padding:0 22px;border:none;border-radius:var(--r-pill);background:var(--bad);color:#fff;font-family:var(--font-body);font-weight:700;font-size:15px;cursor:pointer;transition:all var(--dur-1) var(--ease);" style-hover="filter:brightness(.93);" style-focus="outline:3px solid var(--focus);outline-offset:2px;">Löschen</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+          <button type="button" style="min-height:36px;padding:0 16px;border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:13px;cursor:pointer;">Small · 36</button>
+          <button type="button" style="min-height:var(--tap);padding:0 22px;border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:15px;cursor:pointer;">Medium · 44</button>
+          <button type="button" style="min-height:52px;padding:0 28px;border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:17px;cursor:pointer;">Large · 52</button>
+          <button type="button" style="display:inline-flex;align-items:center;gap:9px;min-height:var(--tap);padding:0 20px;border:none;border-radius:var(--r-pill);background:var(--honey);color:#3a2400;font-family:var(--font-body);font-weight:700;font-size:15px;cursor:pointer;"><span aria-hidden="true" style="font-size:16px;">⤓</span> Etiketten drucken</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+          <button type="button" disabled="" style="min-height:var(--tap);padding:0 22px;border:none;border-radius:var(--r-pill);background:var(--surface-3);color:var(--text-3);font-family:var(--font-body);font-weight:600;font-size:15px;cursor:not-allowed;">Deaktiviert</button>
+          <button type="button" aria-busy="true" style="display:inline-flex;align-items:center;gap:10px;min-height:var(--tap);padding:0 22px;border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:15px;cursor:wait;">
+            <span aria-hidden="true" style="width:16px;height:16px;border-radius:50%;animation:spin 1s linear infinite;background:radial-gradient(circle at 50% 50%,#0000 0 30%,var(--on-accent) 31% 42%,#0000 43%),conic-gradient(var(--on-accent) 0 25%,#0000 25% 100%);-webkit-mask:radial-gradient(circle at 50% 50%,#0000 0 30%,#000 31%);mask:radial-gradient(circle at 50% 50%,#0000 0 30%,#000 31%);"></span>
+            Synchronisiert…
+          </button>
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);">↑ hover &amp; tab the live buttons</span>
+        </div>
+      </div>
+      <h3 style="font-family:var(--font-display);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3);margin:28px 0 14px;">Forms &amp; inputs</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:18px;">
+
+        <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:clamp(18px,3vw,26px);box-shadow:var(--shadow-1);display:flex;flex-direction:column;gap:18px;">
+          <label style="display:flex;flex-direction:column;gap:7px;">
+            <span style="font-weight:600;font-size:14px;">Künstler <span style="color:var(--bad);" aria-hidden="true">*</span></span>
+            <input type="text" value="Depeche Mode" style="min-height:var(--tap);padding:0 14px;border:1.5px solid var(--border-strong);border-radius:var(--r-md);background:var(--surface-2);color:var(--text);font-family:var(--font-body);font-size:15px;" style-focus="outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:7px;">
+            <span style="font-weight:600;font-size:14px;">Label</span>
+            <div style="position:relative;display:flex;">
+              <select style="appearance:none;width:100%;min-height:var(--tap);padding:0 40px 0 14px;border:1.5px solid var(--border-strong);border-radius:var(--r-md);background:var(--surface-2);color:var(--text);font-family:var(--font-body);font-size:15px;cursor:pointer;" style-focus="outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);">
+                <option>Mute Records</option><option>Parlophone</option><option>Jet Records</option>
+              </select>
+              <span aria-hidden="true" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--text-3);pointer-events:none;">▾</span>
+            </div>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:7px;">
+            <span style="font-weight:600;font-size:14px;">Bemerkung</span>
+            <textarea rows="2" placeholder="Leichte Kratzer auf Seite B…" style="padding:12px 14px;border:1.5px solid var(--border-strong);border-radius:var(--r-md);background:var(--surface-2);color:var(--text);font-family:var(--font-body);font-size:15px;resize:vertical;" style-focus="outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);"></textarea>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:7px;">
+            <span style="font-weight:600;font-size:14px;color:var(--bad);">Preis <span style="font-weight:400;">— Pflichtfeld</span></span>
+            <input type="text" value="" aria-invalid="true" style="min-height:var(--tap);padding:0 14px;border:1.5px solid var(--bad);border-radius:var(--r-md);background:var(--bad-soft);color:var(--text);font-family:var(--font-body);font-size:15px;">
+            <span style="font-size:12.5px;color:var(--bad);display:flex;gap:6px;align-items:center;"><span aria-hidden="true">⚠</span> Bitte einen Verkaufspreis angeben.</span>
+          </label>
+        </div>
+
+        <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:clamp(18px,3vw,26px);box-shadow:var(--shadow-1);display:flex;flex-direction:column;gap:22px;">
+          <div>
+            <span style="font-weight:600;font-size:14px;display:block;margin-bottom:8px;">Discogs-Suche &amp; Barcode</span>
+            <div style="display:flex;gap:8px;">
+              <div style="position:relative;flex:1;display:flex;align-items:center;">
+                <span aria-hidden="true" style="position:absolute;left:13px;color:var(--text-3);">⌕</span>
+                <input type="search" placeholder="Titel, Artist, Katalog-Nr…" style="width:100%;min-height:var(--tap);padding:0 14px 0 36px;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface-2);color:var(--text);font-family:var(--font-body);font-size:15px;" style-focus="outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);">
+              </div>
+              <button type="button" aria-label="Barcode scannen" style="flex:none;width:var(--tap);height:var(--tap);border:none;border-radius:var(--r-md);background:var(--accent);color:var(--on-accent);font-size:20px;cursor:pointer;display:grid;place-items:center;">▥</button>
+            </div>
+          </div>
+
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
+              <span style="font-weight:600;font-size:14px;">Zustand · Platte</span>
+              <span style="font-family:var(--font-mono);font-size:12px;color:var(--ok);font-weight:500;">VG+</span>
+            </div>
+            <div role="radiogroup" aria-label="Zustand Platte" style="display:flex;flex-wrap:wrap;gap:6px;">
+              <span style="padding:7px 11px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);">M</span>
+              <span style="padding:7px 11px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);">NM</span>
+              <span aria-checked="true" style="padding:7px 11px;border-radius:var(--r-pill);font-size:12.5px;font-weight:700;background:var(--accent);color:var(--on-accent);box-shadow:var(--shadow-1);">VG+</span>
+              <span style="padding:7px 11px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);">VG</span>
+              <span style="padding:7px 11px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);">G+</span>
+              <span style="padding:7px 11px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);">G</span>
+              <span style="padding:7px 11px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);">F</span>
+              <span style="padding:7px 11px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);">P</span>
+            </div>
+          </div><div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
+              <span style="font-weight:600;font-size:14px;">Zustand · Cover</span>
+              <span style="font-family:var(--font-mono);font-size:12px;color:var(--ok);font-weight:500;">VG+</span>
+            </div>
+            <div role="radiogroup" aria-label="Zustand Platte" style="display:flex;flex-wrap:wrap;gap:6px;">
+              <span style="padding:7px 11px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);">M</span>
+              <span style="padding:7px 11px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);">NM</span>
+              <span aria-checked="true" style="padding:7px 11px;border-radius:var(--r-pill);font-size:12.5px;font-weight:700;background:var(--accent);color:var(--on-accent);box-shadow:var(--shadow-1);">VG+</span>
+              <span style="padding:7px 11px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);">VG</span>
+              <span style="padding:7px 11px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);">G+</span>
+              <span style="padding:7px 11px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);">G</span>
+              <span style="padding:7px 11px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);">F</span>
+              <span style="padding:7px 11px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);">P</span>
+            </div>
+          </div>
+
+          <div>
+            <span style="font-weight:600;font-size:14px;display:block;margin-bottom:12px;">Optionen</span>
+            <div style="display:flex;flex-direction:column;gap:14px;">
+              <label style="display:flex;align-items:center;gap:12px;cursor:pointer;min-height:28px;">
+                <span style="position:relative;width:46px;height:28px;border-radius:var(--r-pill);background:var(--accent);flex:none;transition:background var(--dur-1) var(--ease);"><span style="position:absolute;top:3px;left:21px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:var(--shadow-1);"></span></span>
+                <span style="font-size:14px;">Auf Discogs listen</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:12px;cursor:pointer;min-height:28px;">
+                <span style="position:relative;width:46px;height:28px;border-radius:var(--r-pill);background:var(--surface-3);border:1px solid var(--border-strong);flex:none;"><span style="position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--surface);box-shadow:var(--shadow-1);"></span></span>
+                <span style="font-size:14px;color:var(--text-2);">Auf Instagram bewerben</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:12px;cursor:pointer;min-height:var(--tap);">
+                <span style="width:24px;height:24px;border-radius:7px;background:var(--accent);display:grid;place-items:center;flex:none;color:var(--on-accent);font-size:14px;font-weight:800;">✓</span>
+                <span style="font-size:14px;">In Wunschlisten-Benachrichtigung aufnehmen</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <h3 style="font-family:var(--font-display);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3);margin:28px 0 14px;">Status badges · Artikelstatus</h3>
+      <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:clamp(18px,3vw,26px);box-shadow:var(--shadow-1);display:flex;flex-direction:column;gap:20px;">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;">
+          <span style="display:inline-flex;align-items:center;gap:7px;padding:6px 13px 6px 11px;border-radius:var(--r-pill);background:var(--honey-soft);color:var(--honey-ink);border:1px solid var(--accent-soft-border);font-size:13px;font-weight:600;"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: var(--honey);"></span>Wunschliste</span>
+          <span style="display:inline-flex;align-items:center;gap:7px;padding:6px 13px 6px 11px;border-radius:var(--r-pill);background:var(--ok-soft);color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 30%,transparent);font-size:13px;font-weight:600;"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: var(--ok);"></span>im Lager</span>
+          <span style="display:inline-flex;align-items:center;gap:7px;padding:6px 13px 6px 11px;border-radius:var(--r-pill);background:var(--info-soft);color:var(--info);border:1px solid color-mix(in srgb,var(--info) 30%,transparent);font-size:13px;font-weight:600;"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: var(--info);"></span>Verliehen</span>
+          <span style="display:inline-flex;align-items:center;gap:7px;padding:6px 13px 6px 11px;border-radius:var(--r-pill);background:var(--surface-3);color:var(--text-2);border:1px solid var(--border-strong);font-size:13px;font-weight:600;"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: var(--text-3);"></span>Verkauft</span>
+          <span style="display:inline-flex;align-items:center;gap:7px;padding:6px 13px 6px 11px;border-radius:var(--r-pill);background:var(--bad-soft);color:var(--bad);border:1px solid color-mix(in srgb,var(--bad) 30%,transparent);font-size:13px;font-weight:600;"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: var(--bad);"></span>Gelöscht</span>
+        </div>
+        <div style="height:1px;background:var(--border);"></div>
+        <div>
+          <div style="font-weight:600;font-size:13px;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:12px;">Artikeltyp</div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;">
+            <span style="display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:var(--r-pill);background:var(--accent-soft);color:var(--accent-ink);font-size:13px;font-weight:600;"><span aria-hidden="true">⬤</span> Vinyl</span>
+            <span style="display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:var(--r-pill);background:var(--surface-3);color:var(--text-2);font-size:13px;font-weight:600;"><span aria-hidden="true">◎</span> CD</span>
+            <span style="display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:var(--r-pill);background:var(--surface-3);color:var(--text-2);font-size:13px;font-weight:600;"><span aria-hidden="true">▤</span> Kassette</span>
+            <span style="display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:var(--r-pill);background:var(--surface-3);color:var(--text-2);font-size:13px;font-weight:600;"><span aria-hidden="true">✦</span> Zubehör</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-weight:600;font-size:13px;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:12px;">Zustand · Discogs-Skala</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <span style="padding:6px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:700;color:#fff;background:#1f8a52;">Mint</span>
+            <span style="padding:6px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:700;color:#fff;background:#2f9e68;">NM</span>
+            <span style="padding:6px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:700;color:#3a2400;background:#9bc34a;">VG+</span>
+            <span style="padding:6px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:700;color:#3a2400;background:#e2c044;">VG</span>
+            <span style="padding:6px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:700;color:#3a2400;background:#efab3b;">G+</span>
+            <span style="padding:6px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:700;color:#fff;background:#e0762e;">G</span>
+            <span style="padding:6px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:700;color:#fff;background:#d65532;">Fair</span>
+            <span style="padding:6px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:700;color:#fff;background:#b6362c;">Poor</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="patterns" style="margin-top:clamp(64px,10vw,120px);scroll-margin-top:80px;">
+      <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:8px;">
+        <span style="font-family:var(--font-mono);font-size:13px;color:var(--accent);font-weight:500;">04</span>
+        <h2 style="font-family:var(--font-display);font-weight:700;font-size:clamp(26px,4.5vw,38px);letter-spacing:-.02em;margin:0;">Patterns</h2>
+      </div>
+      <p style="max-width:62ch;color:var(--text-2);font-size:16px;line-height:1.6;margin:0 0 var(--s6);">Composed components in context — the building blocks of the stocklist, detail and checkout flows.</p>
+
+      <h3 style="font-family:var(--font-display);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3);margin:0 0 14px;">Record card</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:18px;">
+
+        <article style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);overflow:hidden;transition:box-shadow var(--dur-2) var(--ease),transform var(--dur-2) var(--ease);" style-hover="box-shadow:var(--shadow-3);transform:translateY(-3px);">
+          <div style="position:relative;aspect-ratio:1;overflow:hidden;">
+            <div aria-hidden="true" style="position:absolute;right:-32%;top:50%;transform:translateY(-50%);width:78%;aspect-ratio:1;border-radius:50%;box-shadow:var(--shadow-2);background:radial-gradient(circle at 50% 50%,var(--surface) 0 5%,#0000 5.4%),radial-gradient(circle at 50% 50%,var(--accent) 5.4% 30%,#0000 30.4%),repeating-radial-gradient(circle at 50% 50%,var(--disc-groove-a) 0 1.5px,var(--disc-groove-b) 1.5px 3.4px),var(--disc-base);"></div>
+            <div style="position:absolute;inset:0;width:80%;background:repeating-linear-gradient(135deg,var(--surface-3) 0 11px,var(--surface-2) 11px 22px);display:grid;place-items:center;border-right:1px solid var(--border);">
+              <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);letter-spacing:.05em;">cover 1:1</span>
+            </div>
+            <span style="position:absolute;top:10px;left:10px;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:var(--r-pill);background:var(--ok-soft);color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 30%,transparent);font-size:12px;font-weight:700;backdrop-filter:blur(4px);"><span aria-hidden="true" style="width:7px;height:7px;border-radius:50%;background:var(--ok);"></span>im Lager</span>
+          </div>
+          <div style="padding:14px 16px 16px;">
+            <div style="font-family:var(--font-display);font-weight:700;font-size:17px;line-height:1.2;letter-spacing:-.01em;">Violator</div>
+            <div style="font-size:14px;color:var(--text-2);margin-top:2px;">Depeche Mode</div>
+            <div style="font-family:var(--font-mono);font-size:11.5px;color:var(--text-3);margin-top:8px;">1990 · Mute · UK · LP</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;gap:8px;">
+              <span style="font-family:var(--font-mono);font-weight:500;font-size:19px;color:var(--text);">€ 28,00</span>
+              <span style="padding:5px 11px;border-radius:var(--r-pill);font-size:12px;font-weight:700;color:#3a2400;background:#9bc34a;">VG+</span>
+            </div>
+          </div>
+        </article>
+
+        <article style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);overflow:hidden;transition:box-shadow var(--dur-2) var(--ease),transform var(--dur-2) var(--ease);" style-hover="box-shadow:var(--shadow-3);transform:translateY(-3px);">
+          <div style="position:relative;aspect-ratio:1;overflow:hidden;">
+            <div aria-hidden="true" style="position:absolute;right:-32%;top:50%;transform:translateY(-50%);width:78%;aspect-ratio:1;border-radius:50%;box-shadow:var(--shadow-2);background:radial-gradient(circle at 50% 50%,var(--surface) 0 5%,#0000 5.4%),radial-gradient(circle at 50% 50%,var(--honey) 5.4% 30%,#0000 30.4%),repeating-radial-gradient(circle at 50% 50%,var(--disc-groove-a) 0 1.5px,var(--disc-groove-b) 1.5px 3.4px),var(--disc-base);"></div>
+            <div style="position:absolute;inset:0;width:80%;background:repeating-linear-gradient(135deg,var(--surface-3) 0 11px,var(--surface-2) 11px 22px);display:grid;place-items:center;border-right:1px solid var(--border);">
+              <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);letter-spacing:.05em;">cover 1:1</span>
+            </div>
+            <span style="position:absolute;top:10px;left:10px;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:var(--r-pill);background:var(--honey-soft);color:var(--honey-ink);border:1px solid var(--accent-soft-border);font-size:12px;font-weight:700;backdrop-filter:blur(4px);"><span aria-hidden="true" style="width:7px;height:7px;border-radius:50%;background:var(--honey);"></span>Wunschliste</span>
+          </div>
+          <div style="padding:14px 16px 16px;">
+            <div style="font-family:var(--font-display);font-weight:700;font-size:17px;line-height:1.2;letter-spacing:-.01em;">Remain in Light</div>
+            <div style="font-size:14px;color:var(--text-2);margin-top:2px;">Talking Heads</div>
+            <div style="font-family:var(--font-mono);font-size:11.5px;color:var(--text-3);margin-top:8px;">1980 · Sire · US · LP</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;gap:8px;">
+              <span style="font-family:var(--font-mono);font-weight:500;font-size:14px;color:var(--text-3);">gesucht</span>
+              <button type="button" style="min-height:36px;padding:0 14px;border:1.5px solid var(--accent);border-radius:var(--r-pill);background:transparent;color:var(--accent-ink);font-family:var(--font-body);font-weight:700;font-size:12.5px;cursor:pointer;">Benachrichtigen</button>
+            </div>
+          </div>
+        </article>
+
+        <article style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);overflow:hidden;opacity:.78;">
+          <div style="position:relative;aspect-ratio:1;overflow:hidden;">
+            <div aria-hidden="true" style="position:absolute;right:-32%;top:50%;transform:translateY(-50%);width:78%;aspect-ratio:1;border-radius:50%;filter:grayscale(.6);background:radial-gradient(circle at 50% 50%,var(--surface) 0 5%,#0000 5.4%),radial-gradient(circle at 50% 50%,var(--text-3) 5.4% 30%,#0000 30.4%),repeating-radial-gradient(circle at 50% 50%,var(--disc-groove-a) 0 1.5px,var(--disc-groove-b) 1.5px 3.4px),var(--disc-base);"></div>
+            <div style="position:absolute;inset:0;width:80%;background:repeating-linear-gradient(135deg,var(--surface-3) 0 11px,var(--surface-2) 11px 22px);display:grid;place-items:center;border-right:1px solid var(--border);">
+              <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);letter-spacing:.05em;">cover 1:1</span>
+            </div>
+            <span style="position:absolute;top:10px;left:10px;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:var(--r-pill);background:var(--surface-3);color:var(--text-2);border:1px solid var(--border-strong);font-size:12px;font-weight:700;">Verkauft</span>
+          </div>
+          <div style="padding:14px 16px 16px;">
+            <div style="font-family:var(--font-display);font-weight:700;font-size:17px;line-height:1.2;letter-spacing:-.01em;text-decoration:line-through;text-decoration-color:var(--text-3);">Rumours</div>
+            <div style="font-size:14px;color:var(--text-2);margin-top:2px;">Fleetwood Mac</div>
+            <div style="font-family:var(--font-mono);font-size:11.5px;color:var(--text-3);margin-top:8px;">1977 · Warner · DE · LP</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;gap:8px;">
+              <span style="font-family:var(--font-mono);font-weight:500;font-size:19px;color:var(--text-3);">€ 19,50</span>
+              <span style="padding:5px 11px;border-radius:var(--r-pill);font-size:12px;font-weight:700;color:#3a2400;background:#e2c044;">VG</span>
+            </div>
+          </div>
+        </article>
+
+      </div>
+
+      <h3 style="font-family:var(--font-display);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3);margin:32px 0 14px;">Stocklist · data table</h3>
+      <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid var(--border);background:var(--surface-2);">
+          <div style="position:relative;flex:1;min-width:180px;display:flex;align-items:center;">
+            <span aria-hidden="true" style="position:absolute;left:12px;color:var(--text-3);">⌕</span>
+            <input type="search" placeholder="Bestand durchsuchen…" style="width:100%;min-height:40px;padding:0 12px 0 34px;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface);color:var(--text);font-family:var(--font-body);font-size:14px;">
+          </div>
+          <button type="button" style="min-height:40px;padding:0 14px;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface);color:var(--text);font-family:var(--font-body);font-weight:600;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;"><span aria-hidden="true">⛃</span> Filter</button>
+          <button type="button" style="min-height:40px;padding:0 16px;border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:13px;cursor:pointer;">+ Ankauf</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:14px;min-width:560px;">
+            <thead>
+              <tr style="text-align:left;color:var(--text-3);">
+                <th scope="col" style="padding:11px 16px;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;">Artikel</th>
+                <th scope="col" style="padding:11px 12px;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;">Jahr · Label</th>
+                <th scope="col" style="padding:11px 12px;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;">Zustand</th>
+                <th scope="col" style="padding:11px 12px;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;text-align:right;">Preis</th>
+                <th scope="col" style="padding:11px 16px;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-top:1px solid var(--border);transition:background var(--dur-1) var(--ease);" style-hover="background:var(--accent-soft);">
+                <td style="padding:12px 16px;"><div style="display:flex;align-items:center;gap:11px;"><span aria-hidden="true" style="width:34px;height:34px;border-radius:6px;flex:none;background:repeating-linear-gradient(135deg,var(--surface-3) 0 5px,var(--surface-2) 5px 10px);"></span><span><strong style="font-weight:700;">Violator</strong><br><span style="color:var(--text-2);font-size:13px;">Depeche Mode</span></span></div></td>
+                <td style="padding:12px;font-family:var(--font-mono);font-size:12.5px;color:var(--text-2);">1990 · Mute</td>
+                <td style="padding:12px;"><span style="padding:4px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:700;color:#3a2400;background:#9bc34a;">VG+</span></td>
+                <td style="padding:12px;text-align:right;font-family:var(--font-mono);font-weight:500;">€ 28,00</td>
+                <td style="padding:12px 16px;"><span style="display:inline-flex;align-items:center;gap:6px;color:var(--ok);font-weight:600;font-size:13px;"><span aria-hidden="true" style="width:7px;height:7px;border-radius:50%;background:var(--ok);"></span>im Lager</span></td>
+              </tr>
+              <tr style="border-top:1px solid var(--border);transition:background var(--dur-1) var(--ease);" style-hover="background:var(--accent-soft);">
+                <td style="padding:12px 16px;"><div style="display:flex;align-items:center;gap:11px;"><span aria-hidden="true" style="width:34px;height:34px;border-radius:6px;flex:none;background:repeating-linear-gradient(135deg,var(--surface-3) 0 5px,var(--surface-2) 5px 10px);"></span><span><strong style="font-weight:700;">Kind of Blue</strong><br><span style="color:var(--text-2);font-size:13px;">Miles Davis</span></span></div></td>
+                <td style="padding:12px;font-family:var(--font-mono);font-size:12.5px;color:var(--text-2);">1959 · Columbia</td>
+                <td style="padding:12px;"><span style="padding:4px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:700;color:#fff;background:#2f9e68;">NM</span></td>
+                <td style="padding:12px;text-align:right;font-family:var(--font-mono);font-weight:500;">€ 42,00</td>
+                <td style="padding:12px 16px;"><span style="display:inline-flex;align-items:center;gap:6px;color:var(--info);font-weight:600;font-size:13px;"><span aria-hidden="true" style="width:7px;height:7px;border-radius:50%;background:var(--info);"></span>Verliehen</span></td>
+              </tr>
+              <tr style="border-top:1px solid var(--border);transition:background var(--dur-1) var(--ease);" style-hover="background:var(--accent-soft);">
+                <td style="padding:12px 16px;"><div style="display:flex;align-items:center;gap:11px;"><span aria-hidden="true" style="width:34px;height:34px;border-radius:6px;flex:none;background:repeating-linear-gradient(135deg,var(--surface-3) 0 5px,var(--surface-2) 5px 10px);"></span><span><strong style="font-weight:700;">Discovery</strong><br><span style="color:var(--text-2);font-size:13px;">Daft Punk</span></span></div></td>
+                <td style="padding:12px;font-family:var(--font-mono);font-size:12.5px;color:var(--text-2);">2001 · Virgin</td>
+                <td style="padding:12px;"><span style="padding:4px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:700;color:#3a2400;background:#e2c044;">VG</span></td>
+                <td style="padding:12px;text-align:right;font-family:var(--font-mono);font-weight:500;">€ 35,00</td>
+                <td style="padding:12px 16px;"><span style="display:inline-flex;align-items:center;gap:6px;color:var(--text-2);font-weight:600;font-size:13px;"><span aria-hidden="true" style="width:7px;height:7px;border-radius:50%;background:var(--text-3);"></span>Verkauft</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:12px 16px;border-top:1px solid var(--border);font-size:12.5px;color:var(--text-3);font-family:var(--font-mono);">↔ scrolls on mobile · collapses to record cards under 560px</div>
+      </div>
+
+      <h3 style="font-family:var(--font-display);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3);margin:32px 0 14px;">Dashboard widgets</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:16px;">
+        <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:20px;box-shadow:var(--shadow-1);">
+          <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:13px;color:var(--text-2);font-weight:600;">Tagesumsatz</span><span style="font-size:12px;font-weight:700;color:var(--ok);">▲ 12%</span></div>
+          <div style="font-family:var(--font-mono);font-weight:500;font-size:32px;margin-top:10px;letter-spacing:-.02em;">€ 1.284</div>
+          <div style="display:flex;align-items:flex-end;gap:4px;height:34px;margin-top:14px;">
+            <div style="flex:1;height:40%;background:var(--accent-soft);border-radius:3px 3px 0 0;"></div>
+            <div style="flex:1;height:62%;background:var(--accent-soft);border-radius:3px 3px 0 0;"></div>
+            <div style="flex:1;height:48%;background:var(--accent-soft);border-radius:3px 3px 0 0;"></div>
+            <div style="flex:1;height:78%;background:var(--accent-soft);border-radius:3px 3px 0 0;"></div>
+            <div style="flex:1;height:55%;background:var(--accent-soft);border-radius:3px 3px 0 0;"></div>
+            <div style="flex:1;height:90%;background:var(--accent);border-radius:3px 3px 0 0;"></div>
+          </div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:20px;box-shadow:var(--shadow-1);">
+          <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:13px;color:var(--text-2);font-weight:600;">Artikel im Lager</span><span aria-hidden="true" style="font-size:15px;color:var(--text-3);">⬤</span></div>
+          <div style="font-family:var(--font-mono);font-weight:500;font-size:32px;margin-top:10px;letter-spacing:-.02em;">3.918</div>
+          <div style="margin-top:14px;height:8px;border-radius:var(--r-pill);background:var(--surface-3);overflow:hidden;display:flex;">
+            <span style="width:64%;background:var(--ok);"></span><span style="width:22%;background:var(--info);"></span><span style="width:14%;background:var(--honey);"></span>
+          </div>
+          <div style="font-size:11.5px;color:var(--text-3);margin-top:8px;font-family:var(--font-mono);">Vinyl 64% · CD 22% · Andere 14%</div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--accent);color:var(--on-accent);padding:20px;box-shadow:var(--shadow-2);">
+          <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:13px;font-weight:600;opacity:.9;">Ankäufe heute</span><span aria-hidden="true" style="font-size:15px;opacity:.8;">⤓</span></div>
+          <div style="font-family:var(--font-mono);font-weight:500;font-size:32px;margin-top:10px;letter-spacing:-.02em;">47</div>
+          <div style="font-size:13px;margin-top:14px;opacity:.92;">8 Sammlungen · 39 Einzelankäufe</div>
+        </div>
+      </div>
+
+      <h3 style="font-family:var(--font-display);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3);margin:32px 0 14px;">Navigation</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:18px;align-items:start;">
+
+        <div style="border:1px solid var(--border);border-radius:var(--r-xl);background:var(--surface-2);padding:20px;box-shadow:var(--shadow-1);">
+          <div style="font-size:12.5px;color:var(--text-3);font-family:var(--font-mono);margin-bottom:14px;">mobile · bottom nav + scan FAB</div>
+          <div style="max-width:280px;margin:0 auto;border:1px solid var(--border-strong);border-radius:28px;background:var(--bg);overflow:hidden;box-shadow:var(--shadow-2);">
+            <div style="height:150px;background:repeating-linear-gradient(135deg,var(--surface-2) 0 14px,var(--surface) 14px 28px);display:grid;place-items:center;"><span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);">Bestand</span></div>
+            <div style="position:relative;display:flex;justify-content:space-between;align-items:flex-end;padding:8px 14px 14px;background:var(--surface);border-top:1px solid var(--border);">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--accent-ink);min-width:48px;"><span aria-hidden="true" style="font-size:19px;">▦</span><span style="font-size:10px;font-weight:700;">Bestand</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text-3);min-width:48px;"><span aria-hidden="true" style="font-size:19px;">⤓</span><span style="font-size:10px;font-weight:600;">Ankauf</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:48px;margin-top:-22px;"><span aria-hidden="true" style="width:52px;height:52px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-size:22px;box-shadow:var(--shadow-3);border:3px solid var(--surface);">▥</span><span style="font-size:10px;font-weight:700;color:var(--text-2);">Scan</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text-3);min-width:48px;"><span aria-hidden="true" style="font-size:19px;">€</span><span style="font-size:10px;font-weight:600;">Verkauf</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text-3);min-width:48px;"><span aria-hidden="true" style="font-size:19px;">☰</span><span style="font-size:10px;font-weight:600;">Mehr</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="border:1px solid var(--border);border-radius:var(--r-xl);background:var(--surface);padding:14px;box-shadow:var(--shadow-1);">
+          <div style="font-size:12.5px;color:var(--text-3);font-family:var(--font-mono);margin:6px 8px 12px;">desktop · menu list</div>
+          <nav style="display:flex;flex-direction:column;gap:3px;">
+            <a href="#patterns" style="display:flex;align-items:center;gap:12px;min-height:var(--tap);padding:0 14px;border-radius:var(--r-md);background:var(--accent-soft);color:var(--accent-ink);font-weight:700;font-size:14.5px;text-decoration:none;border-left:3px solid var(--accent);"><span aria-hidden="true" style="font-size:17px;">▦</span> Bestandsübersicht</a>
+            <a href="#patterns" style="display:flex;align-items:center;gap:12px;min-height:var(--tap);padding:0 14px;border-radius:var(--r-md);color:var(--text-2);font-weight:600;font-size:14.5px;text-decoration:none;" style-hover="background:var(--surface-3);color:var(--text);"><span aria-hidden="true" style="font-size:17px;">⤓</span> Ankauf &amp; Batch</a>
+            <a href="#patterns" style="display:flex;align-items:center;gap:12px;min-height:var(--tap);padding:0 14px;border-radius:var(--r-md);color:var(--text-2);font-weight:600;font-size:14.5px;text-decoration:none;" style-hover="background:var(--surface-3);color:var(--text);"><span aria-hidden="true" style="font-size:17px;">€</span> Verkauf</a>
+            <a href="#patterns" style="display:flex;align-items:center;gap:12px;min-height:var(--tap);padding:0 14px;border-radius:var(--r-md);color:var(--text-2);font-weight:600;font-size:14.5px;text-decoration:none;" style-hover="background:var(--surface-3);color:var(--text);"><span aria-hidden="true" style="font-size:17px;">♡</span> Wunschlisten</a>
+            <a href="#patterns" style="display:flex;align-items:center;gap:12px;min-height:var(--tap);padding:0 14px;border-radius:var(--r-md);color:var(--text-2);font-weight:600;font-size:14.5px;text-decoration:none;" style-hover="background:var(--surface-3);color:var(--text);"><span aria-hidden="true" style="font-size:17px;">◷</span> Analytik</a>
+            <a href="#patterns" style="display:flex;align-items:center;gap:12px;min-height:var(--tap);padding:0 14px;border-radius:var(--r-md);color:var(--text-2);font-weight:600;font-size:14.5px;text-decoration:none;" style-hover="background:var(--surface-3);color:var(--text);"><span aria-hidden="true" style="font-size:17px;">⚙</span> Einstellungen</a>
+          </nav>
+        </div>
+      </div>
+
+      <h3 style="font-family:var(--font-display);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3);margin:32px 0 14px;">Modal &amp; wizard</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:18px;align-items:start;">
+
+        <div style="position:relative;border-radius:var(--r-xl);overflow:hidden;border:1px solid var(--border);background:repeating-linear-gradient(135deg,var(--surface-2) 0 16px,var(--surface) 16px 32px);padding:26px 18px;">
+          <div style="position:absolute;inset:0;background:rgba(20,14,8,.42);backdrop-filter:blur(2px);"></div>
+          <div role="dialog" aria-label="Schnellverkauf" style="position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-3);max-width:330px;margin:0 auto;overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);">
+              <span style="font-family:var(--font-display);font-weight:700;font-size:18px;">Schnellverkauf</span>
+              <button type="button" aria-label="Schließen" style="width:34px;height:34px;border:none;border-radius:50%;background:var(--surface-3);color:var(--text-2);font-size:16px;cursor:pointer;display:grid;place-items:center;">✕</button>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;">
+              <div style="display:flex;align-items:center;gap:11px;"><span aria-hidden="true" style="width:42px;height:42px;border-radius:7px;flex:none;background:repeating-linear-gradient(135deg,var(--surface-3) 0 6px,var(--surface-2) 6px 12px);"></span><span><strong>Violator</strong><br><span style="color:var(--text-2);font-size:13px;">Depeche Mode · VG+</span></span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding-top:6px;border-top:1px dashed var(--border);"><span style="color:var(--text-2);font-size:14px;">Summe</span><span style="font-family:var(--font-mono);font-weight:500;font-size:22px;">€ 28,00</span></div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;"><span style="padding:7px 13px;border-radius:var(--r-pill);background:var(--accent-soft);color:var(--accent-ink);font-size:13px;font-weight:600;">PayPal</span><span style="padding:7px 13px;border-radius:var(--r-pill);background:var(--surface-3);color:var(--text-2);font-size:13px;font-weight:600;">SumUp</span><span style="padding:7px 13px;border-radius:var(--r-pill);background:var(--surface-3);color:var(--text-2);font-size:13px;font-weight:600;">Bar</span></div>
+            </div>
+            <div style="display:flex;gap:10px;padding:16px 18px;border-top:1px solid var(--border);background:var(--surface-2);">
+              <button type="button" style="flex:1;min-height:var(--tap);border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface);color:var(--text);font-family:var(--font-body);font-weight:600;font-size:14px;cursor:pointer;">Abbrechen</button>
+              <button type="button" style="flex:1.4;min-height:var(--tap);border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:14px;cursor:pointer;">Verkaufen</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:22px;box-shadow:var(--shadow-1);">
+          <div style="display:flex;align-items:center;gap:0;margin-bottom:22px;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;"><span style="width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-weight:800;font-size:13px;">✓</span></div>
+            <div style="flex:1;height:2px;background:var(--accent);margin:0 4px;margin-bottom:24px;"></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;"><span style="width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-weight:800;font-size:13px;">2</span></div>
+            <div style="flex:1;height:2px;background:var(--border-strong);margin:0 4px;margin-bottom:24px;"></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;"><span style="width:30px;height:30px;border-radius:50%;background:var(--surface-3);color:var(--text-3);display:grid;place-items:center;font-weight:800;font-size:13px;border:1.5px solid var(--border-strong);">3</span></div>
+            <div style="flex:1;height:2px;background:var(--border-strong);margin:0 4px;margin-bottom:24px;"></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;"><span style="width:30px;height:30px;border-radius:50%;background:var(--surface-3);color:var(--text-3);display:grid;place-items:center;font-weight:800;font-size:13px;border:1.5px solid var(--border-strong);">4</span></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-3);font-weight:600;margin-top:-14px;margin-bottom:18px;"><span style="color:var(--accent-ink);">Info</span><span style="color:var(--accent-ink);">Discogs</span><span>Admin</span><span>Review</span></div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:18px;margin-bottom:6px;">Schritt 2 · Discogs verbinden</div>
+          <p style="color:var(--text-2);font-size:14px;line-height:1.6;margin:0 0 18px;">Hinterlege den Discogs-API-Token, um Preise, Cover und Metadaten automatisch zu synchronisieren.</p>
+          <div style="display:flex;gap:10px;"><button type="button" style="min-height:var(--tap);padding:0 20px;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface);color:var(--text);font-family:var(--font-body);font-weight:600;font-size:14px;cursor:pointer;">Zurück</button><button type="button" style="min-height:var(--tap);padding:0 24px;border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:14px;cursor:pointer;">Weiter</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="access" style="margin-top:clamp(64px,10vw,120px);scroll-margin-top:80px;">
+      <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:8px;">
+        <span style="font-family:var(--font-mono);font-size:13px;color:var(--accent);font-weight:500;">05</span>
+        <h2 style="font-family:var(--font-display);font-weight:700;font-size:clamp(26px,4.5vw,38px);letter-spacing:-.02em;margin:0;">Accessibility &amp; i18n</h2>
+      </div>
+      <p style="max-width:62ch;color:var(--text-2);font-size:16px;line-height:1.6;margin:0 0 var(--s6);">Inclusive by default, in every language. Contrast, focus, motion and touch are baked into the tokens — not bolted on.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:16px;margin-bottom:28px;">
+        <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:20px;box-shadow:var(--shadow-1);">
+          <div style="font-weight:700;font-size:15px;margin-bottom:6px;">Contrast · AA+</div>
+          <p style="color:var(--text-2);font-size:13.5px;line-height:1.55;margin:0 0 12px;">Body text clears 4.5:1, large text and UI 3:1 — verified in both themes.</p>
+          <div style="display:flex;gap:8px;"><span style="flex:1;text-align:center;padding:8px;border-radius:var(--r-sm);background:var(--accent);color:var(--on-accent);font-size:12px;font-weight:700;">5.2:1</span><span style="flex:1;text-align:center;padding:8px;border-radius:var(--r-sm);background:var(--surface-3);color:var(--text);font-size:12px;font-weight:700;">12:1</span></div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:20px;box-shadow:var(--shadow-1);">
+          <div style="font-weight:700;font-size:15px;margin-bottom:6px;">Touch · 44px</div>
+          <p style="color:var(--text-2);font-size:13.5px;line-height:1.55;margin:0 0 12px;">Every control meets the 44×44px minimum target.</p>
+          <div style="display:flex;align-items:center;gap:10px;"><span style="width:44px;height:44px;border-radius:var(--r-md);border:2px dashed var(--accent);display:grid;place-items:center;color:var(--accent-ink);font-size:11px;font-family:var(--font-mono);">44</span><span style="font-size:13px;color:var(--text-2);">--tap token</span></div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:20px;box-shadow:var(--shadow-1);">
+          <div style="font-weight:700;font-size:15px;margin-bottom:6px;">Not color-only</div>
+          <p style="color:var(--text-2);font-size:13.5px;line-height:1.55;margin:0 0 12px;">Status always pairs a dot, icon or label with its color.</p>
+          <span style="display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:var(--r-pill);background:var(--ok-soft);color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 30%,transparent);font-size:13px;font-weight:700;"><span aria-hidden="true" style="width:8px;height:8px;border-radius:50%;background:var(--ok);"></span>im Lager</span>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:20px;box-shadow:var(--shadow-1);">
+          <div style="font-weight:700;font-size:15px;margin-bottom:6px;">Focus &amp; motion</div>
+          <p style="color:var(--text-2);font-size:13.5px;line-height:1.55;margin:0 0 12px;">3px focus ring on every interactive element; honors prefers-reduced-motion.</p>
+          <span style="display:inline-block;padding:8px 16px;border-radius:var(--r-pill);background:var(--surface);border:1.5px solid var(--border-strong);font-size:13px;font-weight:600;outline:3px solid var(--focus);outline-offset:2px;">Focused</span>
+        </div>
+      </div>
+
+      <h3 style="font-family:var(--font-display);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3);margin:0 0 14px;">One component · two languages</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:18px;">
+        <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:20px;box-shadow:var(--shadow-1);">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;"><span style="font-size:18px;" aria-hidden="true">🇫🇷</span><span style="font-weight:700;font-size:14px;">Français</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);margin-left:auto;">fr-FR</span></div>
+          <label style="display:flex;flex-direction:column;gap:7px;margin-bottom:14px;"><span style="font-weight:600;font-size:13.5px;">État du disque</span>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;"><span style="padding:6px 11px;border-radius:var(--r-pill);font-size:12px;font-weight:700;background:var(--accent);color:var(--on-accent);">Très bon+</span><span style="padding:6px 11px;border-radius:var(--r-pill);font-size:12px;font-weight:600;background:var(--surface-3);color:var(--text-3);">Bon</span><span style="padding:6px 11px;border-radius:var(--r-pill);font-size:12px;font-weight:600;background:var(--surface-3);color:var(--text-3);">Correct</span></div>
+          </label>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;"><span style="color:var(--text-2);font-size:14px;">Total</span><span style="font-family:var(--font-mono);font-weight:500;font-size:18px;">28,00 €</span></div>
+          <button type="button" style="width:100%;min-height:var(--tap);border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:14.5px;cursor:pointer;">Ajouter à la liste de souhaits</button>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:20px;box-shadow:var(--shadow-1);">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;"><span style="font-size:18px;" aria-hidden="true">🇵🇹</span><span style="font-weight:700;font-size:14px;">Português</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);margin-left:auto;">pt-PT</span></div>
+          <label style="display:flex;flex-direction:column;gap:7px;margin-bottom:14px;"><span style="font-weight:600;font-size:13.5px;">Estado do disco</span>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;"><span style="padding:6px 11px;border-radius:var(--r-pill);font-size:12px;font-weight:700;background:var(--accent);color:var(--on-accent);">Muito bom+</span><span style="padding:6px 11px;border-radius:var(--r-pill);font-size:12px;font-weight:600;background:var(--surface-3);color:var(--text-3);">Bom</span><span style="padding:6px 11px;border-radius:var(--r-pill);font-size:12px;font-weight:600;background:var(--surface-3);color:var(--text-3);">Razoável</span></div>
+          </label>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;"><span style="color:var(--text-2);font-size:14px;">Total</span><span style="font-family:var(--font-mono);font-weight:500;font-size:18px;">28,00 €</span></div>
+          <button type="button" style="width:100%;min-height:var(--tap);border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:14.5px;cursor:pointer;">Adicionar à lista de desejos</button>
+        </div>
+      </div>
+      <p style="color:var(--text-3);font-size:13px;font-family:var(--font-mono);margin-top:16px;">Buttons size to content · labels never truncate · locale-aware currency &amp; dates.</p>
+    </section>
+
+    <footer style="margin-top:clamp(64px,10vw,110px);padding-top:28px;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;align-items:center;gap:14px;color:var(--text-3);font-size:13px;">
+      <div aria-hidden="true" style="width:26px;height:26px;border-radius:50%;flex:none;background:radial-gradient(circle at 50% 50%,#0a0a0a 0 8%,#0000 8.5%),radial-gradient(circle at 50% 50%,var(--accent) 8.5% 36%,#0000 36.5%),repeating-radial-gradient(circle at 50% 50%,var(--disc-groove-a) 0 1px,var(--disc-groove-b) 1px 2.4px),var(--disc-base);"></div>
+      <span style="font-family:var(--font-display);font-weight:700;color:var(--text-2);">q·records storemanager</span>
+      <span style="margin-left:auto;font-family:var(--font-mono);">Design System · 2026 refresh</span>
+    </footer>
+
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1120,&quot;height&quot;:760}}">
+class Component extends DCLogic {
+  state = { theme: 'light' };
+  _applyTheme() {
+    try {
+      const t = this.state.theme;
+      const bg = t === 'dark' ? '#120F0B' : '#FAF6F1';
+      document.documentElement.setAttribute('data-theme', t);
+      document.body.setAttribute('data-theme', t);
+      document.body.style.setProperty('background', bg, 'important');
+    } catch (e) {}
+  }
+  componentDidMount() { this._applyTheme(); }
+  componentDidUpdate() { this._applyTheme(); }
+  renderVals() {
+    const isDark = this.state.theme === 'dark';
+    this._applyTheme();
+    return {
+      theme: this.state.theme,
+      isDark,
+      bgColor: isDark ? '#120F0B' : '#FAF6F1',
+      themeLabel: isDark ? 'Dark' : 'Light',
+      themeIcon: isDark ? '☾' : '☀',
+      toggleTheme: () => this.setState(s => ({ theme: s.theme === 'light' ? 'dark' : 'light' })),
+    };
+  }
+}
+</script>
+</body>
+</html>

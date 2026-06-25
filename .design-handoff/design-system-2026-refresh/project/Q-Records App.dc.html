@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+:root{
+  --font-display:'Bricolage Grotesque',system-ui,sans-serif;
+  --font-body:'Hanken Grotesk',system-ui,-apple-system,sans-serif;
+  --font-mono:'Geist Mono',ui-monospace,SFMono-Regular,monospace;
+  --coral-50:#FDF1EC;--coral-100:#FADCD0;--coral-200:#F5B9A3;--coral-300:#F0917A;--coral-400:#EC6F50;--coral-500:#E8552E;--coral-600:#CB4220;--coral-700:#A2351B;--coral-800:#7B2916;--coral-900:#561D11;
+  --amber-50:#FEF7EA;--amber-100:#FBEAC6;--amber-200:#F8D78D;--amber-300:#F5C357;--amber-400:#F2A93B;--amber-500:#E08E18;--amber-600:#BB7211;--amber-700:#93590F;
+  --n-0:#FFFFFF;--n-50:#FAF6F1;--n-100:#F2EBE2;--n-150:#EAE1D5;--n-200:#E0D5C6;--n-300:#CDBEAB;--n-400:#AC9C86;--n-500:#857968;--n-600:#665C4E;--n-700:#4C443A;--n-800:#332D26;--n-850:#26211B;--n-900:#1B1712;--n-950:#120F0B;
+  --green-500:#2F9E68;--green-600:#1F7E51;--green-50:#E8F5EE;--red-500:#DC4B3E;--red-600:#B6362C;--red-50:#FCEDEB;--blue-500:#3B82C4;--blue-600:#2C6AA3;--blue-50:#EAF2FA;
+  --bg:var(--n-50);--surface:var(--n-0);--surface-2:var(--n-50);--surface-3:var(--n-100);--border:var(--n-200);--border-strong:var(--n-300);--text:var(--n-900);--text-2:var(--n-600);--text-3:var(--n-500);
+  --accent:var(--coral-500);--accent-hover:var(--coral-600);--accent-press:var(--coral-700);--accent-soft:var(--coral-50);--accent-soft-border:var(--coral-200);--accent-ink:var(--coral-700);--on-accent:#FFFFFF;
+  --honey:var(--amber-400);--honey-soft:var(--amber-50);--honey-ink:var(--amber-700);--focus:var(--coral-500);
+  --ok:var(--green-600);--ok-soft:var(--green-50);--warn:#BB7211;--warn-soft:var(--amber-50);--bad:var(--red-600);--bad-soft:var(--red-50);--info:var(--blue-600);--info-soft:var(--blue-50);
+  --disc-base:#15110D;--disc-groove-a:#1d1813;--disc-groove-b:#2a221b;
+  --shadow-1:0 1px 2px rgba(40,28,16,.06),0 1px 3px rgba(40,28,16,.08);--shadow-2:0 4px 10px -2px rgba(40,28,16,.10),0 2px 6px -2px rgba(40,28,16,.08);--shadow-3:0 16px 32px -8px rgba(40,28,16,.16),0 6px 14px -6px rgba(40,28,16,.10);
+  --r-xs:6px;--r-sm:10px;--r-md:14px;--r-lg:20px;--r-xl:28px;--r-pill:999px;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;--s8:64px;
+  --ease:cubic-bezier(.2,.7,.2,1);--dur-1:120ms;--dur-2:220ms;--dur-3:380ms;--tap:44px;
+}
+[data-theme="dark"]{
+  --bg:var(--n-950);--surface:var(--n-900);--surface-2:var(--n-850);--surface-3:var(--n-800);--border:#352e26;--border-strong:#4a4035;--text:var(--n-100);--text-2:#c3b6a4;--text-3:#9b8f7d;
+  --accent:#F2734C;--accent-hover:#F58A68;--accent-press:#F7A085;--accent-soft:#3a221880;--accent-soft-border:#6e3a26;--accent-ink:#F9B49C;--on-accent:#2a0f06;
+  --honey:#F5C357;--honey-soft:#3a2e1580;--honey-ink:#F8D78D;--focus:#F58A68;
+  --ok:#4FC489;--ok-soft:#16352580;--warn:#F2A93B;--warn-soft:#3a2e1580;--bad:#F0786C;--bad-soft:#3a1c1880;--info:#6BA7DC;--info-soft:#16283a80;
+  --disc-base:#0a0805;--disc-groove-a:#16110c;--disc-groove-b:#231b14;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4);--shadow-2:0 6px 16px -4px rgba(0,0,0,.5);--shadow-3:0 20px 40px -10px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);-webkit-font-smoothing:antialiased;min-height:100vh;}
+[data-theme="light"]{background:#FAF6F1;}
+[data-theme="dark"]{background:#120F0B;}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes qr-in{from{opacity:1;transform:none}to{opacity:1;transform:none}}
+@keyframes qr-fade{from{opacity:1}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+</style>
+</helmet>
+<div data-theme="{{ theme }}" style="background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;display:flex;">
+
+  <aside style="position:sticky;top:0;height:100vh;flex:none;width:248px;display:flex;flex-direction:column;background:var(--surface);border-right:1px solid var(--border);padding:18px 14px;gap:6px;z-index:30;">
+    <div style="display:flex;align-items:center;gap:11px;padding:6px 8px 18px;">
+      <div aria-hidden="true" style="width:36px;height:36px;border-radius:50%;flex:none;box-shadow:var(--shadow-1);background:radial-gradient(circle at 50% 50%,#0a0a0a 0 7%,#0000 7.5%),radial-gradient(circle at 50% 50%,var(--accent) 7.5% 34%,#0000 34.5%),repeating-radial-gradient(circle at 50% 50%,var(--disc-groove-a) 0 1.2px,var(--disc-groove-b) 1.2px 2.6px),var(--disc-base);"></div>
+      <div style="display:flex;flex-direction:column;line-height:1;">
+        <span style="font-family:var(--font-display);font-weight:800;font-size:18px;letter-spacing:-.02em;">q·records</span>
+        <span style="font-size:10.5px;color:var(--text-3);font-weight:500;letter-spacing:.05em;">STOREMANAGER · 2026</span>
+      </div>
+    </div>
+    <nav aria-label="Hauptnavigation" style="display:flex;flex-direction:column;gap:3px;">
+      <sc-for list="{{ nav }}" as="item" hint-placeholder-count="5">
+        <button type="button" onClick="{{ item.onClick }}" aria-current="{{ item.current }}" style="{{ item.style }}" style-hover="background:var(--surface-3);">
+          <span aria-hidden="true" style="font-size:18px;width:22px;text-align:center;flex:none;">{{ item.icon }}</span>
+          <span style="flex:1;">{{ item.label }}</span>
+          <sc-if value="{{ item.badge }}" hint-placeholder-val="{{ false }}"><span style="font-family:var(--font-mono);font-size:11px;font-weight:600;padding:2px 8px;border-radius:var(--r-pill);background:var(--surface-3);color:var(--text-3);">{{ item.badge }}</span></sc-if>
+        </button>
+      </sc-for>
+    </nav>
+    <div style="margin-top:auto;display:flex;align-items:center;gap:11px;padding:12px 10px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);">
+      <div aria-hidden="true" style="width:34px;height:34px;border-radius:50%;flex:none;background:linear-gradient(135deg,var(--accent),var(--honey));display:grid;place-items:center;color:#fff;font-weight:800;font-family:var(--font-display);">M</div>
+      <div style="display:flex;flex-direction:column;line-height:1.25;min-width:0;">
+        <span style="font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Mara · Theke</span>
+        <span style="font-size:11px;color:var(--text-3);">Admin · Filiale Mitte</span>
+      </div>
+    </div>
+  </aside>
+
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
+
+    <header style="position:sticky;top:0;z-index:25;display:flex;align-items:center;gap:16px;padding:14px clamp(18px,3vw,32px);background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--border);">
+      <div style="display:flex;flex-direction:column;line-height:1.15;margin-right:auto;">
+        <h1 style="font-family:var(--font-display);font-weight:700;font-size:clamp(20px,3vw,26px);letter-spacing:-.02em;margin:0;">{{ screenTitle }}</h1>
+        <span style="font-size:12.5px;color:var(--text-3);">{{ screenSub }}</span>
+      </div>
+      <div style="position:relative;display:none;align-items:center;flex:1;max-width:340px;" class="qr-headsearch">
+        <span aria-hidden="true" style="position:absolute;left:13px;color:var(--text-3);">⌕</span>
+        <input type="search" placeholder="Schnellsuche · Artist, Titel, ID…" style="width:100%;min-height:42px;padding:0 14px 0 36px;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface-2);color:var(--text);font-family:var(--font-body);font-size:14px;" style-focus="outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);">
+      </div>
+      <button type="button" aria-label="Barcode scannen" style="flex:none;width:42px;height:42px;border:1.5px solid var(--border-strong);border-radius:var(--r-md);background:var(--surface);color:var(--text-2);font-size:19px;cursor:pointer;display:grid;place-items:center;" style-hover="border-color:var(--accent);color:var(--accent-ink);">▥</button>
+      <button type="button" onClick="{{ openVerkaufQuick }}" style="display:inline-flex;align-items:center;gap:8px;min-height:42px;padding:0 18px;border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:14px;cursor:pointer;box-shadow:var(--shadow-1);" style-hover="background:var(--accent-hover);">€ Verkauf</button>
+      <button type="button" onClick="{{ toggleTheme }}" aria-label="Theme wechseln" style="flex:none;width:42px;height:42px;border:1.5px solid var(--border-strong);border-radius:var(--r-md);background:var(--surface);color:var(--text);font-size:16px;cursor:pointer;display:grid;place-items:center;" style-hover="border-color:var(--accent);">{{ themeIcon }}</button>
+    </header>
+
+    <main style="flex:1;padding:clamp(18px,3vw,32px);">
+
+      <!-- ============ DASHBOARD ============ -->
+      <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:20px;max-width:1200px;">
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:16px;">
+          <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:20px;box-shadow:var(--shadow-1);">
+            <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:13px;color:var(--text-2);font-weight:600;">Tagesumsatz</span><span style="font-size:12px;font-weight:700;color:var(--ok);">▲ 12%</span></div>
+            <div style="font-family:var(--font-mono);font-weight:500;font-size:32px;margin-top:10px;letter-spacing:-.02em;">€ 1.284</div>
+            <div style="display:flex;align-items:flex-end;gap:5px;height:34px;margin-top:14px;">
+              <div style="flex:1;height:40%;background:var(--accent-soft);border-radius:3px 3px 0 0;"></div><div style="flex:1;height:62%;background:var(--accent-soft);border-radius:3px 3px 0 0;"></div><div style="flex:1;height:48%;background:var(--accent-soft);border-radius:3px 3px 0 0;"></div><div style="flex:1;height:78%;background:var(--accent-soft);border-radius:3px 3px 0 0;"></div><div style="flex:1;height:55%;background:var(--accent-soft);border-radius:3px 3px 0 0;"></div><div style="flex:1;height:90%;background:var(--accent);border-radius:3px 3px 0 0;"></div>
+            </div>
+          </div>
+          <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:20px;box-shadow:var(--shadow-1);">
+            <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:13px;color:var(--text-2);font-weight:600;">Artikel im Lager</span><span aria-hidden="true" style="font-size:15px;color:var(--text-3);">⬤</span></div>
+            <div style="font-family:var(--font-mono);font-weight:500;font-size:32px;margin-top:10px;letter-spacing:-.02em;">3.918</div>
+            <div style="margin-top:16px;height:8px;border-radius:var(--r-pill);background:var(--surface-3);overflow:hidden;display:flex;"><span style="width:64%;background:var(--ok);"></span><span style="width:22%;background:var(--info);"></span><span style="width:14%;background:var(--honey);"></span></div>
+            <div style="font-size:11.5px;color:var(--text-3);margin-top:8px;font-family:var(--font-mono);">Vinyl 64% · CD 22% · Andere 14%</div>
+          </div>
+          <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--accent);color:var(--on-accent);padding:20px;box-shadow:var(--shadow-2);">
+            <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:13px;font-weight:600;opacity:.9;">Ankäufe heute</span><span aria-hidden="true" style="font-size:15px;opacity:.8;">⤓</span></div>
+            <div style="font-family:var(--font-mono);font-weight:500;font-size:32px;margin-top:10px;letter-spacing:-.02em;">47</div>
+            <div style="font-size:13px;margin-top:16px;opacity:.92;">8 Sammlungen · 39 Einzelankäufe</div>
+          </div>
+          <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:20px;box-shadow:var(--shadow-1);">
+            <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:13px;color:var(--text-2);font-weight:600;">Offene Wunschtreffer</span><span aria-hidden="true" style="font-size:15px;color:var(--honey);">♡</span></div>
+            <div style="font-family:var(--font-mono);font-weight:500;font-size:32px;margin-top:10px;letter-spacing:-.02em;">6</div>
+            <button type="button" onClick="{{ goWishlist }}" style="margin-top:14px;min-height:34px;padding:0 14px;border:1.5px solid var(--accent);border-radius:var(--r-pill);background:transparent;color:var(--accent-ink);font-family:var(--font-body);font-weight:700;font-size:12.5px;cursor:pointer;">Treffer ansehen →</button>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:20px;align-items:start;" class="qr-dash-cols">
+
+          <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);">
+              <span style="font-family:var(--font-display);font-weight:700;font-size:16px;">Letzte Verkäufe</span>
+              <button type="button" onClick="{{ goStock }}" style="border:none;background:transparent;color:var(--accent-ink);font-family:var(--font-body);font-weight:600;font-size:13px;cursor:pointer;">Alle →</button>
+            </div>
+            <div>
+              <sc-for list="{{ sales }}" as="s" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:13px;padding:13px 18px;border-top:1px solid var(--border);">
+                  <span aria-hidden="true" style="width:38px;height:38px;border-radius:7px;flex:none;background:repeating-linear-gradient(135deg,var(--surface-3) 0 6px,var(--surface-2) 6px 12px);"></span>
+                  <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.title }}</div><div style="font-size:12.5px;color:var(--text-2);">{{ s.artist }}</div></div>
+                  <span style="{{ s.payStyle }}">{{ s.pay }}</span>
+                  <span style="font-family:var(--font-mono);font-weight:500;font-size:15px;width:74px;text-align:right;">{{ s.price }}</span>
+                  <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);width:62px;text-align:right;">{{ s.time }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);overflow:hidden;">
+            <div style="display:flex;align-items:center;gap:9px;padding:16px 18px;border-bottom:1px solid var(--border);">
+              <span aria-hidden="true" style="width:9px;height:9px;border-radius:50%;background:var(--honey);box-shadow:0 0 0 4px var(--honey-soft);"></span>
+              <span style="font-family:var(--font-display);font-weight:700;font-size:16px;">Wunschlisten-Treffer</span>
+            </div>
+            <sc-for list="{{ matches }}" as="m" hint-placeholder-count="3">
+              <div style="padding:14px 18px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:9px;">
+                <div><div style="font-weight:700;font-size:14px;">{{ m.title }}</div><div style="font-size:12.5px;color:var(--text-2);">{{ m.artist }} · für {{ m.customer }}</div></div>
+                <div style="display:flex;gap:8px;">
+                  <button type="button" onClick="{{ m.onNotify }}" style="flex:1;min-height:38px;border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:12.5px;cursor:pointer;" style-hover="background:var(--accent-hover);">Benachrichtigen</button>
+                  <button type="button" style="flex:none;min-height:38px;padding:0 14px;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface);color:var(--text-2);font-family:var(--font-body);font-weight:600;font-size:12.5px;cursor:pointer;">Später</button>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ============ DISCOGS SEARCH ============ -->
+      <sc-if value="{{ isSearch }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:18px;max-width:1200px;">
+        <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);padding:18px;display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <div style="position:relative;flex:1;min-width:220px;display:flex;align-items:center;">
+              <span aria-hidden="true" style="position:absolute;left:14px;color:var(--text-3);font-size:17px;">⌕</span>
+              <input type="search" value="daft punk" style="width:100%;min-height:var(--tap);padding:0 14px 0 40px;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface-2);color:var(--text);font-family:var(--font-body);font-size:15px;" style-focus="outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);">
+            </div>
+            <button type="button" aria-label="Barcode scannen" style="flex:none;width:var(--tap);height:var(--tap);border:none;border-radius:var(--r-md);background:var(--surface-3);color:var(--text);font-size:21px;cursor:pointer;display:grid;place-items:center;" style-hover="background:var(--accent-soft);color:var(--accent-ink);">▥</button>
+            <button type="button" style="flex:none;min-height:var(--tap);padding:0 24px;border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:15px;cursor:pointer;" style-hover="background:var(--accent-hover);">Suchen</button>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <span style="font-size:13px;color:var(--text-2);"><strong style="color:var(--text);font-family:var(--font-mono);">128</strong> Treffer auf Discogs · sortiert nach Relevanz</span>
+            <div style="display:flex;gap:4px;padding:3px;border-radius:var(--r-pill);background:var(--surface-3);">
+              <span style="padding:6px 14px;border-radius:var(--r-pill);font-size:12.5px;font-weight:700;background:var(--surface);color:var(--text);box-shadow:var(--shadow-1);">▦ Karten</span>
+              <span style="padding:6px 14px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;color:var(--text-3);cursor:pointer;">☰ Liste</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:16px;">
+          <sc-for list="{{ results }}" as="r" hint-placeholder-count="6">
+            <article style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);overflow:hidden;display:flex;flex-direction:column;transition:box-shadow var(--dur-2) var(--ease),transform var(--dur-2) var(--ease);" style-hover="box-shadow:var(--shadow-3);transform:translateY(-3px);">
+              <div style="position:relative;aspect-ratio:1.9;overflow:hidden;">
+                <div aria-hidden="true" style="position:absolute;right:-26%;top:50%;transform:translateY(-50%);width:64%;aspect-ratio:1;border-radius:50%;box-shadow:var(--shadow-2);background:radial-gradient(circle at 50% 50%,var(--surface) 0 5%,#0000 5.4%),radial-gradient(circle at 50% 50%,{{ r.disc }} 5.4% 30%,#0000 30.4%),repeating-radial-gradient(circle at 50% 50%,var(--disc-groove-a) 0 1.5px,var(--disc-groove-b) 1.5px 3.4px),var(--disc-base);"></div>
+                <div style="position:absolute;inset:0;width:62%;background:repeating-linear-gradient(135deg,var(--surface-3) 0 11px,var(--surface-2) 11px 22px);display:grid;place-items:center;border-right:1px solid var(--border);"><span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);">cover</span></div>
+                <span style="position:absolute;top:10px;left:10px;{{ r.statusStyle }}"><span aria-hidden="true" style="width:7px;height:7px;border-radius:50%;background:{{ r.statusDot }};"></span>{{ r.statusLabel }}</span>
+              </div>
+              <div style="padding:14px 16px 16px;display:flex;flex-direction:column;flex:1;">
+                <div style="font-family:var(--font-display);font-weight:700;font-size:16.5px;line-height:1.2;letter-spacing:-.01em;">{{ r.title }}</div>
+                <div style="font-size:13.5px;color:var(--text-2);margin-top:2px;">{{ r.artist }}</div>
+                <div style="font-family:var(--font-mono);font-size:11.5px;color:var(--text-3);margin-top:8px;">{{ r.meta }}</div>
+                <div style="display:flex;align-items:center;gap:14px;margin-top:12px;font-size:11.5px;color:var(--text-3);font-family:var(--font-mono);">
+                  <span title="Median Marktpreis">Median <strong style="color:var(--text);font-size:14px;">{{ r.price }}</strong></span>
+                  <span title="Discogs Community">♡ {{ r.want }} · ⬩ {{ r.have }}</span>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:14px;">
+                  <button type="button" onClick="{{ r.onAnkauf }}" style="flex:1;min-height:40px;border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;" style-hover="background:var(--accent-hover);"><span aria-hidden="true">⤓</span> Ankaufen</button>
+                  <button type="button" onClick="{{ r.onWish }}" aria-label="Auf Wunschliste" style="flex:none;width:40px;min-height:40px;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface);color:var(--text-2);font-size:15px;cursor:pointer;" style-hover="border-color:var(--honey);color:var(--honey-ink);">♡</button>
+                </div>
+              </div>
+            </article>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ============ LAGERBESTAND ============ -->
+      <sc-if value="{{ isStock }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:16px;max-width:1200px;">
+        <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);padding:16px 18px;display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <div style="position:relative;flex:1;min-width:230px;display:flex;align-items:center;">
+              <span aria-hidden="true" style="position:absolute;left:14px;color:var(--text-3);font-size:17px;">⌕</span>
+              <input type="search" value="{{ stockQuery }}" onChange="{{ setStockQuery }}" placeholder="Im Sortiment suchen — Titel, Artist, Label, Katalog-Nr…" style="width:100%;min-height:var(--tap);padding:0 14px 0 40px;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface-2);color:var(--text);font-family:var(--font-body);font-size:15px;" style-focus="outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);">
+            </div>
+            <button type="button" aria-label="Barcode scannen" style="flex:none;width:var(--tap);height:var(--tap);border:none;border-radius:var(--r-md);background:var(--surface-3);color:var(--text);font-size:21px;cursor:pointer;display:grid;place-items:center;" style-hover="background:var(--accent-soft);color:var(--accent-ink);">▥</button>
+            <div style="display:flex;gap:4px;padding:3px;border-radius:var(--r-pill);background:var(--surface-3);flex:none;">
+              <button type="button" onClick="{{ setStockList }}" aria-label="Listenansicht" style="{{ stockListBtn }}">☰ Liste</button>
+              <button type="button" onClick="{{ setStockTile }}" aria-label="Kachelansicht" style="{{ stockTileBtn }}">▦ Kacheln</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <div style="position:relative;display:flex;align-items:center;">
+              <select onChange="{{ setStockFmt }}" value="{{ stockFmt }}" aria-label="Format filtern" style="{{ selStyle }}"><option value="all">Alle Formate</option><option value="Vinyl">Vinyl</option><option value="CD">CD</option><option value="Kassette">Kassette</option></select>
+              <span aria-hidden="true" style="position:absolute;right:13px;color:var(--text-3);pointer-events:none;">▾</span>
+            </div>
+            <div style="position:relative;display:flex;align-items:center;">
+              <select onChange="{{ setStockGenre }}" value="{{ stockGenre }}" aria-label="Genre filtern" style="{{ selStyle }}"><option value="all">Alle Genres</option><option value="Jazz">Jazz</option><option value="Electronic">Electronic</option><option value="Rock">Rock</option><option value="Alt-Rock">Alt-Rock</option><option value="Synth-Pop">Synth-Pop</option><option value="Indie">Indie</option></select>
+              <span aria-hidden="true" style="position:absolute;right:13px;color:var(--text-3);pointer-events:none;">▾</span>
+            </div>
+            <div style="position:relative;display:flex;align-items:center;">
+              <select onChange="{{ setStockCond }}" value="{{ stockCond }}" aria-label="Zustand filtern" style="{{ selStyle }}"><option value="all">Jeder Zustand</option><option value="nm">Mint – NM</option><option value="vgplus">VG+ und besser</option><option value="vg">VG und besser</option></select>
+              <span aria-hidden="true" style="position:absolute;right:13px;color:var(--text-3);pointer-events:none;">▾</span>
+            </div>
+            <button type="button" onClick="{{ resetStock }}" style="min-height:40px;padding:0 14px;border:none;border-radius:var(--r-pill);background:transparent;color:var(--accent-ink);font-family:var(--font-body);font-weight:600;font-size:13px;cursor:pointer;" style-hover="background:var(--accent-soft);">Zurücksetzen</button>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:14px;white-space:nowrap;">
+              <span style="font-size:12.5px;color:var(--text-3);font-family:var(--font-mono);"><strong style="color:var(--text);">{{ stockCount }}</strong> Treffer</span>
+              <span style="font-size:12.5px;color:var(--text-3);font-family:var(--font-mono);">Wert <strong style="color:var(--text);">€ 84.210</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <sc-for list="{{ stockFilters }}" as="f" hint-placeholder-count="4">
+            <button type="button" onClick="{{ f.onClick }}" style="{{ f.style }}">{{ f.label }} <span style="font-family:var(--font-mono);opacity:.7;">{{ f.count }}</span></button>
+          </sc-for>
+        </div>
+
+        <sc-if value="{{ stockEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="border:1px dashed var(--border-strong);border-radius:var(--r-lg);background:var(--surface);padding:48px 24px;text-align:center;color:var(--text-3);">
+          <div aria-hidden="true" style="font-size:34px;margin-bottom:8px;">⌕</div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:17px;color:var(--text-2);">Kein Treffer im Sortiment</div>
+          <p style="font-size:13.5px;line-height:1.6;margin:6px auto 16px;max-width:38ch;">Andere Schreibweise probieren, Filter lockern — oder die Platte direkt über die Discogs-Suche ankaufen.</p>
+          <button type="button" onClick="{{ resetStock }}" style="min-height:40px;padding:0 18px;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface);color:var(--text);font-family:var(--font-body);font-weight:600;font-size:13px;cursor:pointer;">Filter zurücksetzen</button>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ stockShowTile }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:16px;">
+          <sc-for list="{{ stock }}" as="x" hint-placeholder-count="6">
+            <article style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);overflow:hidden;display:flex;flex-direction:column;opacity:{{ x.op }};transition:box-shadow var(--dur-2) var(--ease),transform var(--dur-2) var(--ease);" style-hover="box-shadow:var(--shadow-3);transform:translateY(-3px);">
+              <div style="position:relative;aspect-ratio:1.9;overflow:hidden;">
+                <div aria-hidden="true" style="position:absolute;right:-26%;top:50%;transform:translateY(-50%);width:64%;aspect-ratio:1;border-radius:50%;box-shadow:var(--shadow-2);background:radial-gradient(circle at 50% 50%,var(--surface) 0 5%,#0000 5.4%),radial-gradient(circle at 50% 50%,{{ x.disc }} 5.4% 30%,#0000 30.4%),repeating-radial-gradient(circle at 50% 50%,var(--disc-groove-a) 0 1.5px,var(--disc-groove-b) 1.5px 3.4px),var(--disc-base);"></div>
+                <div style="position:absolute;inset:0;width:62%;background:repeating-linear-gradient(135deg,var(--surface-3) 0 11px,var(--surface-2) 11px 22px);display:grid;place-items:center;border-right:1px solid var(--border);"><span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);">cover</span></div>
+                <span style="{{ x.cardPill }}"><span aria-hidden="true" style="width:7px;height:7px;border-radius:50%;background:{{ x.statusColor }};"></span>{{ x.statusLabel }}</span>
+              </div>
+              <div style="padding:14px 16px 16px;display:flex;flex-direction:column;flex:1;">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+                  <div style="min-width:0;"><div style="font-family:var(--font-display);font-weight:700;font-size:16.5px;line-height:1.2;letter-spacing:-.01em;">{{ x.title }}</div><div style="font-size:13.5px;color:var(--text-2);margin-top:2px;">{{ x.artist }}</div></div>
+                  <span style="flex:none;padding:4px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:700;color:{{ x.gradeText }};background:{{ x.gradeBg }};">{{ x.grade }}</span>
+                </div>
+                <div style="font-family:var(--font-mono);font-size:11.5px;color:var(--text-3);margin-top:8px;">{{ x.meta }}</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;padding-top:14px;">
+                  <span style="font-family:var(--font-mono);font-size:13px;"><span style="color:var(--text-3);">EK {{ x.ek }}</span> · <strong style="font-weight:500;font-size:17px;">{{ x.vk }}</strong></span>
+                  <button type="button" onClick="{{ x.onVerkauf }}" disabled="{{ x.disabled }}" style="{{ x.btnStyle }}">{{ x.btnLabel }}</button>
+                </div>
+              </div>
+            </article>
+          </sc-for>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ stockShowList }}" hint-placeholder-val="{{ true }}">
+        <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);overflow:hidden;">
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:14px;min-width:720px;">
+              <thead>
+                <tr style="text-align:left;color:var(--text-3);background:var(--surface-2);">
+                  <th scope="col" style="padding:12px 18px;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;">Artikel</th>
+                  <th scope="col" style="padding:12px 12px;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;">Jahr · Label</th>
+                  <th scope="col" style="padding:12px 12px;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;">Zustand</th>
+                  <th scope="col" style="padding:12px 12px;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;text-align:right;">EK / VK</th>
+                  <th scope="col" style="padding:12px 12px;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;">Status</th>
+                  <th scope="col" style="padding:12px 18px;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;text-align:right;">Aktion</th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ stock }}" as="x" hint-placeholder-count="6">
+                  <tr style="border-top:1px solid var(--border);transition:background var(--dur-1) var(--ease);opacity:{{ x.op }};" style-hover="background:var(--accent-soft);">
+                    <td style="padding:13px 18px;"><div style="display:flex;align-items:center;gap:12px;"><span aria-hidden="true" style="width:36px;height:36px;border-radius:6px;flex:none;background:repeating-linear-gradient(135deg,var(--surface-3) 0 5px,var(--surface-2) 5px 10px);"></span><span style="min-width:0;"><strong style="font-weight:700;">{{ x.title }}</strong><br><span style="color:var(--text-2);font-size:13px;">{{ x.artist }}</span></span></div></td>
+                    <td style="padding:13px 12px;font-family:var(--font-mono);font-size:12.5px;color:var(--text-2);white-space:nowrap;">{{ x.meta }}</td>
+                    <td style="padding:13px 12px;"><span style="padding:4px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:700;color:{{ x.gradeText }};background:{{ x.gradeBg }};">{{ x.grade }}</span></td>
+                    <td style="padding:13px 12px;text-align:right;font-family:var(--font-mono);font-size:13px;white-space:nowrap;"><span style="color:var(--text-3);">{{ x.ek }}</span> · <strong style="font-weight:500;">{{ x.vk }}</strong></td>
+                    <td style="padding:13px 12px;"><span style="display:inline-flex;align-items:center;gap:6px;color:{{ x.statusColor }};font-weight:600;font-size:13px;white-space:nowrap;"><span aria-hidden="true" style="width:7px;height:7px;border-radius:50%;background:{{ x.statusColor }};"></span>{{ x.statusLabel }}</span></td>
+                    <td style="padding:13px 18px;text-align:right;"><button type="button" onClick="{{ x.onVerkauf }}" disabled="{{ x.disabled }}" style="{{ x.btnStyle }}">{{ x.btnLabel }}</button></td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <div style="padding:13px 18px;border-top:1px solid var(--border);font-size:12.5px;color:var(--text-3);font-family:var(--font-mono);display:flex;justify-content:space-between;"><span>{{ stockCount }} von 3.918</span><span>↔ scrollt auf Mobile</span></div>
+        </div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <!-- ============ WUNSCHLISTEN ============ -->
+      <sc-if value="{{ isWishlist }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:16px;max-width:1040px;">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div style="display:flex;gap:4px;padding:3px;border-radius:var(--r-pill);background:var(--surface-3);">
+            <button type="button" onClick="{{ setWlMine }}" style="{{ wlMineStyle }}">Meine Wunschliste</button>
+            <button type="button" onClick="{{ setWlAll }}" style="{{ wlAllStyle }}">Alle Kunden <span style="font-family:var(--font-mono);opacity:.7;">28</span></button>
+          </div>
+          <button type="button" onClick="{{ openWishAdd }}" style="margin-left:auto;min-height:42px;padding:0 18px;border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;" style-hover="background:var(--accent-hover);">+ Eintrag</button>
+        </div>
+
+        <sc-for list="{{ wishes }}" as="w" hint-placeholder-count="4">
+          <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);padding:16px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+            <span aria-hidden="true" style="width:46px;height:46px;border-radius:8px;flex:none;background:repeating-linear-gradient(135deg,var(--surface-3) 0 7px,var(--surface-2) 7px 14px);"></span>
+            <div style="flex:1;min-width:160px;">
+              <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;"><span style="font-family:var(--font-display);font-weight:700;font-size:16px;">{{ w.title }}</span><span style="{{ w.statusStyle }}">{{ w.statusLabel }}</span></div>
+              <div style="font-size:13px;color:var(--text-2);margin-top:2px;">{{ w.artist }}</div>
+              <div style="font-size:12.5px;color:var(--text-3);margin-top:7px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><span style="display:inline-flex;align-items:center;gap:5px;"><span aria-hidden="true">✉</span>{{ w.customer }}</span><sc-if value="{{ w.comment }}" hint-placeholder-val="{{ false }}"><span style="color:var(--border-strong);">·</span><span style="font-style:italic;">„{{ w.comment }}“</span></sc-if></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text-3);"><span style="{{ w.notifyDot }}"></span>{{ w.notifyLabel }}</span>
+              <button type="button" onClick="{{ w.onNotify }}" style="{{ w.notifyBtnStyle }}">{{ w.notifyBtn }}</button>
+              <button type="button" onClick="{{ w.onAnkauf }}" style="min-height:40px;padding:0 16px;border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:13px;cursor:pointer;" style-hover="background:var(--accent-hover);">Ankaufen</button>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      </sc-if>
+
+      <!-- ============ SCHAUFENSTER · KUNDENANSICHT ============ -->
+      <sc-if value="{{ isPublic }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:22px;">
+        <div style="display:inline-flex;align-self:flex-start;align-items:center;gap:8px;padding:6px 13px;border-radius:var(--r-pill);background:var(--honey-soft);border:1px solid var(--accent-soft-border);color:var(--honey-ink);font-size:12px;font-weight:700;"><span aria-hidden="true">◈</span> Vorschau · so sieht der Kunde den geteilten Link</div>
+
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+            <div>
+              <div style="font-family:var(--font-mono);font-size:12px;color:var(--accent);font-weight:500;letter-spacing:.08em;text-transform:uppercase;">q·records · Live-Bestand</div>
+              <h2 style="font-family:var(--font-display);font-weight:800;font-size:clamp(30px,5vw,46px);letter-spacing:-.03em;margin:8px 0 0;line-height:1;">{{ pubTitle }}</h2>
+              <p style="color:var(--text-2);font-size:15px;margin:10px 0 0;">{{ pubSub }}</p>
+            </div>
+            <button type="button" style="display:inline-flex;align-items:center;gap:8px;min-height:42px;padding:0 18px;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface);color:var(--text);font-family:var(--font-body);font-weight:600;font-size:13.5px;cursor:pointer;" style-hover="border-color:var(--accent);color:var(--accent-ink);"><span aria-hidden="true">⤴</span> Link teilen</button>
+          </div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <sc-for list="{{ pubColls }}" as="c" hint-placeholder-count="3">
+              <button type="button" onClick="{{ c.onClick }}" style="{{ c.style }}">{{ c.label }}</button>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <span style="font-size:12.5px;color:var(--text-3);font-weight:600;">Aktive Filter</span>
+            <sc-for list="{{ pubChips }}" as="chip" hint-placeholder-count="3">
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:var(--r-pill);background:var(--accent-soft);color:var(--accent-ink);font-size:12.5px;font-weight:600;">{{ chip }}</span>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+            <div style="position:relative;flex:1;min-width:240px;display:flex;align-items:center;">
+              <span aria-hidden="true" style="position:absolute;left:14px;color:var(--text-3);font-size:17px;">⌕</span>
+              <input type="search" value="{{ custQuery }}" onChange="{{ setCustQuery }}" placeholder="In diesen Ergebnissen suchen — Titel oder Künstler…" style="width:100%;min-height:var(--tap);padding:0 14px 0 40px;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface-2);color:var(--text);font-family:var(--font-body);font-size:15px;" style-focus="outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);">
+            </div>
+            <span style="font-size:13px;color:var(--text-3);font-family:var(--font-mono);white-space:nowrap;"><strong style="color:var(--text);">{{ pubCount }}</strong> Platten</span>
+          </div>
+        </div>
+
+        <sc-if value="{{ pubEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="border:1px dashed var(--border-strong);border-radius:var(--r-lg);background:var(--surface);padding:48px 24px;text-align:center;color:var(--text-3);">
+          <div aria-hidden="true" style="font-size:34px;margin-bottom:8px;">⌕</div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:17px;color:var(--text-2);">Nichts gefunden</div>
+          <p style="font-size:13.5px;line-height:1.6;margin:6px auto 16px;max-width:38ch;">In dieser Auswahl gibt es dazu gerade keine Platte. Andere Schreibweise probieren oder Suche leeren.</p>
+          <button type="button" onClick="{{ resetCust }}" style="min-height:40px;padding:0 18px;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface);color:var(--text);font-family:var(--font-body);font-weight:600;font-size:13px;cursor:pointer;">Suche leeren</button>
+        </div>
+        </sc-if>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:18px;">
+          <sc-for list="{{ pubItems }}" as="p" hint-placeholder-count="6">
+            <article style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);overflow:hidden;display:flex;flex-direction:column;opacity:{{ p.op }};transition:box-shadow var(--dur-2) var(--ease),transform var(--dur-2) var(--ease);" style-hover="box-shadow:var(--shadow-3);transform:translateY(-3px);">
+              <div style="position:relative;aspect-ratio:1;overflow:hidden;">
+                <div aria-hidden="true" style="position:absolute;right:-32%;top:50%;transform:translateY(-50%);width:78%;aspect-ratio:1;border-radius:50%;box-shadow:var(--shadow-2);background:radial-gradient(circle at 50% 50%,var(--surface) 0 5%,#0000 5.4%),radial-gradient(circle at 50% 50%,{{ p.disc }} 5.4% 30%,#0000 30.4%),repeating-radial-gradient(circle at 50% 50%,var(--disc-groove-a) 0 1.5px,var(--disc-groove-b) 1.5px 3.4px),var(--disc-base);"></div>
+                <div style="position:absolute;inset:0;width:80%;background:repeating-linear-gradient(135deg,var(--surface-3) 0 11px,var(--surface-2) 11px 22px);display:grid;place-items:center;border-right:1px solid var(--border);"><span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);">cover</span></div>
+                <span style="{{ p.availStyle }}"><span aria-hidden="true" style="width:7px;height:7px;border-radius:50%;background:{{ p.availColor }};"></span>{{ p.availLabel }}</span>
+              </div>
+              <div style="padding:14px 16px 16px;display:flex;flex-direction:column;flex:1;">
+                <div style="font-family:var(--font-display);font-weight:700;font-size:16px;line-height:1.2;letter-spacing:-.01em;">{{ p.title }}</div>
+                <div style="font-size:13.5px;color:var(--text-2);margin-top:2px;">{{ p.artist }}</div>
+                <div style="font-family:var(--font-mono);font-size:11.5px;color:var(--text-3);margin-top:8px;">{{ p.meta }}</div>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:12px;margin-bottom:14px;font-size:13px;font-weight:600;color:{{ p.availColor }};"><span aria-hidden="true" style="width:8px;height:8px;border-radius:50%;background:{{ p.availColor }};"></span>{{ p.availLabel }}</div>
+                <button type="button" onClick="{{ p.onCta }}" style="{{ p.ctaStyle }}" style-hover="filter:brightness(.97);">{{ p.ctaLabel }}</button>
+              </div>
+            </article>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:18px 20px;border-radius:var(--r-lg);background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);font-size:13.5px;">
+          <div aria-hidden="true" style="width:30px;height:30px;border-radius:50%;flex:none;background:radial-gradient(circle at 50% 50%,#0a0a0a 0 8%,#0000 8.5%),radial-gradient(circle at 50% 50%,var(--accent) 8.5% 36%,#0000 36.5%),repeating-radial-gradient(circle at 50% 50%,var(--disc-groove-a) 0 1px,var(--disc-groove-b) 1px 2.4px),var(--disc-base);"></div>
+          <span><strong style="color:var(--text);">q·records Mitte</strong> · Brunnenstraße 12 · Mo–Sa 11–20 Uhr</span>
+          <span style="margin-left:auto;color:var(--text-3);">Preise &amp; Beratung direkt im Laden · Vormerkung 48 h gültig</span>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ============ ANALYTIK ============ -->
+      <sc-if value="{{ isAnalytics }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:20px;max-width:1200px;">
+
+        <div style="display:flex;align-items:center;gap:13px;flex-wrap:wrap;">
+          <div style="display:flex;gap:4px;padding:3px;border-radius:var(--r-pill);background:var(--surface-3);">
+            <sc-for list="{{ anSeg }}" as="t" hint-placeholder-count="3">
+              <button type="button" onClick="{{ t.onClick }}" style="{{ t.style }}">{{ t.label }}</button>
+            </sc-for>
+          </div>
+          <span style="font-size:12.5px;color:var(--text-3);font-family:var(--font-mono);">{{ anRange }}</span>
+          <button type="button" style="margin-left:auto;display:inline-flex;align-items:center;gap:8px;min-height:42px;padding:0 18px;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface);color:var(--text);font-family:var(--font-body);font-weight:600;font-size:13.5px;cursor:pointer;" style-hover="border-color:var(--accent);color:var(--accent-ink);"><span aria-hidden="true">⤓</span> CSV exportieren</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,228px),1fr));gap:16px;">
+          <sc-for list="{{ anKpis }}" as="k" hint-placeholder-count="4">
+            <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:20px;box-shadow:var(--shadow-1);">
+              <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:13px;color:var(--text-2);font-weight:600;">{{ k.label }}</span><span style="font-size:12px;font-weight:700;color:{{ k.trendColor }};">{{ k.trend }}</span></div>
+              <div style="font-family:var(--font-mono);font-weight:500;font-size:30px;margin-top:10px;letter-spacing:-.02em;">{{ k.value }}</div>
+              <div style="font-size:11.5px;color:var(--text-3);margin-top:7px;font-family:var(--font-mono);">{{ k.sub }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:20px;align-items:start;" class="qr-dash-cols">
+
+          <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);overflow:hidden;">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);">
+              <div><div style="font-family:var(--font-display);font-weight:700;font-size:16px;">Umsatzverlauf</div><div style="font-size:12px;color:var(--text-3);margin-top:2px;">{{ anBarSub }}</div></div>
+              <span style="font-family:var(--font-mono);font-weight:500;font-size:20px;letter-spacing:-.02em;">{{ anTotal }}</span>
+            </div>
+            <div style="padding:22px 18px 16px;">
+              <div style="display:flex;align-items:flex-end;gap:10px;height:180px;">
+                <sc-for list="{{ anBars }}" as="b" hint-placeholder-count="7">
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end;">
+                    <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--text-3);">{{ b.d }}</span>
+                    <div style="width:100%;height:{{ b.h }};background:{{ b.c }};border-radius:5px 5px 0 0;transition:height var(--dur-3) var(--ease);"></div>
+                    <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-2);font-weight:600;">{{ b.l }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);overflow:hidden;">
+            <div style="padding:16px 18px;border-bottom:1px solid var(--border);"><span style="font-family:var(--font-display);font-weight:700;font-size:16px;">Umsatz nach Kategorie</span></div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:16px;">
+              <div style="height:12px;border-radius:var(--r-pill);background:var(--surface-3);overflow:hidden;display:flex;">
+                <sc-for list="{{ anCats }}" as="c" hint-placeholder-count="4"><span style="width:{{ c.w }};background:{{ c.c }};"></span></sc-for>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:11px;">
+                <sc-for list="{{ anCats }}" as="c" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <span aria-hidden="true" style="width:10px;height:10px;border-radius:3px;flex:none;background:{{ c.c }};"></span>
+                    <span style="flex:1;font-size:13.5px;font-weight:600;">{{ c.l }}</span>
+                    <span style="font-family:var(--font-mono);font-size:13px;">{{ c.d }}</span>
+                    <span style="font-family:var(--font-mono);font-size:11.5px;color:var(--text-3);width:42px;text-align:right;">{{ c.p }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;" class="qr-dash-cols">
+
+          <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);"><span style="font-family:var(--font-display);font-weight:700;font-size:16px;">Verkaufsmuster · Wochentag</span><span style="font-size:12px;color:var(--ok);font-weight:700;">Spitze: {{ anBestDay }}</span></div>
+            <div style="padding:16px 18px;display:flex;flex-direction:column;gap:11px;">
+              <sc-for list="{{ anWeek }}" as="w" hint-placeholder-count="7">
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <span style="width:30px;font-family:var(--font-mono);font-size:12px;color:var(--text-2);font-weight:600;">{{ w.l }}</span>
+                  <div style="flex:1;height:14px;border-radius:var(--r-pill);background:var(--surface-3);overflow:hidden;"><span style="display:block;height:100%;width:{{ w.h }};background:{{ w.c }};border-radius:var(--r-pill);transition:width var(--dur-3) var(--ease);"></span></div>
+                  <span style="width:40px;text-align:right;font-family:var(--font-mono);font-size:12px;color:var(--text-3);">{{ w.p }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);overflow:hidden;">
+            <div style="padding:16px 18px;border-bottom:1px solid var(--border);"><span style="font-family:var(--font-display);font-weight:700;font-size:16px;">Tageszeit &amp; Erkenntnisse</span></div>
+            <div style="padding:16px 18px;display:flex;flex-direction:column;gap:11px;">
+              <sc-for list="{{ anTime }}" as="z" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <span style="flex:1;font-size:13px;color:var(--text-2);">{{ z.l }}</span>
+                  <div style="width:46%;height:14px;border-radius:var(--r-pill);background:var(--surface-3);overflow:hidden;"><span style="display:block;height:100%;width:{{ z.h }};background:{{ z.c }};border-radius:var(--r-pill);"></span></div>
+                  <span style="width:34px;text-align:right;font-family:var(--font-mono);font-size:12px;color:var(--text-3);">{{ z.p }}</span>
+                </div>
+              </sc-for>
+              <div style="display:flex;gap:10px;margin-top:5px;">
+                <div style="flex:1;padding:12px 14px;border-radius:var(--r-md);background:var(--accent-soft);border:1px solid var(--accent-soft-border);"><div style="font-size:11px;color:var(--accent-ink);font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Beste Zeit</div><div style="font-family:var(--font-display);font-weight:700;font-size:16px;margin-top:3px;">{{ anBestTime }}</div></div>
+                <div style="flex:1;padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);"><div style="font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Konstanz</div><div style="font-family:var(--font-display);font-weight:700;font-size:16px;margin-top:3px;">{{ anConsistency }}</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);overflow:hidden;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);"><span style="font-family:var(--font-display);font-weight:700;font-size:16px;">Top verkaufte Platten</span><span style="font-size:12.5px;color:var(--text-3);font-family:var(--font-mono);">{{ anRange }}</span></div>
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:14px;min-width:640px;">
+              <thead>
+                <tr style="text-align:left;color:var(--text-3);background:var(--surface-2);">
+                  <th scope="col" style="padding:11px 18px;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;">Platte</th>
+                  <th scope="col" style="padding:11px 12px;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;">Genre</th>
+                  <th scope="col" style="padding:11px 12px;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;text-align:right;">Verkäufe</th>
+                  <th scope="col" style="padding:11px 12px;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;text-align:right;">Umsatz</th>
+                  <th scope="col" style="padding:11px 18px;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;text-align:right;">Marge</th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ anTop }}" as="r" hint-placeholder-count="5">
+                  <tr style="border-top:1px solid var(--border);">
+                    <td style="padding:12px 18px;"><div style="display:flex;align-items:center;gap:12px;"><span aria-hidden="true" style="width:34px;height:34px;border-radius:6px;flex:none;background:repeating-linear-gradient(135deg,var(--surface-3) 0 5px,var(--surface-2) 5px 10px);"></span><span><strong style="font-weight:700;">{{ r.title }}</strong><br><span style="color:var(--text-2);font-size:13px;">{{ r.artist }}</span></span></div></td>
+                    <td style="padding:12px 12px;"><span style="padding:4px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:600;background:var(--surface-3);color:var(--text-2);">{{ r.genre }}</span></td>
+                    <td style="padding:12px 12px;text-align:right;font-family:var(--font-mono);">{{ r.sales }}</td>
+                    <td style="padding:12px 12px;text-align:right;font-family:var(--font-mono);font-weight:500;">{{ r.rev }}</td>
+                    <td style="padding:12px 18px;text-align:right;font-family:var(--font-mono);color:var(--ok);font-weight:600;">{{ r.margin }}</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+      </sc-if>
+
+    </main>
+  </div>
+
+  <!-- ============ MODALS ============ -->
+  <sc-if value="{{ anyModal }}" hint-placeholder-val="{{ false }}">
+  <div role="presentation" onClick="{{ closeModal }}" style="position:fixed;inset:0;z-index:60;background:rgba(20,14,8,.46);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:flex;align-items:flex-start;justify-content:center;padding:clamp(16px,5vh,64px) 16px;overflow-y:auto;">
+
+    <!-- ANKAUF -->
+    <sc-if value="{{ isAnkauf }}" hint-placeholder-val="{{ false }}">
+    <div role="dialog" aria-modal="true" aria-label="Artikel ankaufen" onClick="{{ stop }}" style="width:min(560px,100%);background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);box-shadow:var(--shadow-3);overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid var(--border);">
+        <span aria-hidden="true" style="width:9px;height:9px;border-radius:50%;background:var(--honey);flex:none;"></span>
+        <div style="flex:1;"><div style="font-family:var(--font-display);font-weight:700;font-size:19px;line-height:1.1;">{{ sel.title }}</div><div style="font-size:13px;color:var(--text-2);">Ankauf · {{ sel.artist }}</div></div>
+        <button type="button" onClick="{{ closeModal }}" aria-label="Schließen" style="width:36px;height:36px;border:none;border-radius:50%;background:var(--surface-3);color:var(--text-2);font-size:16px;cursor:pointer;display:grid;place-items:center;" style-hover="background:var(--accent-soft);color:var(--accent-ink);">✕</button>
+      </div>
+      <div style="padding:22px;display:flex;flex-direction:column;gap:20px;max-height:64vh;overflow-y:auto;">
+        <div style="display:flex;gap:16px;">
+          <div aria-hidden="true" style="width:104px;height:104px;border-radius:var(--r-md);flex:none;background:repeating-linear-gradient(135deg,var(--surface-3) 0 9px,var(--surface-2) 9px 18px);display:grid;place-items:center;"><span style="font-family:var(--font-mono);font-size:10px;color:var(--text-3);">cover</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--r-pill);background:var(--surface-3);color:var(--text-2);font-size:12px;font-weight:600;"><span aria-hidden="true">⚑</span> {{ sel.country }}</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--r-pill);background:var(--surface-3);color:var(--text-2);font-size:12px;font-weight:600;"><span aria-hidden="true">▦</span> {{ sel.year }}</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--r-pill);background:var(--surface-3);color:var(--text-2);font-size:12px;font-weight:600;">{{ sel.fmt }}</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              <span style="padding:5px 10px;border-radius:var(--r-pill);background:var(--accent-soft);color:var(--accent-ink);font-size:12px;font-weight:600;">#Electronic</span>
+              <span style="padding:5px 10px;border-radius:var(--r-pill);background:var(--accent-soft);color:var(--accent-ink);font-size:12px;font-weight:600;">#House</span>
+              <span style="padding:5px 10px;border-radius:var(--r-pill);background:var(--accent-soft);color:var(--accent-ink);font-size:12px;font-weight:600;">#French</span>
+            </div>
+            <div style="font-size:12px;color:var(--text-3);font-family:var(--font-mono);margin-top:2px;">Discogs ♡ {{ sel.want }} · ⬩ {{ sel.have }} im Markt</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <label style="display:flex;flex-direction:column;gap:7px;">
+            <span style="font-weight:600;font-size:13.5px;">Einkaufspreis</span>
+            <div style="position:relative;display:flex;align-items:center;"><span aria-hidden="true" style="position:absolute;left:14px;color:var(--text-3);font-family:var(--font-mono);">€</span><input type="text" value="3" inputmode="decimal" style="width:100%;min-height:var(--tap);padding:0 14px 0 30px;border:1.5px solid var(--border-strong);border-radius:var(--r-md);background:var(--surface-2);color:var(--text);font-family:var(--font-mono);font-size:15px;" style-focus="outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);"></div>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:7px;">
+            <span style="font-weight:600;font-size:13.5px;">Zielpreis (VK)</span>
+            <div style="position:relative;display:flex;align-items:center;"><span aria-hidden="true" style="position:absolute;left:14px;color:var(--text-3);font-family:var(--font-mono);">€</span><input type="text" value="{{ sel.suggest }}" inputmode="decimal" style="width:100%;min-height:var(--tap);padding:0 14px 0 30px;border:1.5px solid var(--accent);border-radius:var(--r-md);background:var(--accent-soft);color:var(--text);font-family:var(--font-mono);font-size:15px;font-weight:500;" style-focus="outline:none;box-shadow:0 0 0 3px var(--accent-soft);"></div>
+          </label>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:-8px;font-size:12px;color:var(--text-3);font-family:var(--font-mono);"><span aria-hidden="true" style="color:var(--accent);">◈</span> Vorschlag aus Discogs-Marktdaten (VG+): {{ sel.price }} · Zustand angepasst</div>
+
+        <div style="display:flex;flex-direction:column;gap:11px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="font-weight:600;font-size:13.5px;">Zustand · Platte</span><span style="font-family:var(--font-mono);font-size:12px;color:var(--ok);font-weight:500;">VG+</span></div>
+          <div role="radiogroup" aria-label="Zustand Platte" style="display:flex;flex-wrap:wrap;gap:6px;">
+            <span style="padding:8px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);cursor:pointer;">M</span><span style="padding:8px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);cursor:pointer;">NM</span><span aria-checked="true" style="padding:8px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:700;background:var(--accent);color:var(--on-accent);box-shadow:var(--shadow-1);cursor:pointer;">VG+</span><span style="padding:8px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);cursor:pointer;">VG</span><span style="padding:8px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);cursor:pointer;">G+</span><span style="padding:8px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);cursor:pointer;">G</span><span style="padding:8px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);cursor:pointer;">F</span><span style="padding:8px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);cursor:pointer;">P</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:4px;"><span style="font-weight:600;font-size:13.5px;">Zustand · Cover</span><span style="font-family:var(--font-mono);font-size:12px;color:var(--ok);font-weight:500;">VG</span></div>
+          <div role="radiogroup" aria-label="Zustand Cover" style="display:flex;flex-wrap:wrap;gap:6px;">
+            <span style="padding:8px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);cursor:pointer;">M</span><span style="padding:8px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);cursor:pointer;">NM</span><span style="padding:8px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);cursor:pointer;">VG+</span><span aria-checked="true" style="padding:8px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:700;background:var(--accent);color:var(--on-accent);box-shadow:var(--shadow-1);cursor:pointer;">VG</span><span style="padding:8px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);cursor:pointer;">G+</span><span style="padding:8px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);cursor:pointer;">G</span><span style="padding:8px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);cursor:pointer;">F</span><span style="padding:8px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);cursor:pointer;">P</span>
+          </div>
+        </div>
+
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;min-height:32px;">
+          <span style="position:relative;width:46px;height:28px;border-radius:var(--r-pill);background:var(--accent);flex:none;"><span style="position:absolute;top:3px;left:21px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:var(--shadow-1);"></span></span>
+          <span style="font-size:14px;">Direkt auf Discogs zum Verkauf listen</span>
+        </label>
+      </div>
+      <div style="display:flex;gap:12px;padding:16px 22px;border-top:1px solid var(--border);background:var(--surface-2);">
+        <button type="button" onClick="{{ closeModal }}" style="flex:1;min-height:var(--tap);border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface);color:var(--text);font-family:var(--font-body);font-weight:600;font-size:14.5px;cursor:pointer;">Abbrechen</button>
+        <button type="button" onClick="{{ closeModal }}" style="flex:1.5;min-height:var(--tap);border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:14.5px;cursor:pointer;" style-hover="background:var(--accent-hover);">Zum Bestand hinzufügen</button>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- VERKAUF -->
+    <sc-if value="{{ isVerkauf }}" hint-placeholder-val="{{ false }}">
+    <div role="dialog" aria-modal="true" aria-label="Verkauf" onClick="{{ stop }}" style="width:min(440px,100%);background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);box-shadow:var(--shadow-3);overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);">
+        <span style="font-family:var(--font-display);font-weight:700;font-size:19px;">Verkauf abschließen</span>
+        <button type="button" onClick="{{ closeModal }}" aria-label="Schließen" style="width:36px;height:36px;border:none;border-radius:50%;background:var(--surface-3);color:var(--text-2);font-size:16px;cursor:pointer;display:grid;place-items:center;" style-hover="background:var(--accent-soft);color:var(--accent-ink);">✕</button>
+      </div>
+      <div style="padding:22px;display:flex;flex-direction:column;gap:18px;">
+        <div style="display:flex;align-items:center;gap:13px;padding:12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);">
+          <span aria-hidden="true" style="width:46px;height:46px;border-radius:7px;flex:none;background:repeating-linear-gradient(135deg,var(--surface-3) 0 7px,var(--surface) 7px 14px);"></span>
+          <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:15px;">{{ sel.title }}</div><div style="font-size:13px;color:var(--text-2);">{{ sel.artist }} · {{ sel.grade }}</div></div>
+        </div>
+
+        <label style="display:flex;flex-direction:column;gap:7px;">
+          <span style="font-weight:600;font-size:13.5px;">Verkaufspreis</span>
+          <div style="position:relative;display:flex;align-items:center;"><span aria-hidden="true" style="position:absolute;left:16px;color:var(--text-3);font-family:var(--font-mono);font-size:18px;">€</span><input type="text" value="{{ sel.vkRaw }}" inputmode="decimal" style="width:100%;min-height:54px;padding:0 16px 0 36px;border:1.5px solid var(--accent);border-radius:var(--r-md);background:var(--accent-soft);color:var(--text);font-family:var(--font-mono);font-size:24px;font-weight:500;" style-focus="outline:none;box-shadow:0 0 0 3px var(--accent-soft);"></div>
+        </label>
+
+        <div style="display:flex;flex-direction:column;gap:9px;">
+          <span style="font-weight:600;font-size:13.5px;">Zahlungsart</span>
+          <div style="display:flex;gap:8px;">
+            <button type="button" onClick="{{ setPayCash }}" style="{{ payCash }}"><span aria-hidden="true">⛁</span> Bar</button>
+            <button type="button" onClick="{{ setPayCard }}" style="{{ payCard }}"><span aria-hidden="true">▭</span> Karte</button>
+            <button type="button" onClick="{{ setPayPaypal }}" style="{{ payPaypal }}">PayPal</button>
+            <button type="button" onClick="{{ setPayVoucher }}" style="{{ payVoucher }}"><span aria-hidden="true">◫</span> Gutschein</button>
+          </div>
+        </div>
+
+        <sc-if value="{{ isVoucher }}" hint-placeholder-val="{{ false }}">
+        <label style="display:flex;flex-direction:column;gap:7px;">
+          <span style="font-weight:600;font-size:13.5px;">Gutschein-Code</span>
+          <input type="text" placeholder="z. B. QR-2026-XXX" style="min-height:var(--tap);padding:0 14px;border:1.5px solid var(--border-strong);border-radius:var(--r-md);background:var(--surface-2);color:var(--text);font-family:var(--font-mono);font-size:15px;letter-spacing:.05em;" style-focus="outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);">
+        </label>
+        </sc-if>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:14px;border-top:1px dashed var(--border);"><span style="color:var(--text-2);font-size:14px;">Summe</span><span style="font-family:var(--font-mono);font-weight:500;font-size:26px;letter-spacing:-.01em;">{{ sel.vk }}</span></div>
+      </div>
+      <div style="display:flex;gap:12px;padding:16px 22px;border-top:1px solid var(--border);background:var(--surface-2);">
+        <button type="button" onClick="{{ closeModal }}" style="flex:1;min-height:var(--tap);border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface);color:var(--text);font-family:var(--font-body);font-weight:600;font-size:14.5px;cursor:pointer;">Abbrechen</button>
+        <button type="button" onClick="{{ closeModal }}" style="flex:1.5;min-height:var(--tap);border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:14.5px;cursor:pointer;" style-hover="background:var(--accent-hover);">Verkaufen</button>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- WUNSCHLISTE HINZUFÜGEN -->
+    <sc-if value="{{ isWishAdd }}" hint-placeholder-val="{{ false }}">
+    <div role="dialog" aria-modal="true" aria-label="Auf Wunschliste setzen" onClick="{{ stop }}" style="width:min(480px,100%);background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);box-shadow:var(--shadow-3);overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:10px;"><span aria-hidden="true" style="font-size:18px;color:var(--honey);">♡</span><span style="font-family:var(--font-display);font-weight:700;font-size:19px;">Auf Wunschliste</span></div>
+        <button type="button" onClick="{{ closeModal }}" aria-label="Schließen" style="width:36px;height:36px;border:none;border-radius:50%;background:var(--surface-3);color:var(--text-2);font-size:16px;cursor:pointer;display:grid;place-items:center;" style-hover="background:var(--accent-soft);color:var(--accent-ink);">✕</button>
+      </div>
+      <div style="padding:22px;display:flex;flex-direction:column;gap:16px;max-height:66vh;overflow-y:auto;">
+        <div style="padding:12px 14px;border-radius:var(--r-md);background:var(--honey-soft);border:1px solid var(--accent-soft-border);"><div style="font-weight:700;font-size:15px;">{{ sel.title }}</div><div style="font-size:13px;color:var(--text-2);font-style:italic;">{{ sel.artist }}</div></div>
+        <label style="display:flex;flex-direction:column;gap:7px;">
+          <span style="font-weight:600;font-size:13.5px;">Kunde (optional)</span>
+          <div style="position:relative;display:flex;"><select style="appearance:none;width:100%;min-height:var(--tap);padding:0 40px 0 14px;border:1.5px solid var(--border-strong);border-radius:var(--r-md);background:var(--surface-2);color:var(--text);font-family:var(--font-body);font-size:14.5px;cursor:pointer;" style-focus="outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);"><option>+ Neuen Kunden anlegen</option><option>lena.k@mail.de</option><option>m.bauer@web.de</option><option>Theke / anonym</option></select><span aria-hidden="true" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--text-3);pointer-events:none;">▾</span></div>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:7px;">
+          <span style="font-weight:600;font-size:13.5px;">E-Mail für Benachrichtigung</span>
+          <input type="email" placeholder="kunde@beispiel.de" style="min-height:var(--tap);padding:0 14px;border:1.5px solid var(--border-strong);border-radius:var(--r-md);background:var(--surface-2);color:var(--text);font-family:var(--font-body);font-size:14.5px;" style-focus="outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:7px;">
+          <span style="font-weight:600;font-size:13.5px;">Notiz (optional)</span>
+          <textarea rows="2" placeholder="z. B. Erstpressung bevorzugt, bis € 40…" style="padding:12px 14px;border:1.5px solid var(--border-strong);border-radius:var(--r-md);background:var(--surface-2);color:var(--text);font-family:var(--font-body);font-size:14.5px;resize:vertical;" style-focus="outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);"></textarea>
+        </label>
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;min-height:32px;">
+          <span style="position:relative;width:46px;height:28px;border-radius:var(--r-pill);background:var(--accent);flex:none;"><span style="position:absolute;top:3px;left:21px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:var(--shadow-1);"></span></span>
+          <span style="font-size:14px;">Bei Eingang automatisch per E-Mail benachrichtigen</span>
+        </label>
+      </div>
+      <div style="display:flex;gap:12px;padding:16px 22px;border-top:1px solid var(--border);background:var(--surface-2);">
+        <button type="button" onClick="{{ closeModal }}" style="flex:1;min-height:var(--tap);border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface);color:var(--text);font-family:var(--font-body);font-weight:600;font-size:14.5px;cursor:pointer;">Abbrechen</button>
+        <button type="button" onClick="{{ closeModal }}" style="flex:1.5;min-height:var(--tap);border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:14.5px;cursor:pointer;" style-hover="background:var(--accent-hover);">Eintragen</button>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- BENACHRICHTIGEN -->
+    <sc-if value="{{ isNotify }}" hint-placeholder-val="{{ false }}">
+    <div role="dialog" aria-modal="true" aria-label="Kunde benachrichtigen" onClick="{{ stop }}" style="width:min(420px,100%);background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);box-shadow:var(--shadow-3);overflow:hidden;">
+      <div style="padding:24px 24px 0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;">
+        <span aria-hidden="true" style="width:56px;height:56px;border-radius:50%;background:var(--ok-soft);color:var(--ok);display:grid;place-items:center;font-size:26px;">✉</span>
+        <div><div style="font-family:var(--font-display);font-weight:700;font-size:20px;">Treffer gefunden!</div><p style="color:var(--text-2);font-size:14px;line-height:1.6;margin:8px 0 0;">„{{ sel.title }}“ von {{ sel.artist }} ist eingetroffen. Soll <strong style="color:var(--text);">{{ sel.customer }}</strong> jetzt benachrichtigt werden?</p></div>
+      </div>
+      <div style="margin:20px 24px 0;padding:13px 16px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);font-size:13px;color:var(--text-2);line-height:1.5;">
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;">Vorschau</span><br>
+        Deine Wunschplatte ist da — reserviert bis Samstag. Bei q·records Mitte. 🎶
+      </div>
+      <div style="display:flex;gap:12px;padding:22px 24px;">
+        <button type="button" onClick="{{ closeModal }}" style="flex:1;min-height:var(--tap);border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface);color:var(--text);font-family:var(--font-body);font-weight:600;font-size:14.5px;cursor:pointer;">Abbrechen</button>
+        <button type="button" onClick="{{ closeModal }}" style="flex:1.4;min-height:var(--tap);border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:14.5px;cursor:pointer;" style-hover="background:var(--accent-hover);">E-Mail senden</button>
+      </div>
+    </div>
+    </sc-if>
+
+  </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:860},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Coral&quot;,&quot;Indigo&quot;,&quot;Forest&quot;],&quot;default&quot;:&quot;Coral&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dashboard&quot;,&quot;search&quot;,&quot;stock&quot;,&quot;wishlist&quot;],&quot;default&quot;:&quot;dashboard&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { theme: 'light', screen: 'dashboard', modal: null, wlView: 'mine', payment: 'cash', sel: {}, stockQuery: '', stockFmt: 'all', stockGenre: 'all', stockCond: 'all', stockStatus: 'all', stockView: 'list', custColl: 'jazz', custQuery: '', anPeriod: 'week' };
+
+  _apply() {
+    try {
+      const t = this.state.theme;
+      const bg = t === 'dark' ? '#120F0B' : '#FAF6F1';
+      document.documentElement.setAttribute('data-theme', t);
+      document.body.setAttribute('data-theme', t);
+      document.body.style.setProperty('background', bg, 'important');
+      const acc = this.props && this.props.accent;
+      const root = document.documentElement.style;
+      const P = {
+        Indigo: { a:'#4C63E8', h:'#3B4FD0', p:'#2E3DA8', s:'#EEF0FE', sb:'#C2C9F6', ink:'#2E3DA8' },
+        Forest: { a:'#1F8A52', h:'#177044', p:'#115a36', s:'#E8F5EE', sb:'#A9D9BE', ink:'#115a36' }
+      };
+      if (acc && P[acc] && t === 'light') {
+        const c = P[acc];
+        root.setProperty('--accent', c.a); root.setProperty('--accent-hover', c.h); root.setProperty('--accent-press', c.p);
+        root.setProperty('--accent-soft', c.s); root.setProperty('--accent-soft-border', c.sb); root.setProperty('--accent-ink', c.ink); root.setProperty('--focus', c.a);
+      } else {
+        ['--accent','--accent-hover','--accent-press','--accent-soft','--accent-soft-border','--accent-ink','--focus'].forEach(k => root.removeProperty(k));
+      }
+    } catch (e) {}
+  }
+  componentDidMount() {
+    this._apply();
+    if (this.props && this.props.startScreen) this.setState({ screen: this.props.startScreen });
+    this._k = (e) => { if (e.key === 'Escape') this.setState({ modal: null }); };
+    document.addEventListener('keydown', this._k);
+  }
+  componentWillUnmount() { document.removeEventListener('keydown', this._k); }
+  componentDidUpdate() { this._apply(); }
+
+  renderVals() {
+    const s = this.state;
+    this._apply();
+    const go = (screen) => () => this.setState({ screen, modal: null });
+    const open = (modal, sel) => () => this.setState({ modal, sel: sel || {} });
+    const closeModal = () => this.setState({ modal: null });
+
+    const navStyle = (active) => `display:flex;align-items:center;gap:13px;width:100%;min-height:46px;padding:0 13px;border-radius:var(--r-md);border:none;cursor:pointer;font-family:var(--font-body);font-weight:${active?700:600};font-size:14.5px;text-align:left;background:${active?'var(--accent-soft)':'transparent'};color:${active?'var(--accent-ink)':'var(--text-2)'};border-left:3px solid ${active?'var(--accent)':'transparent'};`;
+    const navItem = (key, icon, label, badge) => ({ icon, label, badge: badge || null, current: s.screen === key ? 'page' : null, style: navStyle(s.screen === key), onClick: go(key) });
+    const nav = [
+      navItem('dashboard', '▦', 'Übersicht'),
+      navItem('search', '⌕', 'Discogs-Suche'),
+      navItem('stock', '▤', 'Lagerbestand', '3.918'),
+      navItem('wishlist', '♡', 'Wunschlisten', '28'),
+      navItem('public', '◈', 'Schaufenster'),
+      navItem('analytics', '◷', 'Analytik'),
+    ];
+
+    const titles = {
+      dashboard: ['Übersicht', 'Dienstag, 23. Juni 2026 · Filiale Mitte'],
+      search: ['Discogs-Suche', 'Releases finden, ankaufen und auf Wunschlisten setzen'],
+      stock: ['Lagerbestand', '3.918 Artikel · live aus dem Regal'],
+      wishlist: ['Wunschlisten', 'Kundenwünsche verwalten und Treffer benachrichtigen'],
+      public: ['Schaufenster', 'Öffentliche Kundenansicht · teilbarer Live-Bestand'],
+      analytics: ['Analytik', 'Auswertungen'],
+    };
+    const tt = titles[s.screen] || titles.dashboard;
+
+    const payPill = (bg, c, bd, dot, label) => ({ statusStyle: `display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:var(--r-pill);font-size:11.5px;font-weight:700;background:${bg};color:${c};border:1px solid ${bd};backdrop-filter:blur(4px);`, statusDot: dot, statusLabel: label });
+    const ST = {
+      neu: payPill('var(--surface-3)', 'var(--text-2)', 'var(--border-strong)', 'var(--text-3)', 'neu'),
+      stock: payPill('var(--ok-soft)', 'var(--ok)', 'color-mix(in srgb,var(--ok) 30%,transparent)', 'var(--ok)', 'im Lager'),
+      wish: payPill('var(--honey-soft)', 'var(--honey-ink)', 'var(--accent-soft-border)', 'var(--honey)', 'auf Wunschliste'),
+    };
+    const mkResult = (o) => {
+      const st = ST[o.st];
+      return Object.assign({}, o, { statusStyle: st.statusStyle, statusDot: st.statusDot, statusLabel: st.statusLabel,
+        onAnkauf: open('ankauf', { title:o.title, artist:o.artist, country:o.country, year:o.year, fmt:o.fmt, want:o.want, have:o.have, price:o.price, suggest:o.suggest }),
+        onWish: open('wishAdd', { title:o.title, artist:o.artist }) });
+    };
+    const results = [
+      mkResult({ title:'Discovery', artist:'Daft Punk', meta:'2001 · Virgin · FR · 2×LP', price:'€ 38', want:'12.4k', have:'31k', country:'FR', year:'2001', fmt:'2×LP', disc:'var(--accent)', st:'stock', suggest:'35' }),
+      mkResult({ title:'Homework', artist:'Daft Punk', meta:'1997 · Virgin · FR · 2×LP', price:'€ 32', want:'9.1k', have:'22k', country:'FR', year:'1997', fmt:'2×LP', disc:'var(--honey)', st:'wish', suggest:'30' }),
+      mkResult({ title:'Random Access Memories', artist:'Daft Punk', meta:'2013 · Columbia · EU · 2×LP', price:'€ 34', want:'18.2k', have:'40k', country:'EU', year:'2013', fmt:'2×LP', disc:'var(--accent)', st:'neu', suggest:'30' }),
+      mkResult({ title:'Alive 2007', artist:'Daft Punk', meta:'2007 · Virgin · EU · 2×LP', price:'€ 41', want:'7.7k', have:'15k', country:'EU', year:'2007', fmt:'2×LP', disc:'var(--accent)', st:'neu', suggest:'40' }),
+      mkResult({ title:'Human After All', artist:'Daft Punk', meta:'2005 · Virgin · EU · LP', price:'€ 29', want:'5.3k', have:'12k', country:'EU', year:'2005', fmt:'LP', disc:'var(--honey)', st:'neu', suggest:'25' }),
+      mkResult({ title:'Daft Club', artist:'Daft Punk', meta:'2003 · Virgin · EU · CD', price:'€ 18', want:'2.1k', have:'6k', country:'EU', year:'2003', fmt:'CD', disc:'var(--accent)', st:'neu', suggest:'15' }),
+    ];
+
+    const grades = {
+      M:['#1f8a52','#fff'], NM:['#2f9e68','#fff'], 'VG+':['#9bc34a','#3a2400'], VG:['#e2c044','#3a2400'],
+      'G+':['#efab3b','#3a2400'], G:['#e0762e','#fff'], F:['#d65532','#fff'], P:['#b6362c','#fff'],
+    };
+    const STK = {
+      stock: ['var(--ok)', 'im Lager'], lent: ['var(--info)', 'Verliehen'], sold: ['var(--text-3)', 'Verkauft'],
+    };
+    const mkRow = (o) => {
+      const g = grades[o.grade] || grades.VG; const st = STK[o.status];
+      const sold = o.status === 'sold' || o.status === 'lent';
+      return { title:o.title, artist:o.artist, meta:o.meta, grade:o.grade, gradeBg:g[0], gradeText:g[1],
+        fmt:o.fmt, genre:o.genre, statusKey:o.status, disc: o.fmt==='CD' ? 'var(--info)' : 'var(--accent)',
+        cardPill:`position:absolute;top:10px;left:10px;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:var(--r-pill);font-size:11.5px;font-weight:700;background:color-mix(in srgb,var(--surface) 86%,transparent);color:${st[0]};border:1px solid color-mix(in srgb,${st[0]} 32%,transparent);backdrop-filter:blur(4px);`,
+        ek:o.ek, vk:o.vk, statusColor: st[0], statusLabel: st[1], op: sold ? (o.status==='sold'?'.62':'1') : '1',
+        disabled: o.status==='sold' ? true : null,
+        btnLabel: o.status==='sold' ? 'Verkauft' : 'Verkaufen',
+        btnStyle: o.status==='sold'
+          ? 'min-height:38px;padding:0 16px;border:none;border-radius:var(--r-pill);background:var(--surface-3);color:var(--text-3);font-family:var(--font-body);font-weight:600;font-size:13px;cursor:not-allowed;'
+          : 'min-height:38px;padding:0 16px;border:1.5px solid var(--accent);border-radius:var(--r-pill);background:transparent;color:var(--accent-ink);font-family:var(--font-body);font-weight:700;font-size:13px;cursor:pointer;',
+        onVerkauf: o.status==='sold' ? () => {} : open('verkauf', { title:o.title, artist:o.artist, grade:o.grade, vk:o.vk, vkRaw:o.vkRaw }) };
+    };
+    const baseStock = [
+      mkRow({ title:'Violator', artist:'Depeche Mode', meta:'1990 · Mute · LP', grade:'VG+', ek:'€3', vk:'€ 28', vkRaw:'28', status:'stock', fmt:'Vinyl', genre:'Synth-Pop' }),
+      mkRow({ title:'Kind of Blue', artist:'Miles Davis', meta:'1959 · Columbia · LP', grade:'NM', ek:'€8', vk:'€ 42', vkRaw:'42', status:'lent', fmt:'Vinyl', genre:'Jazz' }),
+      mkRow({ title:'Discovery', artist:'Daft Punk', meta:'2001 · Virgin · 2×LP', grade:'VG', ek:'€10', vk:'€ 35', vkRaw:'35', status:'stock', fmt:'Vinyl', genre:'Electronic' }),
+      mkRow({ title:'OK Computer', artist:'Radiohead', meta:'1997 · Parlophone · LP', grade:'NM', ek:'€6', vk:'€ 30', vkRaw:'30', status:'stock', fmt:'Vinyl', genre:'Alt-Rock' }),
+      mkRow({ title:'Blue Train', artist:'John Coltrane', meta:'1957 · Blue Note · LP', grade:'VG+', ek:'€18', vk:'€ 60', vkRaw:'60', status:'stock', fmt:'Vinyl', genre:'Jazz' }),
+      mkRow({ title:'Remain in Light', artist:'Talking Heads', meta:'1980 · Sire · LP', grade:'VG+', ek:'€7', vk:'€ 33', vkRaw:'33', status:'stock', fmt:'Vinyl', genre:'Alt-Rock' }),
+      mkRow({ title:'The Köln Concert', artist:'Keith Jarrett', meta:'1975 · ECM · 2×LP', grade:'NM', ek:'€12', vk:'€ 48', vkRaw:'48', status:'stock', fmt:'Vinyl', genre:'Jazz' }),
+      mkRow({ title:'Either / Or', artist:'Elliott Smith', meta:'1997 · Kill Rock Stars · CD', grade:'NM', ek:'€4', vk:'€ 16', vkRaw:'16', status:'stock', fmt:'CD', genre:'Indie' }),
+      mkRow({ title:'Rumours', artist:'Fleetwood Mac', meta:'1977 · Warner · LP', grade:'VG', ek:'€5', vk:'€ 19,50', vkRaw:'19.50', status:'sold', fmt:'Vinyl', genre:'Rock' }),
+    ];
+    const _sq = (s.stockQuery || '').toLowerCase().trim();
+    const _sf = s.stockFmt || 'all', _sg = s.stockGenre || 'all', _sc = s.stockCond || 'all', _ss = s.stockStatus || 'all';
+    const _cRank = { M:0, NM:1, 'VG+':2, VG:3, 'G+':4, G:5, F:6, P:7 };
+    const _cMax = { all:7, nm:1, vgplus:2, vg:3 };
+    const stock = baseStock.filter(r =>
+      (!_sq || (r.title + ' ' + r.artist + ' ' + r.meta).toLowerCase().includes(_sq)) &&
+      (_sf === 'all' || r.fmt === _sf) &&
+      (_sg === 'all' || r.genre === _sg) &&
+      (_cRank[r.grade] <= _cMax[_sc]) &&
+      (_ss === 'all' || r.statusKey === _ss)
+    );
+
+    const filterStyle = (active) => `min-height:40px;padding:0 15px;border-radius:var(--r-pill);border:1.5px solid ${active?'var(--accent)':'var(--border-strong)'};background:${active?'var(--accent)':'var(--surface)'};color:${active?'var(--on-accent)':'var(--text-2)'};font-family:var(--font-body);font-weight:${active?700:600};font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;`;
+    const setStatus = (k) => () => this.setState({ stockStatus: k });
+    const stockFilters = [
+      { label:'Alle', count:'3.918', style: filterStyle(_ss==='all'), onClick: setStatus('all') },
+      { label:'im Lager', count:'3.114', style: filterStyle(_ss==='stock'), onClick: setStatus('stock') },
+      { label:'Verliehen', count:'42', style: filterStyle(_ss==='lent'), onClick: setStatus('lent') },
+      { label:'Verkauft', count:'718', style: filterStyle(_ss==='sold'), onClick: setStatus('sold') },
+    ];
+    const viewSeg = (active) => `min-height:36px;padding:0 14px;border-radius:var(--r-pill);border:none;cursor:pointer;font-family:var(--font-body);font-weight:${active?700:600};font-size:12.5px;background:${active?'var(--surface)':'transparent'};color:${active?'var(--text)':'var(--text-3)'};box-shadow:${active?'var(--shadow-1)':'none'};display:inline-flex;align-items:center;gap:6px;`;
+    const selStyle = `appearance:none;min-height:40px;padding:0 34px 0 14px;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface-2);color:var(--text);font-family:var(--font-body);font-size:13px;font-weight:600;cursor:pointer;`;
+
+    const wPill = (matched) => matched
+      ? 'display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:var(--r-pill);font-size:11px;font-weight:700;background:var(--ok-soft);color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 30%,transparent);'
+      : 'display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:var(--r-pill);font-size:11px;font-weight:700;background:var(--surface-3);color:var(--text-3);';
+    const notifyDot = (on) => `width:8px;height:8px;border-radius:50%;flex:none;background:${on?'var(--ok)':'var(--border-strong)'};`;
+    const mkWish = (o) => ({
+      title:o.title, artist:o.artist, customer:o.customer, comment:o.comment || null,
+      statusStyle: wPill(o.matched), statusLabel: o.matched ? 'Treffer im Bestand' : 'gesucht',
+      notifyDot: notifyDot(o.notify), notifyLabel: o.notify ? 'Benachr. an' : 'Benachr. aus',
+      notifyBtn: o.matched ? 'Benachrichtigen' : 'Anstoßen',
+      notifyBtnStyle: `min-height:40px;padding:0 16px;border:1.5px solid ${o.matched?'var(--accent)':'var(--border-strong)'};border-radius:var(--r-pill);background:transparent;color:${o.matched?'var(--accent-ink)':'var(--text-2)'};font-family:var(--font-body);font-weight:${o.matched?700:600};font-size:13px;cursor:pointer;`,
+      onNotify: open('notify', { title:o.title, artist:o.artist, customer:o.customer }),
+      onAnkauf: open('ankauf', { title:o.title, artist:o.artist, country:'—', year:'—', fmt:'LP', want:'—', have:'—', price:'—', suggest:'30' }),
+    });
+    const wishes = [
+      mkWish({ title:'Spirit of Eden', artist:'Talk Talk', customer:'m.bauer@web.de', comment:'Original UK Press', notify:true, matched:true }),
+      mkWish({ title:'Remain in Light', artist:'Talking Heads', customer:'lena.k@mail.de', comment:'bis € 45', notify:true, matched:false }),
+      mkWish({ title:'In Rainbows', artist:'Radiohead', customer:'Theke / anonym', notify:false, matched:false }),
+      mkWish({ title:'Homework', artist:'Daft Punk', customer:'j.fischer@gmx.de', comment:'jede Pressung', notify:true, matched:false }),
+    ];
+
+    const sales = [
+      { title:'Violator', artist:'Depeche Mode', price:'€ 28,00', pay:'Bar', time:'vor 4 Min' },
+      { title:'Espresso', artist:'Café · Theke', price:'€ 2,80', pay:'Karte', time:'vor 12 Min' },
+      { title:'OK Computer', artist:'Radiohead', price:'€ 30,00', pay:'PayPal', time:'vor 38 Min' },
+      { title:'Discovery', artist:'Daft Punk', price:'€ 35,00', pay:'Gutschein', time:'vor 1 Std' },
+    ].map(x => Object.assign(x, { payStyle:'font-family:var(--font-mono);font-size:11px;font-weight:600;padding:3px 9px;border-radius:var(--r-pill);background:var(--surface-3);color:var(--text-2);white-space:nowrap;' }));
+
+    const matches = [
+      { title:'Spirit of Eden', artist:'Talk Talk', customer:'m.bauer', onNotify: open('notify', { title:'Spirit of Eden', artist:'Talk Talk', customer:'m.bauer@web.de' }) },
+      { title:'Pet Sounds', artist:'The Beach Boys', customer:'lena.k', onNotify: open('notify', { title:'Pet Sounds', artist:'The Beach Boys', customer:'lena.k@mail.de' }) },
+      { title:'Aja', artist:'Steely Dan', customer:'Theke', onNotify: open('notify', { title:'Aja', artist:'Steely Dan', customer:'Theke-Kunde' }) },
+    ];
+
+    const availMap = {
+      in:  { label:'Verfügbar im Store', color:'var(--ok)' },
+      low: { label:'Nur noch 1×', color:'var(--honey-ink)' },
+      out: { label:'Aktuell vergriffen', color:'var(--text-3)' },
+    };
+    const mkPub = (o) => {
+      const a = availMap[o.avail]; const out = o.avail === 'out';
+      return { title:o.title, artist:o.artist, meta:o.meta, genre:o.genre,
+        disc: o.fmt==='CD' ? 'var(--info)' : 'var(--accent)', op: out ? '.66' : '1',
+        availLabel: a.label, availColor: a.color,
+        availStyle:`position:absolute;top:10px;left:10px;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:var(--r-pill);font-size:11.5px;font-weight:700;background:color-mix(in srgb,var(--surface) 88%,transparent);color:${a.color};border:1px solid color-mix(in srgb,${a.color} 32%,transparent);backdrop-filter:blur(4px);`,
+        ctaLabel: out ? 'Benachrichtigen' : 'Im Laden vormerken',
+        ctaStyle: out
+          ? 'width:100%;min-height:42px;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface);color:var(--text-2);font-family:var(--font-body);font-weight:600;font-size:13.5px;cursor:pointer;'
+          : 'width:100%;min-height:42px;border:1.5px solid var(--accent);border-radius:var(--r-pill);background:transparent;color:var(--accent-ink);font-family:var(--font-body);font-weight:700;font-size:13.5px;cursor:pointer;',
+        onCta: open(out ? 'notify' : 'wishAdd', { title:o.title, artist:o.artist, customer:'dich' }) };
+    };
+    const collDefs = {
+      jazz: { title:'Jazz auf Vinyl', sub:'84 Platten aktuell im Regal · Filiale Mitte', chips:['Genre: Jazz','Format: Vinyl','Filiale: Mitte'], items:[
+        mkPub({ title:'Kind of Blue', artist:'Miles Davis', meta:'1959 · Columbia · US · LP', genre:'Jazz', fmt:'Vinyl', avail:'in' }),
+        mkPub({ title:'Blue Train', artist:'John Coltrane', meta:'1957 · Blue Note · US · LP', genre:'Jazz', fmt:'Vinyl', avail:'low' }),
+        mkPub({ title:'The Köln Concert', artist:'Keith Jarrett', meta:'1975 · ECM · DE · 2×LP', genre:'Jazz', fmt:'Vinyl', avail:'in' }),
+        mkPub({ title:'Mingus Ah Um', artist:'Charles Mingus', meta:'1959 · Columbia · US · LP', genre:'Jazz', fmt:'Vinyl', avail:'in' }),
+        mkPub({ title:'A Love Supreme', artist:'John Coltrane', meta:'1965 · Impulse! · US · LP', genre:'Jazz', fmt:'Vinyl', avail:'out' }),
+        mkPub({ title:'Getz / Gilberto', artist:'Stan Getz & João Gilberto', meta:'1964 · Verve · US · LP', genre:'Jazz', fmt:'Vinyl', avail:'in' }),
+        mkPub({ title:'Head Hunters', artist:'Herbie Hancock', meta:'1973 · Columbia · US · LP', genre:'Jazz', fmt:'Vinyl', avail:'low' }),
+        mkPub({ title:'Money Jungle', artist:'Duke Ellington', meta:'1963 · United Artists · US · LP', genre:'Jazz', fmt:'Vinyl', avail:'in' }),
+      ] },
+      hiphop: { title:'HipHop aus den USA', sub:'52 Platten aktuell im Regal · Filiale Mitte', chips:['Genre: HipHop','Land: USA','Format: Vinyl'], items:[
+        mkPub({ title:'Illmatic', artist:'Nas', meta:'1994 · Columbia · US · LP', genre:'HipHop', fmt:'Vinyl', avail:'in' }),
+        mkPub({ title:'Ready to Die', artist:'The Notorious B.I.G.', meta:'1994 · Bad Boy · US · 2×LP', genre:'HipHop', fmt:'Vinyl', avail:'low' }),
+        mkPub({ title:'Enter the Wu-Tang (36 Chambers)', artist:'Wu-Tang Clan', meta:'1993 · Loud · US · LP', genre:'HipHop', fmt:'Vinyl', avail:'in' }),
+        mkPub({ title:'Midnight Marauders', artist:'A Tribe Called Quest', meta:'1993 · Jive · US · LP', genre:'HipHop', fmt:'Vinyl', avail:'in' }),
+        mkPub({ title:'The Chronic', artist:'Dr. Dre', meta:'1992 · Death Row · US · 2×LP', genre:'HipHop', fmt:'Vinyl', avail:'out' }),
+        mkPub({ title:'Aquemini', artist:'OutKast', meta:'1998 · LaFace · US · 2×LP', genre:'HipHop', fmt:'Vinyl', avail:'in' }),
+        mkPub({ title:'Madvillainy', artist:'Madvillain', meta:'2004 · Stones Throw · US · 2×LP', genre:'HipHop', fmt:'Vinyl', avail:'low' }),
+      ] },
+      neu: { title:'Neu eingetroffen', sub:'diese Woche frisch ins Regal gewandert', chips:['Sortierung: Neuzugänge','Filiale: Mitte'], items:[
+        mkPub({ title:'In Rainbows', artist:'Radiohead', meta:'2007 · XL · UK · LP', genre:'Alt-Rock', fmt:'Vinyl', avail:'in' }),
+        mkPub({ title:'Discovery', artist:'Daft Punk', meta:'2001 · Virgin · FR · 2×LP', genre:'Electronic', fmt:'Vinyl', avail:'in' }),
+        mkPub({ title:'Remain in Light', artist:'Talking Heads', meta:'1980 · Sire · US · LP', genre:'Alt-Rock', fmt:'Vinyl', avail:'low' }),
+        mkPub({ title:'Violator', artist:'Depeche Mode', meta:'1990 · Mute · UK · LP', genre:'Synth-Pop', fmt:'Vinyl', avail:'in' }),
+      ] },
+    };
+    const _cc = s.custColl || 'jazz';
+    const _coll = collDefs[_cc] || collDefs.jazz;
+    const _cq = (s.custQuery || '').toLowerCase().trim();
+    const pubItems = _coll.items.filter(p => !_cq || (p.title + ' ' + p.artist + ' ' + p.meta).toLowerCase().includes(_cq));
+    const pubCollStyle = (active) => `min-height:40px;padding:0 16px;border-radius:var(--r-pill);border:1.5px solid ${active?'var(--accent)':'var(--border-strong)'};background:${active?'var(--accent)':'var(--surface)'};color:${active?'var(--on-accent)':'var(--text-2)'};font-family:var(--font-body);font-weight:${active?700:600};font-size:13px;cursor:pointer;`;
+    const setColl = (k) => () => this.setState({ custColl: k, custQuery: '' });
+    const pubColls = [
+      { label:'Jazz · Vinyl', style: pubCollStyle(_cc==='jazz'), onClick: setColl('jazz') },
+      { label:'HipHop · USA', style: pubCollStyle(_cc==='hiphop'), onClick: setColl('hiphop') },
+      { label:'Neu eingetroffen', style: pubCollStyle(_cc==='neu'), onClick: setColl('neu') },
+    ];
+
+    const payBtn = (active) => `flex:1;min-height:var(--tap);border-radius:var(--r-md);border:1.5px solid ${active?'var(--accent)':'var(--border-strong)'};background:${active?'var(--accent-soft)':'var(--surface-2)'};color:${active?'var(--accent-ink)':'var(--text-2)'};font-family:var(--font-body);font-weight:${active?700:600};font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all var(--dur-1) var(--ease);`;
+    const setPay = (v) => () => this.setState({ payment: v });
+
+    // ===== ANALYTIK =====
+    const trC = (up) => up ? 'var(--ok)' : 'var(--bad)';
+    const anDefs = {
+      week: {
+        range: '16.–22. Juni 2026 · Filiale Mitte', barSub: 'letzte 7 Tage', total: '€ 8.940',
+        kpis: [
+          { label:'Umsatz', value:'€ 8.940', trend:'▲ 12%', up:true, sub:'ggü. Vorwoche' },
+          { label:'Transaktionen', value:'312', trend:'▲ 6%', up:true, sub:'Ø € 28,70 / Bon' },
+          { label:'Ankäufe', value:'184', trend:'▲ 9%', up:true, sub:'47 Sammlungen' },
+          { label:'Rohmarge', value:'61%', trend:'▲ 2 pt', up:true, sub:'Wareneinsatz 39%' },
+        ],
+        bars: [ ['Mo',1020,'1.020'],['Di',1284,'1.284'],['Mi',1140,'1.140'],['Do',1460,'1.460'],['Fr',1880,'1.880'],['Sa',2010,'2.010'],['So',146,'146'] ],
+        cats: [ ['Vinyl',6140,'6.140','var(--accent)'],['CD',1250,'1.250','var(--info)'],['Getränke',890,'890','var(--honey)'],['Sonstiges',660,'660','var(--text-3)'] ],
+        week: [ ['Mo',64],['Di',72],['Mi',68],['Do',81],['Fr',92],['Sa',100],['So',12] ],
+        time: [ ['Vormittag · 11–14 Uhr',22],['Mittag · 14–16 Uhr',31],['Nachmittag · 16–18 Uhr',28],['Abend · 18–20 Uhr',19] ],
+        bestDay:'Samstag', bestTime:'16–18 Uhr', consistency:'78%',
+      },
+      month: {
+        range: 'Juni 2026 · Filiale Mitte', barSub: 'pro Kalenderwoche', total: '€ 36.420',
+        kpis: [
+          { label:'Umsatz', value:'€ 36.420', trend:'▲ 8%', up:true, sub:'ggü. Mai' },
+          { label:'Transaktionen', value:'1.284', trend:'▲ 5%', up:true, sub:'Ø € 28,40 / Bon' },
+          { label:'Ankäufe', value:'742', trend:'▲ 4%', up:true, sub:'168 Sammlungen' },
+          { label:'Rohmarge', value:'60%', trend:'▼ 1 pt', up:false, sub:'Wareneinsatz 40%' },
+        ],
+        bars: [ ['KW23',8210,'8.210'],['KW24',9040,'9.040'],['KW25',8940,'8.940'],['KW26',10230,'10.230'] ],
+        cats: [ ['Vinyl',24980,'24.980','var(--accent)'],['CD',5120,'5.120','var(--info)'],['Getränke',3640,'3.640','var(--honey)'],['Sonstiges',2680,'2.680','var(--text-3)'] ],
+        week: [ ['Mo',61],['Di',70],['Mi',66],['Do',83],['Fr',94],['Sa',100],['So',14] ],
+        time: [ ['Vormittag · 11–14 Uhr',24],['Mittag · 14–16 Uhr',29],['Nachmittag · 16–18 Uhr',30],['Abend · 18–20 Uhr',17] ],
+        bestDay:'Samstag', bestTime:'16–18 Uhr', consistency:'81%',
+      },
+      quarter: {
+        range: 'Q2 2026 · Apr–Jun · Filiale Mitte', barSub: 'pro Monat', total: '€ 104.860',
+        kpis: [
+          { label:'Umsatz', value:'€ 104.860', trend:'▲ 15%', up:true, sub:'ggü. Q1' },
+          { label:'Transaktionen', value:'3.706', trend:'▲ 11%', up:true, sub:'Ø € 28,30 / Bon' },
+          { label:'Ankäufe', value:'2.118', trend:'▲ 13%', up:true, sub:'486 Sammlungen' },
+          { label:'Rohmarge', value:'61%', trend:'▲ 3 pt', up:true, sub:'Wareneinsatz 39%' },
+        ],
+        bars: [ ['Apr',31980,'31.980'],['Mai',36460,'36.460'],['Jun',36420,'36.420'] ],
+        cats: [ ['Vinyl',72350,'72.350','var(--accent)'],['CD',14820,'14.820','var(--info)'],['Getränke',10240,'10.240','var(--honey)'],['Sonstiges',7450,'7.450','var(--text-3)'] ],
+        week: [ ['Mo',63],['Di',71],['Mi',67],['Do',82],['Fr',93],['Sa',100],['So',13] ],
+        time: [ ['Vormittag · 11–14 Uhr',23],['Mittag · 14–16 Uhr',30],['Nachmittag · 16–18 Uhr',29],['Abend · 18–20 Uhr',18] ],
+        bestDay:'Samstag', bestTime:'16–18 Uhr', consistency:'80%',
+      },
+    };
+    const _ap = s.anPeriod || 'week';
+    const _an = anDefs[_ap];
+    const anSegStyle = (active) => `min-height:38px;padding:0 18px;border-radius:var(--r-pill);border:none;cursor:pointer;font-family:var(--font-body);font-weight:${active?700:600};font-size:13px;background:${active?'var(--surface)':'transparent'};color:${active?'var(--text)':'var(--text-3)'};box-shadow:${active?'var(--shadow-1)':'none'};`;
+    const setAn = (k) => () => this.setState({ anPeriod: k });
+    const anSeg = [ ['week','Woche'],['month','Monat'],['quarter','Quartal'] ].map(([k,l]) => ({ label:l, style:anSegStyle(_ap===k), onClick:setAn(k) }));
+    const _barMax = Math.max.apply(null, _an.bars.map(b => b[1]));
+    const anBars = _an.bars.map(b => ({ l:b[0], d:'€ '+b[2], h:Math.round(b[1]/_barMax*100)+'%', c: b[1]===_barMax ? 'var(--accent)' : 'var(--accent-soft)' }));
+    const _catTot = _an.cats.reduce((a,c) => a+c[1], 0);
+    const anCats = _an.cats.map(c => ({ l:c[0], d:'€ '+c[2], c:c[3], w:(c[1]/_catTot*100).toFixed(1)+'%', p:Math.round(c[1]/_catTot*100)+'%' }));
+    const anWeek = _an.week.map(w => ({ l:w[0], h:w[1]+'%', p:w[1]+'%', c: w[1]===100 ? 'var(--accent)' : 'var(--accent-soft)' }));
+    const _timeMax = Math.max.apply(null, _an.time.map(z => z[1]));
+    const anTime = _an.time.map(z => ({ l:z[0], h:Math.round(z[1]/_timeMax*100)+'%', p:z[1]+'%', c: z[1]===_timeMax ? 'var(--accent)' : 'var(--honey)' }));
+    const anKpis = _an.kpis.map(k => Object.assign({}, k, { trendColor: trC(k.up) }));
+    const anTop = [
+      { title:'Discovery', artist:'Daft Punk', genre:'Electronic', sales:'14', rev:'€ 462', margin:'71%' },
+      { title:'Kind of Blue', artist:'Miles Davis', genre:'Jazz', sales:'11', rev:'€ 418', margin:'64%' },
+      { title:'OK Computer', artist:'Radiohead', genre:'Alt-Rock', sales:'9', rev:'€ 270', margin:'68%' },
+      { title:'Violator', artist:'Depeche Mode', genre:'Synth-Pop', sales:'8', rev:'€ 224', margin:'74%' },
+      { title:'Rumours', artist:'Fleetwood Mac', genre:'Rock', sales:'7', rev:'€ 161', margin:'60%' },
+    ];
+
+    return {
+      theme: s.theme,
+      themeIcon: s.theme === 'dark' ? '☾' : '☀',
+      toggleTheme: () => this.setState(p => ({ theme: p.theme === 'light' ? 'dark' : 'light' })),
+      nav, screenTitle: tt[0], screenSub: tt[1],
+      isDashboard: s.screen === 'dashboard', isSearch: s.screen === 'search', isStock: s.screen === 'stock', isWishlist: s.screen === 'wishlist', isAnalytics: s.screen === 'analytics', isPublic: s.screen === 'public',
+      pubTitle: _coll.title, pubSub: _coll.sub, pubChips: _coll.chips, pubColls, pubItems, pubCount: pubItems.length, pubEmpty: pubItems.length === 0,
+      anSeg, anRange: _an.range, anBarSub: _an.barSub, anTotal: _an.total, anKpis, anBars, anCats, anWeek, anTime, anTop,
+      anBestDay: _an.bestDay, anBestTime: _an.bestTime, anConsistency: _an.consistency,
+      custQuery: s.custQuery || '', setCustQuery: (e) => this.setState({ custQuery: e.target.value }), resetCust: () => this.setState({ custQuery: '' }),
+      goWishlist: go('wishlist'), goStock: go('stock'),
+      results, stock, stockFilters, wishes, sales, matches,
+      stockCount: stock.length, stockEmpty: stock.length === 0,
+      stockIsList: (s.stockView||'list')==='list', stockIsTile: (s.stockView||'list')==='tile',
+      stockListBtn: viewSeg((s.stockView||'list')==='list'), stockTileBtn: viewSeg((s.stockView||'list')==='tile'),
+      stockShowList: (s.stockView||'list')==='list' && stock.length>0, stockShowTile: (s.stockView||'list')==='tile' && stock.length>0,
+      setStockList: () => this.setState({ stockView:'list' }), setStockTile: () => this.setState({ stockView:'tile' }),
+      stockQuery: s.stockQuery||'', stockFmt:_sf, stockGenre:_sg, stockCond:_sc, selStyle,
+      setStockQuery: (e)=>this.setState({ stockQuery: e.target.value }),
+      setStockFmt: (e)=>this.setState({ stockFmt: e.target.value }),
+      setStockGenre: (e)=>this.setState({ stockGenre: e.target.value }),
+      setStockCond: (e)=>this.setState({ stockCond: e.target.value }),
+      resetStock: ()=>this.setState({ stockQuery:'', stockFmt:'all', stockGenre:'all', stockCond:'all', stockStatus:'all' }),
+      wlMineStyle: this._seg(s.wlView === 'mine'), wlAllStyle: this._seg(s.wlView === 'all'),
+      setWlMine: () => this.setState({ wlView: 'mine' }), setWlAll: () => this.setState({ wlView: 'all' }),
+      openWishAdd: open('wishAdd', { title:'Neuer Wunsch', artist:'Artist · Titel eingeben' }),
+      openVerkaufQuick: open('verkauf', { title:'Schnellverkauf', artist:'Artikel scannen', grade:'—', vk:'€ 0,00', vkRaw:'0' }),
+      anyModal: !!s.modal, isAnkauf: s.modal === 'ankauf', isVerkauf: s.modal === 'verkauf', isWishAdd: s.modal === 'wishAdd', isNotify: s.modal === 'notify',
+      closeModal, stop: (e) => { if (e && e.stopPropagation) e.stopPropagation(); },
+      sel: s.sel || {},
+      payCash: payBtn(s.payment === 'cash'), payCard: payBtn(s.payment === 'card'), payPaypal: payBtn(s.payment === 'paypal'), payVoucher: payBtn(s.payment === 'voucher'),
+      setPayCash: setPay('cash'), setPayCard: setPay('card'), setPayPaypal: setPay('paypal'), setPayVoucher: setPay('voucher'),
+      isVoucher: s.payment === 'voucher',
+    };
+  }
+  _seg(active) {
+    return `min-height:38px;padding:0 16px;border-radius:var(--r-pill);border:none;cursor:pointer;font-family:var(--font-body);font-weight:${active?700:600};font-size:13px;background:${active?'var(--surface)':'transparent'};color:${active?'var(--text)':'var(--text-3)'};box-shadow:${active?'var(--shadow-1)':'none'};display:inline-flex;align-items:center;gap:7px;transition:all var(--dur-1) var(--ease);`;
+  }
+}
+</script>
+</body>
+</html>

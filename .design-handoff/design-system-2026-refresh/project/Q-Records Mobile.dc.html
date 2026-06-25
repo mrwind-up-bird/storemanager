@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+:root{
+  --font-display:'Bricolage Grotesque',system-ui,sans-serif;
+  --font-body:'Hanken Grotesk',system-ui,-apple-system,sans-serif;
+  --font-mono:'Geist Mono',ui-monospace,SFMono-Regular,monospace;
+  --coral-50:#FDF1EC;--coral-100:#FADCD0;--coral-200:#F5B9A3;--coral-300:#F0917A;--coral-400:#EC6F50;--coral-500:#E8552E;--coral-600:#CB4220;--coral-700:#A2351B;
+  --amber-50:#FEF7EA;--amber-400:#F2A93B;--amber-700:#93590F;
+  --n-0:#FFFFFF;--n-50:#FAF6F1;--n-100:#F2EBE2;--n-150:#EAE1D5;--n-200:#E0D5C6;--n-300:#CDBEAB;--n-400:#AC9C86;--n-500:#857968;--n-600:#665C4E;--n-700:#4C443A;--n-800:#332D26;--n-850:#26211B;--n-900:#1B1712;--n-950:#120F0B;
+  --green-600:#1F7E51;--green-50:#E8F5EE;--red-600:#B6362C;--red-50:#FCEDEB;--blue-600:#2C6AA3;--blue-50:#EAF2FA;
+  --bg:var(--n-50);--surface:var(--n-0);--surface-2:var(--n-50);--surface-3:var(--n-100);--border:var(--n-200);--border-strong:var(--n-300);--text:var(--n-900);--text-2:var(--n-600);--text-3:var(--n-500);
+  --accent:var(--coral-500);--accent-hover:var(--coral-600);--accent-soft:var(--coral-50);--accent-soft-border:var(--coral-200);--accent-ink:var(--coral-700);--on-accent:#FFFFFF;
+  --honey:var(--amber-400);--honey-soft:var(--amber-50);--honey-ink:var(--amber-700);
+  --ok:var(--green-600);--ok-soft:var(--green-50);--bad:var(--red-600);--info:var(--blue-600);--info-soft:var(--blue-50);
+  --disc-base:#15110D;--disc-groove-a:#1d1813;--disc-groove-b:#2a221b;
+  --shadow-1:0 1px 2px rgba(40,28,16,.06),0 1px 3px rgba(40,28,16,.08);--shadow-2:0 6px 16px -4px rgba(40,28,16,.12);--shadow-3:0 18px 40px -12px rgba(40,28,16,.22);
+  --r-sm:10px;--r-md:14px;--r-lg:20px;--r-xl:26px;--r-pill:999px;--tap:44px;
+  --ease:cubic-bezier(.2,.7,.2,1);--dur-2:220ms;--dur-3:380ms;
+}
+[data-theme="dark"]{
+  --bg:var(--n-950);--surface:var(--n-900);--surface-2:var(--n-850);--surface-3:var(--n-800);--border:#352e26;--border-strong:#4a4035;--text:var(--n-100);--text-2:#c3b6a4;--text-3:#9b8f7d;
+  --accent:#F2734C;--accent-hover:#F58A68;--accent-soft:#3a221880;--accent-soft-border:#6e3a26;--accent-ink:#F9B49C;--on-accent:#2a0f06;
+  --honey:#F5C357;--honey-soft:#3a2e1580;--honey-ink:#F8D78D;--ok:#4FC489;--ok-soft:#16352580;--bad:#F0786C;--info:#6BA7DC;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4);--shadow-2:0 6px 16px -4px rgba(0,0,0,.5);--shadow-3:0 20px 40px -10px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:#cfc4b4;font-family:var(--font-body);-webkit-font-smoothing:antialiased;}
+.qr-scroll::-webkit-scrollbar{width:0;height:0}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:grid;place-items:center;padding:26px 16px;background:radial-gradient(120% 90% at 50% 0%,#d9cebd 0%,#c4b9a8 60%,#b6ab9a 100%);">
+  <div data-theme="{{ theme }}" style="position:relative;width:392px;height:840px;border-radius:52px;background:#0c0a08;padding:13px;box-shadow:0 40px 90px -30px rgba(0,0,0,.55),0 0 0 2px #2a241d,inset 0 0 0 2px #000;flex:none;">
+    <div data-screen-label="Mobile" style="position:relative;width:100%;height:100%;border-radius:40px;overflow:hidden;background:var(--bg);color:var(--text);display:flex;flex-direction:column;">
+
+      <div style="position:absolute;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;justify-content:space-between;height:46px;padding:0 30px 0 34px;font-size:14px;font-weight:700;color:var(--text);pointer-events:none;">
+        <span style="font-family:var(--font-mono);letter-spacing:.02em;">9:41</span>
+        <span style="position:absolute;left:50%;top:9px;transform:translateX(-50%);width:104px;height:27px;background:#0c0a08;border-radius:var(--r-pill);"></span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:12px;"><span aria-hidden="true">▮▮▮</span><span aria-hidden="true">⌖</span><span aria-hidden="true" style="font-family:var(--font-mono);">82%</span></span>
+      </div>
+
+      <div class="qr-scroll" style="flex:1;overflow-y:auto;overflow-x:hidden;padding-top:46px;">
+
+        <!-- sticky header -->
+        <div style="position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:11px;padding:8px 18px 12px;background:color-mix(in srgb,var(--surface) 90%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border);">
+          <sc-if value="{{ showBack }}" hint-placeholder-val="{{ false }}">
+            <button type="button" onClick="{{ goHome }}" aria-label="Zurück" style="width:38px;height:38px;flex:none;border:1.5px solid var(--border-strong);border-radius:50%;background:var(--surface);color:var(--text);font-size:17px;cursor:pointer;display:grid;place-items:center;">‹</button>
+          </sc-if>
+          <div style="flex:1;min-width:0;line-height:1.15;">
+            <div style="font-family:var(--font-display);font-weight:800;font-size:22px;letter-spacing:-.02em;">{{ title }}</div>
+            <div style="font-size:11.5px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ sub }}</div>
+          </div>
+          <button type="button" onClick="{{ toggleTheme }}" aria-label="Theme" style="width:38px;height:38px;flex:none;border:1.5px solid var(--border-strong);border-radius:50%;background:var(--surface);color:var(--text);font-size:15px;cursor:pointer;display:grid;place-items:center;">{{ themeIcon }}</button>
+          <button type="button" onClick="{{ openSell }}" aria-label="Verkauf" style="width:38px;height:38px;flex:none;border:none;border-radius:50%;background:var(--accent);color:var(--on-accent);font-size:17px;font-weight:700;cursor:pointer;display:grid;place-items:center;box-shadow:var(--shadow-1);">€</button>
+        </div>
+
+        <div style="padding:16px 16px 96px;">
+
+          <!-- ===== START ===== -->
+          <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;">
+              <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--accent);color:var(--on-accent);padding:15px;box-shadow:var(--shadow-2);">
+                <div style="font-size:12px;font-weight:600;opacity:.9;">Tagesumsatz</div>
+                <div style="font-family:var(--font-mono);font-weight:500;font-size:25px;margin-top:6px;letter-spacing:-.02em;">€ 1.284</div>
+                <div style="font-size:11px;margin-top:5px;opacity:.9;">▲ 12% ggü. gestern</div>
+              </div>
+              <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:15px;box-shadow:var(--shadow-1);">
+                <div style="font-size:12px;font-weight:600;color:var(--text-2);">Ankäufe heute</div>
+                <div style="font-family:var(--font-mono);font-weight:500;font-size:25px;margin-top:6px;letter-spacing:-.02em;">47</div>
+                <div style="font-size:11px;margin-top:5px;color:var(--text-3);">8 Sammlungen</div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px;">
+              <sc-for list="{{ quickActions }}" as="q" hint-placeholder-count="3">
+                <button type="button" onClick="{{ q.onClick }}" style="display:flex;flex-direction:column;align-items:center;gap:7px;padding:15px 8px;border:1.5px solid var(--border-strong);border-radius:var(--r-lg);background:var(--surface);color:var(--text);cursor:pointer;" style-hover="border-color:var(--accent);">
+                  <span aria-hidden="true" style="width:40px;height:40px;border-radius:50%;background:var(--accent-soft);color:var(--accent-ink);display:grid;place-items:center;font-size:19px;">{{ q.icon }}</span>
+                  <span style="font-size:12px;font-weight:700;">{{ q.label }}</span>
+                </button>
+              </sc-for>
+            </div>
+
+            <div style="border:1px solid var(--accent-soft-border);border-radius:var(--r-lg);background:var(--honey-soft);box-shadow:var(--shadow-1);overflow:hidden;">
+              <div style="display:flex;align-items:center;gap:9px;padding:13px 15px;border-bottom:1px solid var(--accent-soft-border);">
+                <span aria-hidden="true" style="width:9px;height:9px;border-radius:50%;background:var(--honey);box-shadow:0 0 0 4px color-mix(in srgb,var(--honey) 30%,transparent);"></span>
+                <span style="font-family:var(--font-display);font-weight:700;font-size:15px;flex:1;">Wunschlisten-Treffer</span>
+                <span style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--honey-ink);">6</span>
+              </div>
+              <sc-for list="{{ matches }}" as="m" hint-placeholder-count="2">
+                <div style="display:flex;align-items:center;gap:11px;padding:12px 15px;border-bottom:1px solid color-mix(in srgb,var(--accent-soft-border) 60%,transparent);background:var(--surface);">
+                  <span aria-hidden="true" style="width:38px;height:38px;border-radius:7px;flex:none;background:repeating-linear-gradient(135deg,var(--surface-3) 0 6px,var(--surface-2) 6px 12px);"></span>
+                  <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ m.title }}</div><div style="font-size:12px;color:var(--text-2);">{{ m.artist }} · {{ m.customer }}</div></div>
+                  <button type="button" onClick="{{ m.onNotify }}" style="flex:none;min-height:36px;padding:0 13px;border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:12px;cursor:pointer;">Melden</button>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);overflow:hidden;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 15px;border-bottom:1px solid var(--border);"><span style="font-family:var(--font-display);font-weight:700;font-size:15px;">Letzte Verkäufe</span><button type="button" onClick="{{ goStock }}" style="border:none;background:transparent;color:var(--accent-ink);font-weight:600;font-size:12.5px;cursor:pointer;">Alle ›</button></div>
+              <sc-for list="{{ sales }}" as="s" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:11px;padding:11px 15px;border-bottom:1px solid var(--border);">
+                  <span aria-hidden="true" style="width:34px;height:34px;border-radius:6px;flex:none;background:repeating-linear-gradient(135deg,var(--surface-3) 0 5px,var(--surface-2) 5px 10px);"></span>
+                  <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.title }}</div><div style="font-size:11.5px;color:var(--text-2);">{{ s.artist }} · {{ s.time }}</div></div>
+                  <span style="font-family:var(--font-mono);font-weight:500;font-size:14px;">{{ s.price }}</span>
+                </div>
+              </sc-for>
+            </div>
+
+            <button type="button" onClick="{{ goPublic }}" style="display:flex;align-items:center;gap:13px;padding:15px;border:1.5px dashed var(--border-strong);border-radius:var(--r-lg);background:var(--surface);color:var(--text);cursor:pointer;text-align:left;" style-hover="border-color:var(--accent);">
+              <span aria-hidden="true" style="width:34px;height:34px;border-radius:50%;flex:none;background:radial-gradient(circle at 50% 50%,#0a0a0a 0 8%,#0000 8.5%),radial-gradient(circle at 50% 50%,var(--accent) 8.5% 36%,#0000 36.5%),repeating-radial-gradient(circle at 50% 50%,var(--disc-groove-a) 0 1px,var(--disc-groove-b) 1px 2.4px),var(--disc-base);"></span>
+              <span style="flex:1;"><span style="font-weight:700;font-size:13.5px;display:block;">Schaufenster ansehen</span><span style="font-size:11.5px;color:var(--text-3);">Öffentlicher Live-Bestand · teilbarer Link</span></span>
+              <span aria-hidden="true" style="color:var(--text-3);font-size:18px;">›</span>
+            </button>
+          </div>
+          </sc-if>
+
+          <!-- ===== SUCHE ===== -->
+          <sc-if value="{{ isSearch }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:13px;">
+            <div style="display:flex;gap:9px;">
+              <div style="position:relative;flex:1;display:flex;align-items:center;">
+                <span aria-hidden="true" style="position:absolute;left:13px;color:var(--text-3);font-size:16px;">⌕</span>
+                <input type="search" value="daft punk" style="width:100%;min-height:var(--tap);padding:0 14px 0 38px;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface-2);color:var(--text);font-family:var(--font-body);font-size:15px;" style-focus="outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);">
+              </div>
+              <button type="button" aria-label="Scannen" style="width:var(--tap);height:var(--tap);flex:none;border:none;border-radius:var(--r-md);background:var(--accent);color:var(--on-accent);font-size:20px;cursor:pointer;display:grid;place-items:center;">▥</button>
+            </div>
+            <div style="font-size:12.5px;color:var(--text-2);"><strong style="font-family:var(--font-mono);color:var(--text);">128</strong> Treffer auf Discogs</div>
+            <sc-for list="{{ results }}" as="r" hint-placeholder-count="5">
+              <article style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);padding:13px;display:flex;gap:13px;">
+                <div style="position:relative;width:74px;height:74px;flex:none;border-radius:var(--r-md);overflow:hidden;">
+                  <div aria-hidden="true" style="position:absolute;right:-30%;top:50%;transform:translateY(-50%);width:74%;aspect-ratio:1;border-radius:50%;box-shadow:var(--shadow-1);background:radial-gradient(circle at 50% 50%,var(--surface) 0 5%,#0000 5.4%),radial-gradient(circle at 50% 50%,{{ r.disc }} 5.4% 30%,#0000 30.4%),repeating-radial-gradient(circle at 50% 50%,var(--disc-groove-a) 0 1.4px,var(--disc-groove-b) 1.4px 3.2px),var(--disc-base);"></div>
+                  <div style="position:absolute;inset:0;width:64%;background:repeating-linear-gradient(135deg,var(--surface-3) 0 9px,var(--surface-2) 9px 18px);"></div>
+                </div>
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
+                  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+                    <div style="min-width:0;"><div style="font-family:var(--font-display);font-weight:700;font-size:15.5px;line-height:1.15;">{{ r.title }}</div><div style="font-size:12.5px;color:var(--text-2);">{{ r.artist }}</div></div>
+                    <span style="{{ r.statusStyle }}">{{ r.statusLabel }}</span>
+                  </div>
+                  <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);margin-top:5px;">{{ r.meta }} · Median <strong style="color:var(--text);">{{ r.price }}</strong></div>
+                  <div style="display:flex;gap:8px;margin-top:10px;">
+                    <button type="button" onClick="{{ r.onBuy }}" style="flex:1;min-height:38px;border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:12.5px;cursor:pointer;">⤓ Ankaufen</button>
+                    <button type="button" aria-label="Wunschliste" style="width:38px;min-height:38px;flex:none;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface);color:var(--text-2);font-size:14px;cursor:pointer;">♡</button>
+                  </div>
+                </div>
+              </article>
+            </sc-for>
+          </div>
+          </sc-if>
+
+          <!-- ===== BESTAND ===== -->
+          <sc-if value="{{ isStock }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:13px;">
+            <div style="position:relative;display:flex;align-items:center;">
+              <span aria-hidden="true" style="position:absolute;left:13px;color:var(--text-3);font-size:16px;">⌕</span>
+              <input type="search" value="{{ stockQuery }}" onChange="{{ setStockQuery }}" placeholder="Sortiment durchsuchen…" style="width:100%;min-height:var(--tap);padding:0 14px 0 38px;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface-2);color:var(--text);font-family:var(--font-body);font-size:15px;" style-focus="outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);">
+            </div>
+            <div style="display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:0 16px;">
+              <sc-for list="{{ stockFilters }}" as="f" hint-placeholder-count="4">
+                <button type="button" onClick="{{ f.onClick }}" style="{{ f.style }}">{{ f.label }} <span style="font-family:var(--font-mono);opacity:.7;">{{ f.count }}</span></button>
+              </sc-for>
+            </div>
+            <div style="font-size:12px;color:var(--text-3);font-family:var(--font-mono);display:flex;justify-content:space-between;"><span><strong style="color:var(--text);">{{ stockCount }}</strong> Treffer</span><span>Wert € 84.210</span></div>
+            <sc-if value="{{ stockEmpty }}" hint-placeholder-val="{{ false }}">
+              <div style="border:1px dashed var(--border-strong);border-radius:var(--r-lg);background:var(--surface);padding:36px 20px;text-align:center;color:var(--text-3);">
+                <div aria-hidden="true" style="font-size:30px;margin-bottom:6px;">⌕</div>
+                <div style="font-family:var(--font-display);font-weight:700;font-size:15px;color:var(--text-2);">Kein Treffer</div>
+                <button type="button" onClick="{{ resetStock }}" style="margin-top:12px;min-height:38px;padding:0 16px;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface);color:var(--text);font-family:var(--font-body);font-weight:600;font-size:12.5px;cursor:pointer;">Zurücksetzen</button>
+              </div>
+            </sc-if>
+            <sc-for list="{{ stock }}" as="x" hint-placeholder-count="5">
+              <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);padding:12px 13px;display:flex;align-items:center;gap:12px;opacity:{{ x.op }};">
+                <span aria-hidden="true" style="width:44px;height:44px;border-radius:7px;flex:none;background:repeating-linear-gradient(135deg,var(--surface-3) 0 6px,var(--surface-2) 6px 12px);"></span>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ x.title }}</div>
+                  <div style="font-size:12px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ x.artist }}</div>
+                  <div style="display:flex;align-items:center;gap:7px;margin-top:5px;">
+                    <span style="padding:2px 8px;border-radius:var(--r-pill);font-size:10.5px;font-weight:700;color:{{ x.gradeText }};background:{{ x.gradeBg }};">{{ x.grade }}</span>
+                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:{{ x.statusColor }};font-weight:600;"><span aria-hidden="true" style="width:6px;height:6px;border-radius:50%;background:{{ x.statusColor }};"></span>{{ x.statusLabel }}</span>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:7px;">
+                  <span style="font-family:var(--font-mono);font-weight:500;font-size:15px;">{{ x.vk }}</span>
+                  <button type="button" onClick="{{ x.onSell }}" disabled="{{ x.disabled }}" style="{{ x.btnStyle }}">{{ x.btnLabel }}</button>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          </sc-if>
+
+          <!-- ===== WUNSCH ===== -->
+          <sc-if value="{{ isWish }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:13px;">
+            <div style="display:flex;gap:4px;padding:3px;border-radius:var(--r-pill);background:var(--surface-3);">
+              <button type="button" onClick="{{ setWlMine }}" style="{{ wlMineStyle }}">Meine</button>
+              <button type="button" onClick="{{ setWlAll }}" style="{{ wlAllStyle }}">Alle Kunden <span style="font-family:var(--font-mono);opacity:.7;">28</span></button>
+            </div>
+            <sc-for list="{{ wishes }}" as="w" hint-placeholder-count="4">
+              <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);padding:14px;display:flex;flex-direction:column;gap:11px;">
+                <div style="display:flex;align-items:flex-start;gap:12px;">
+                  <span aria-hidden="true" style="width:44px;height:44px;border-radius:8px;flex:none;background:repeating-linear-gradient(135deg,var(--surface-3) 0 7px,var(--surface-2) 7px 14px);"></span>
+                  <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-family:var(--font-display);font-weight:700;font-size:15px;">{{ w.title }}</span><span style="{{ w.statusStyle }}">{{ w.statusLabel }}</span></div>
+                    <div style="font-size:12.5px;color:var(--text-2);margin-top:1px;">{{ w.artist }}</div>
+                    <div style="font-size:12px;color:var(--text-3);margin-top:6px;display:inline-flex;align-items:center;gap:5px;"><span aria-hidden="true">✉</span>{{ w.customer }}</div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;">
+                  <button type="button" onClick="{{ w.onNotify }}" style="{{ w.notifyBtnStyle }}">{{ w.notifyBtn }}</button>
+                  <button type="button" onClick="{{ w.onBuy }}" style="flex:1;min-height:40px;border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:13px;cursor:pointer;">Ankaufen</button>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          </sc-if>
+
+          <!-- ===== ANALYTIK ===== -->
+          <sc-if value="{{ isAnalytics }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div style="display:flex;gap:4px;padding:3px;border-radius:var(--r-pill);background:var(--surface-3);">
+              <sc-for list="{{ anSeg }}" as="t" hint-placeholder-count="3">
+                <button type="button" onClick="{{ t.onClick }}" style="{{ t.style }}">{{ t.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;">
+              <sc-for list="{{ anKpis }}" as="k" hint-placeholder-count="4">
+                <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:14px;box-shadow:var(--shadow-1);">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;"><span style="font-size:11.5px;color:var(--text-2);font-weight:600;">{{ k.label }}</span><span style="font-size:10.5px;font-weight:700;color:{{ k.trendColor }};">{{ k.trend }}</span></div>
+                  <div style="font-family:var(--font-mono);font-weight:500;font-size:21px;margin-top:6px;letter-spacing:-.02em;">{{ k.value }}</div>
+                  <div style="font-size:10.5px;color:var(--text-3);margin-top:4px;font-family:var(--font-mono);">{{ k.sub }}</div>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);overflow:hidden;">
+              <div style="display:flex;align-items:flex-end;justify-content:space-between;padding:13px 15px;border-bottom:1px solid var(--border);"><div><div style="font-family:var(--font-display);font-weight:700;font-size:15px;">Umsatzverlauf</div><div style="font-size:11px;color:var(--text-3);">{{ anBarSub }}</div></div><span style="font-family:var(--font-mono);font-weight:500;font-size:17px;">{{ anTotal }}</span></div>
+              <div style="padding:16px 15px 12px;display:flex;align-items:flex-end;gap:7px;height:128px;">
+                <sc-for list="{{ anBars }}" as="b" hint-placeholder-count="7">
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;">
+                    <div style="width:100%;height:{{ b.h }};background:{{ b.c }};border-radius:4px 4px 0 0;transition:height var(--dur-3) var(--ease);"></div>
+                    <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-2);font-weight:600;">{{ b.l }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);padding:15px;display:flex;flex-direction:column;gap:13px;">
+              <span style="font-family:var(--font-display);font-weight:700;font-size:15px;">Umsatz nach Kategorie</span>
+              <div style="height:11px;border-radius:var(--r-pill);background:var(--surface-3);overflow:hidden;display:flex;"><sc-for list="{{ anCats }}" as="c" hint-placeholder-count="4"><span style="width:{{ c.w }};background:{{ c.c }};"></span></sc-for></div>
+              <div style="display:flex;flex-direction:column;gap:9px;">
+                <sc-for list="{{ anCats }}" as="c" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;gap:9px;"><span aria-hidden="true" style="width:9px;height:9px;border-radius:3px;flex:none;background:{{ c.c }};"></span><span style="flex:1;font-size:13px;font-weight:600;">{{ c.l }}</span><span style="font-family:var(--font-mono);font-size:12.5px;">{{ c.d }}</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);width:38px;text-align:right;">{{ c.p }}</span></div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);padding:15px;display:flex;flex-direction:column;gap:11px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-family:var(--font-display);font-weight:700;font-size:15px;">Wochentag-Muster</span><span style="font-size:11.5px;color:var(--ok);font-weight:700;">Spitze: {{ anBestDay }}</span></div>
+              <sc-for list="{{ anWeek }}" as="w" hint-placeholder-count="7">
+                <div style="display:flex;align-items:center;gap:11px;"><span style="width:26px;font-family:var(--font-mono);font-size:11.5px;color:var(--text-2);font-weight:600;">{{ w.l }}</span><div style="flex:1;height:12px;border-radius:var(--r-pill);background:var(--surface-3);overflow:hidden;"><span style="display:block;height:100%;width:{{ w.h }};background:{{ w.c }};border-radius:var(--r-pill);transition:width var(--dur-3) var(--ease);"></span></div><span style="width:36px;text-align:right;font-family:var(--font-mono);font-size:11px;color:var(--text-3);">{{ w.p }}</span></div>
+              </sc-for>
+            </div>
+
+            <div style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);overflow:hidden;">
+              <div style="padding:13px 15px;border-bottom:1px solid var(--border);"><span style="font-family:var(--font-display);font-weight:700;font-size:15px;">Top verkaufte Platten</span></div>
+              <sc-for list="{{ anTop }}" as="r" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;gap:11px;padding:11px 15px;border-bottom:1px solid var(--border);">
+                  <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-3);width:16px;">{{ r.rank }}</span>
+                  <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.title }}</div><div style="font-size:11.5px;color:var(--text-2);">{{ r.artist }} · {{ r.sales }}×</div></div>
+                  <span style="font-family:var(--font-mono);font-weight:500;font-size:13.5px;">{{ r.rev }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+
+          <!-- ===== SCHAUFENSTER ===== -->
+          <sc-if value="{{ isPublic }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div style="display:inline-flex;align-self:flex-start;align-items:center;gap:7px;padding:5px 12px;border-radius:var(--r-pill);background:var(--honey-soft);border:1px solid var(--accent-soft-border);color:var(--honey-ink);font-size:11px;font-weight:700;"><span aria-hidden="true">◈</span> Kundenansicht · Vorschau</div>
+            <div>
+              <div style="font-family:var(--font-mono);font-size:11px;color:var(--accent);font-weight:500;letter-spacing:.06em;text-transform:uppercase;">q·records · Live-Bestand</div>
+              <h2 style="font-family:var(--font-display);font-weight:800;font-size:27px;letter-spacing:-.02em;margin:5px 0 0;line-height:1.05;">Jazz auf Vinyl</h2>
+              <p style="color:var(--text-2);font-size:13px;margin:7px 0 0;">84 Platten aktuell im Regal · Filiale Mitte</p>
+            </div>
+            <div style="display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:0 16px;">
+              <sc-for list="{{ pubColls }}" as="c" hint-placeholder-count="3"><button type="button" onClick="{{ c.onClick }}" style="{{ c.style }}">{{ c.label }}</button></sc-for>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <sc-for list="{{ pubItems }}" as="p" hint-placeholder-count="6">
+                <article style="border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);overflow:hidden;display:flex;flex-direction:column;opacity:{{ p.op }};">
+                  <div style="position:relative;aspect-ratio:1;overflow:hidden;">
+                    <div aria-hidden="true" style="position:absolute;right:-34%;top:50%;transform:translateY(-50%);width:80%;aspect-ratio:1;border-radius:50%;box-shadow:var(--shadow-1);background:radial-gradient(circle at 50% 50%,var(--surface) 0 5%,#0000 5.4%),radial-gradient(circle at 50% 50%,{{ p.disc }} 5.4% 30%,#0000 30.4%),repeating-radial-gradient(circle at 50% 50%,var(--disc-groove-a) 0 1.4px,var(--disc-groove-b) 1.4px 3.2px),var(--disc-base);"></div>
+                    <div style="position:absolute;inset:0;width:80%;background:repeating-linear-gradient(135deg,var(--surface-3) 0 10px,var(--surface-2) 10px 20px);"></div>
+                    <span style="{{ p.availStyle }}"><span aria-hidden="true" style="width:6px;height:6px;border-radius:50%;background:{{ p.availColor }};"></span>{{ p.availShort }}</span>
+                  </div>
+                  <div style="padding:11px 12px 13px;display:flex;flex-direction:column;flex:1;">
+                    <div style="font-family:var(--font-display);font-weight:700;font-size:13.5px;line-height:1.15;">{{ p.title }}</div>
+                    <div style="font-size:11.5px;color:var(--text-2);margin-top:1px;">{{ p.artist }}</div>
+                    <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-3);margin-top:5px;">{{ p.meta }}</div>
+                    <button type="button" onClick="{{ p.onCta }}" style="{{ p.ctaStyle }}">{{ p.ctaLabel }}</button>
+                  </div>
+                </article>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+
+        </div>
+      </div>
+
+      <!-- bottom tab bar -->
+      <nav aria-label="Navigation" style="position:absolute;bottom:0;left:0;right:0;z-index:35;display:flex;align-items:stretch;padding:8px 8px 24px;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border);">
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5">
+          <button type="button" onClick="{{ t.onClick }}" aria-current="{{ t.current }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border:none;background:transparent;color:{{ t.color }};cursor:pointer;">
+            <span aria-hidden="true" style="font-size:20px;line-height:1;">{{ t.icon }}</span>
+            <span style="font-size:10px;font-weight:{{ t.weight }};">{{ t.label }}</span>
+          </button>
+        </sc-for>
+      </nav>
+
+      <!-- bottom sheet (Verkauf / Ankauf) -->
+      <sc-if value="{{ anySheet }}" hint-placeholder-val="{{ false }}">
+      <div role="presentation" onClick="{{ closeSheet }}" style="position:absolute;inset:0;z-index:50;background:rgba(20,14,8,.5);backdrop-filter:blur(2px);display:flex;align-items:flex-end;">
+        <div role="dialog" aria-modal="true" onClick="{{ stop }}" style="width:100%;background:var(--surface);border-radius:var(--r-xl) var(--r-xl) 0 0;box-shadow:var(--shadow-3);max-height:88%;overflow-y:auto;animation:none;">
+          <div style="display:flex;justify-content:center;padding:10px 0 4px;"><span style="width:40px;height:4px;border-radius:var(--r-pill);background:var(--border-strong);"></span></div>
+
+          <!-- VERKAUF -->
+          <sc-if value="{{ isSell }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:8px 20px 26px;display:flex;flex-direction:column;gap:16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-family:var(--font-display);font-weight:700;font-size:19px;">Verkauf abschließen</span><button type="button" onClick="{{ closeSheet }}" aria-label="Schließen" style="width:34px;height:34px;border:none;border-radius:50%;background:var(--surface-3);color:var(--text-2);font-size:15px;cursor:pointer;">✕</button></div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);"><span aria-hidden="true" style="width:44px;height:44px;border-radius:7px;flex:none;background:repeating-linear-gradient(135deg,var(--surface-3) 0 7px,var(--surface) 7px 14px);"></span><div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:14px;">{{ sel.title }}</div><div style="font-size:12.5px;color:var(--text-2);">{{ sel.artist }} · {{ sel.grade }}</div></div></div>
+            <label style="display:flex;flex-direction:column;gap:7px;"><span style="font-weight:600;font-size:13px;">Verkaufspreis</span><div style="position:relative;display:flex;align-items:center;"><span aria-hidden="true" style="position:absolute;left:15px;color:var(--text-3);font-family:var(--font-mono);font-size:17px;">€</span><input type="text" value="{{ sel.vkRaw }}" inputmode="decimal" style="width:100%;min-height:52px;padding:0 16px 0 34px;border:1.5px solid var(--accent);border-radius:var(--r-md);background:var(--accent-soft);color:var(--text);font-family:var(--font-mono);font-size:22px;font-weight:500;" style-focus="outline:none;box-shadow:0 0 0 3px var(--accent-soft);"></div></label>
+            <div style="display:flex;flex-direction:column;gap:9px;"><span style="font-weight:600;font-size:13px;">Zahlungsart</span><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"><button type="button" onClick="{{ setPayCash }}" style="{{ payCash }}"><span aria-hidden="true">⛁</span> Bar</button><button type="button" onClick="{{ setPayCard }}" style="{{ payCard }}"><span aria-hidden="true">▭</span> Karte</button><button type="button" onClick="{{ setPayPaypal }}" style="{{ payPaypal }}">PayPal</button><button type="button" onClick="{{ setPayVoucher }}" style="{{ payVoucher }}"><span aria-hidden="true">◫</span> Gutschein</button></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:13px;border-top:1px dashed var(--border);"><span style="color:var(--text-2);font-size:14px;">Summe</span><span style="font-family:var(--font-mono);font-weight:500;font-size:24px;">{{ sel.vk }}</span></div>
+            <button type="button" onClick="{{ closeSheet }}" style="min-height:50px;border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:15px;cursor:pointer;">Verkaufen</button>
+          </div>
+          </sc-if>
+
+          <!-- ANKAUF -->
+          <sc-if value="{{ isBuy }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:8px 20px 26px;display:flex;flex-direction:column;gap:16px;">
+            <div style="display:flex;align-items:center;gap:10px;"><span aria-hidden="true" style="width:9px;height:9px;border-radius:50%;background:var(--honey);flex:none;"></span><div style="flex:1;"><div style="font-family:var(--font-display);font-weight:700;font-size:18px;line-height:1.1;">{{ sel.title }}</div><div style="font-size:12.5px;color:var(--text-2);">Ankauf · {{ sel.artist }}</div></div><button type="button" onClick="{{ closeSheet }}" aria-label="Schließen" style="width:34px;height:34px;border:none;border-radius:50%;background:var(--surface-3);color:var(--text-2);font-size:15px;cursor:pointer;">✕</button></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;">
+              <label style="display:flex;flex-direction:column;gap:6px;"><span style="font-weight:600;font-size:13px;">Einkauf</span><div style="position:relative;display:flex;align-items:center;"><span aria-hidden="true" style="position:absolute;left:13px;color:var(--text-3);font-family:var(--font-mono);">€</span><input type="text" value="3" inputmode="decimal" style="width:100%;min-height:var(--tap);padding:0 13px 0 28px;border:1.5px solid var(--border-strong);border-radius:var(--r-md);background:var(--surface-2);color:var(--text);font-family:var(--font-mono);font-size:15px;" style-focus="outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);"></div></label>
+              <label style="display:flex;flex-direction:column;gap:6px;"><span style="font-weight:600;font-size:13px;">Zielpreis</span><div style="position:relative;display:flex;align-items:center;"><span aria-hidden="true" style="position:absolute;left:13px;color:var(--text-3);font-family:var(--font-mono);">€</span><input type="text" value="{{ sel.suggest }}" inputmode="decimal" style="width:100%;min-height:var(--tap);padding:0 13px 0 28px;border:1.5px solid var(--accent);border-radius:var(--r-md);background:var(--accent-soft);color:var(--text);font-family:var(--font-mono);font-size:15px;font-weight:500;" style-focus="outline:none;box-shadow:0 0 0 3px var(--accent-soft);"></div></label>
+            </div>
+            <div style="font-size:11.5px;color:var(--text-3);font-family:var(--font-mono);"><span aria-hidden="true" style="color:var(--accent);">◈</span> Discogs-Marktdaten (VG+): {{ sel.price }}</div>
+            <div style="display:flex;flex-direction:column;gap:8px;"><span style="font-weight:600;font-size:13px;">Zustand · Platte</span><div style="display:flex;flex-wrap:wrap;gap:6px;"><sc-for list="{{ grades }}" as="g" hint-placeholder-count="6"><span style="{{ g.style }}">{{ g.l }}</span></sc-for></div></div>
+            <button type="button" onClick="{{ closeSheet }}" style="min-height:50px;border:none;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-family:var(--font-body);font-weight:700;font-size:15px;cursor:pointer;">Zum Bestand hinzufügen</button>
+          </div>
+          </sc-if>
+
+        </div>
+      </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:440,&quot;height&quot;:892},&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;home&quot;,&quot;search&quot;,&quot;stock&quot;,&quot;wish&quot;,&quot;analytics&quot;,&quot;public&quot;],&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { theme:'light', screen:'home', sheet:null, sel:{}, wlView:'mine', payment:'cash', stockQuery:'', stockStatus:'all', custColl:'jazz', anPeriod:'week' };
+
+  _apply(){ try{ const t=this.state.theme; document.documentElement.setAttribute('data-theme',t); }catch(e){} }
+  componentDidMount(){ this._apply(); if(this.props&&this.props.startScreen) this.setState({screen:this.props.startScreen}); }
+  componentDidUpdate(){ this._apply(); }
+
+  renderVals(){
+    const s=this.state;
+    const go=(screen)=>()=>this.setState({screen,sheet:null});
+    const openSheet=(sheet,sel)=>()=>this.setState({sheet,sel:sel||{}});
+    const closeSheet=()=>this.setState({sheet:null});
+
+    const titles={
+      home:['Moin, Mara','Dienstag, 23. Juni · Filiale Mitte'],
+      search:['Discogs-Suche','Releases finden & ankaufen'],
+      stock:['Lagerbestand','3.918 Artikel · live'],
+      wish:['Wunschlisten','Kundenwünsche & Treffer'],
+      analytics:['Analytik','Auswertungen · Filiale Mitte'],
+      public:['Schaufenster','Öffentliche Kundenansicht'],
+    };
+    const tt=titles[s.screen]||titles.home;
+
+    // tabs
+    const tabDef=[['home','▦','Start'],['search','⌕','Suche'],['stock','▤','Bestand'],['wish','♡','Wunsch'],['analytics','◷','Analytik']];
+    const tabs=tabDef.map(([k,icon,label])=>{ const a=s.screen===k; return {icon,label,onClick:go(k),current:a?'page':null,color:a?'var(--accent-ink)':'var(--text-3)',weight:a?700:600}; });
+
+    // status pills
+    const ST={
+      neu:['var(--surface-3)','var(--text-2)','neu'],
+      stock:['var(--ok-soft)','var(--ok)','im Lager'],
+      wish:['var(--honey-soft)','var(--honey-ink)','Wunsch'],
+    };
+    const pill=(k)=>{ const c=ST[k]; return `display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:var(--r-pill);font-size:10px;font-weight:700;background:${c[0]};color:${c[1]};flex:none;`; };
+    const mkResult=(o)=>Object.assign({},o,{ statusStyle:pill(o.st), statusLabel:ST[o.st][2],
+      onBuy:openSheet('buy',{title:o.title,artist:o.artist,price:o.price,suggest:o.suggest}) });
+    const results=[
+      mkResult({title:'Discovery',artist:'Daft Punk',meta:'2001 · FR · 2×LP',price:'€ 38',disc:'var(--accent)',st:'stock',suggest:'35'}),
+      mkResult({title:'Homework',artist:'Daft Punk',meta:'1997 · FR · 2×LP',price:'€ 32',disc:'var(--honey)',st:'wish',suggest:'30'}),
+      mkResult({title:'Random Access Memories',artist:'Daft Punk',meta:'2013 · EU · 2×LP',price:'€ 34',disc:'var(--accent)',st:'neu',suggest:'30'}),
+      mkResult({title:'Alive 2007',artist:'Daft Punk',meta:'2007 · EU · 2×LP',price:'€ 41',disc:'var(--accent)',st:'neu',suggest:'40'}),
+      mkResult({title:'Human After All',artist:'Daft Punk',meta:'2005 · EU · LP',price:'€ 29',disc:'var(--honey)',st:'neu',suggest:'25'}),
+    ];
+
+    // stock
+    const gradeC={M:['#1f8a52','#fff'],NM:['#2f9e68','#fff'],'VG+':['#9bc34a','#3a2400'],VG:['#e2c044','#3a2400']};
+    const STK={stock:['var(--ok)','im Lager'],lent:['var(--info)','Verliehen'],sold:['var(--text-3)','Verkauft']};
+    const mkRow=(o)=>{ const g=gradeC[o.grade]||gradeC.VG; const st=STK[o.status]; const sold=o.status==='sold';
+      return {title:o.title,artist:o.artist,grade:o.grade,gradeBg:g[0],gradeText:g[1],fmt:o.fmt,statusKey:o.status,
+        vk:o.vk,statusColor:st[0],statusLabel:st[1],op:sold?'.6':'1',disabled:sold?true:null,
+        btnLabel:sold?'Verkauft':'Verkauf',
+        btnStyle:sold?'min-height:34px;padding:0 13px;border:none;border-radius:var(--r-pill);background:var(--surface-3);color:var(--text-3);font-family:var(--font-body);font-weight:600;font-size:12px;cursor:not-allowed;':'min-height:34px;padding:0 13px;border:1.5px solid var(--accent);border-radius:var(--r-pill);background:transparent;color:var(--accent-ink);font-family:var(--font-body);font-weight:700;font-size:12px;cursor:pointer;',
+        onSell:sold?()=>{}:openSheet('sell',{title:o.title,artist:o.artist,grade:o.grade,vk:o.vk,vkRaw:o.vkRaw}) }; };
+    const baseStock=[
+      mkRow({title:'Violator',artist:'Depeche Mode',grade:'VG+',vk:'€ 28',vkRaw:'28',status:'stock',fmt:'Vinyl'}),
+      mkRow({title:'Kind of Blue',artist:'Miles Davis',grade:'NM',vk:'€ 42',vkRaw:'42',status:'lent',fmt:'Vinyl'}),
+      mkRow({title:'Discovery',artist:'Daft Punk',grade:'VG',vk:'€ 35',vkRaw:'35',status:'stock',fmt:'Vinyl'}),
+      mkRow({title:'OK Computer',artist:'Radiohead',grade:'NM',vk:'€ 30',vkRaw:'30',status:'stock',fmt:'Vinyl'}),
+      mkRow({title:'Blue Train',artist:'John Coltrane',grade:'VG+',vk:'€ 60',vkRaw:'60',status:'stock',fmt:'Vinyl'}),
+      mkRow({title:'Remain in Light',artist:'Talking Heads',grade:'VG+',vk:'€ 33',vkRaw:'33',status:'stock',fmt:'Vinyl'}),
+      mkRow({title:'Rumours',artist:'Fleetwood Mac',grade:'VG',vk:'€ 19,50',vkRaw:'19.50',status:'sold',fmt:'Vinyl'}),
+    ];
+    const _sq=(s.stockQuery||'').toLowerCase().trim(); const _ss=s.stockStatus||'all';
+    const stock=baseStock.filter(r=>(!_sq||(r.title+' '+r.artist).toLowerCase().includes(_sq))&&(_ss==='all'||r.statusKey===_ss));
+    const fStyle=(a)=>`flex:none;min-height:36px;padding:0 14px;border-radius:var(--r-pill);border:1.5px solid ${a?'var(--accent)':'var(--border-strong)'};background:${a?'var(--accent)':'var(--surface)'};color:${a?'var(--on-accent)':'var(--text-2)'};font-family:var(--font-body);font-weight:${a?700:600};font-size:12.5px;cursor:pointer;white-space:nowrap;`;
+    const setStatus=(k)=>()=>this.setState({stockStatus:k});
+    const stockFilters=[['all','Alle','3.918'],['stock','im Lager','3.114'],['lent','Verliehen','42'],['sold','Verkauft','718']].map(([k,l,c])=>({label:l,count:c,style:fStyle(_ss===k),onClick:setStatus(k)}));
+
+    // wishes
+    const wPill=(m)=>m?'display:inline-flex;align-items:center;padding:2px 8px;border-radius:var(--r-pill);font-size:10px;font-weight:700;background:var(--ok-soft);color:var(--ok);':'display:inline-flex;align-items:center;padding:2px 8px;border-radius:var(--r-pill);font-size:10px;font-weight:700;background:var(--surface-3);color:var(--text-3);';
+    const mkWish=(o)=>({title:o.title,artist:o.artist,customer:o.customer,statusStyle:wPill(o.matched),statusLabel:o.matched?'Treffer':'gesucht',
+      notifyBtn:o.matched?'Benachrichtigen':'Anstoßen',
+      notifyBtnStyle:`flex:1;min-height:40px;border:1.5px solid ${o.matched?'var(--accent)':'var(--border-strong)'};border-radius:var(--r-pill);background:transparent;color:${o.matched?'var(--accent-ink)':'var(--text-2)'};font-family:var(--font-body);font-weight:${o.matched?700:600};font-size:13px;cursor:pointer;`,
+      onNotify:openSheet('sell',{title:o.title,artist:o.artist,grade:'—',vk:'€ 0,00',vkRaw:'0'}),
+      onBuy:openSheet('buy',{title:o.title,artist:o.artist,price:'—',suggest:'30'}) });
+    const wishes=[
+      mkWish({title:'Spirit of Eden',artist:'Talk Talk',customer:'m.bauer@web.de',matched:true}),
+      mkWish({title:'Remain in Light',artist:'Talking Heads',customer:'lena.k@mail.de',matched:false}),
+      mkWish({title:'In Rainbows',artist:'Radiohead',customer:'Theke / anonym',matched:false}),
+      mkWish({title:'Homework',artist:'Daft Punk',customer:'j.fischer@gmx.de',matched:false}),
+    ];
+
+    const sales=[
+      {title:'Violator',artist:'Depeche Mode',price:'€ 28',time:'vor 4 Min'},
+      {title:'OK Computer',artist:'Radiohead',price:'€ 30',time:'vor 38 Min'},
+      {title:'Discovery',artist:'Daft Punk',price:'€ 35',time:'vor 1 Std'},
+    ];
+    const matches=[
+      {title:'Spirit of Eden',artist:'Talk Talk',customer:'m.bauer',onNotify:openSheet('sell',{title:'Spirit of Eden',artist:'Talk Talk',grade:'NM',vk:'€ 0,00',vkRaw:'0'})},
+      {title:'Pet Sounds',artist:'The Beach Boys',customer:'lena.k',onNotify:openSheet('sell',{title:'Pet Sounds',artist:'The Beach Boys',grade:'VG+',vk:'€ 0,00',vkRaw:'0'})},
+    ];
+    const quickActions=[
+      {icon:'▥',label:'Scannen',onClick:go('search')},
+      {icon:'€',label:'Verkauf',onClick:openSheet('sell',{title:'Schnellverkauf',artist:'Artikel scannen',grade:'—',vk:'€ 0,00',vkRaw:'0'})},
+      {icon:'♡',label:'Wünsche',onClick:go('wish')},
+    ];
+
+    // public
+    const availMap={in:['Verfügbar','Da','var(--ok)'],low:['Nur 1×','1×','var(--honey-ink)'],out:['Vergriffen','Weg','var(--text-3)']};
+    const mkPub=(o)=>{ const a=availMap[o.avail]; const out=o.avail==='out';
+      return {title:o.title,artist:o.artist,meta:o.meta,disc:o.fmt==='CD'?'var(--info)':'var(--accent)',op:out?'.7':'1',
+        availColor:a[2],availShort:a[1],
+        availStyle:`position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:var(--r-pill);font-size:10px;font-weight:700;background:color-mix(in srgb,var(--surface) 88%,transparent);color:${a[2]};border:1px solid color-mix(in srgb,${a[2]} 32%,transparent);`,
+        ctaLabel:out?'Benachrichtigen':'Vormerken',
+        ctaStyle:out?'margin-top:10px;width:100%;min-height:38px;border:1.5px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface);color:var(--text-2);font-family:var(--font-body);font-weight:600;font-size:12px;cursor:pointer;':'margin-top:10px;width:100%;min-height:38px;border:1.5px solid var(--accent);border-radius:var(--r-pill);background:transparent;color:var(--accent-ink);font-family:var(--font-body);font-weight:700;font-size:12px;cursor:pointer;',
+        onCta:openSheet(out?'sell':'buy',{title:o.title,artist:o.artist,price:'—',suggest:'30',grade:'—',vk:'€ 0,00',vkRaw:'0'}) }; };
+    const collDefs={
+      jazz:[mkPub({title:'Kind of Blue',artist:'Miles Davis',meta:'1959 · US · LP',fmt:'Vinyl',avail:'in'}),mkPub({title:'Blue Train',artist:'John Coltrane',meta:'1957 · US · LP',fmt:'Vinyl',avail:'low'}),mkPub({title:'The Köln Concert',artist:'Keith Jarrett',meta:'1975 · DE · 2×LP',fmt:'Vinyl',avail:'in'}),mkPub({title:'A Love Supreme',artist:'John Coltrane',meta:'1965 · US · LP',fmt:'Vinyl',avail:'out'}),mkPub({title:'Mingus Ah Um',artist:'Charles Mingus',meta:'1959 · US · LP',fmt:'Vinyl',avail:'in'}),mkPub({title:'Head Hunters',artist:'Herbie Hancock',meta:'1973 · US · LP',fmt:'Vinyl',avail:'low'})],
+      hiphop:[mkPub({title:'Illmatic',artist:'Nas',meta:'1994 · US · LP',fmt:'Vinyl',avail:'in'}),mkPub({title:'Ready to Die',artist:'Notorious B.I.G.',meta:'1994 · US · 2×LP',fmt:'Vinyl',avail:'low'}),mkPub({title:'36 Chambers',artist:'Wu-Tang Clan',meta:'1993 · US · LP',fmt:'Vinyl',avail:'in'}),mkPub({title:'The Chronic',artist:'Dr. Dre',meta:'1992 · US · 2×LP',fmt:'Vinyl',avail:'out'})],
+      neu:[mkPub({title:'In Rainbows',artist:'Radiohead',meta:'2007 · UK · LP',fmt:'Vinyl',avail:'in'}),mkPub({title:'Discovery',artist:'Daft Punk',meta:'2001 · FR · 2×LP',fmt:'Vinyl',avail:'in'}),mkPub({title:'Remain in Light',artist:'Talking Heads',meta:'1980 · US · LP',fmt:'Vinyl',avail:'low'}),mkPub({title:'Violator',artist:'Depeche Mode',meta:'1990 · UK · LP',fmt:'Vinyl',avail:'in'})],
+    };
+    const _cc=s.custColl||'jazz'; const pubItems=collDefs[_cc]||collDefs.jazz;
+    const pcStyle=(a)=>`flex:none;min-height:36px;padding:0 14px;border-radius:var(--r-pill);border:1.5px solid ${a?'var(--accent)':'var(--border-strong)'};background:${a?'var(--accent)':'var(--surface)'};color:${a?'var(--on-accent)':'var(--text-2)'};font-family:var(--font-body);font-weight:${a?700:600};font-size:12.5px;cursor:pointer;white-space:nowrap;`;
+    const setColl=(k)=>()=>this.setState({custColl:k});
+    const pubColls=[['jazz','Jazz · Vinyl'],['hiphop','HipHop · USA'],['neu','Neu eingetroffen']].map(([k,l])=>({label:l,style:pcStyle(_cc===k),onClick:setColl(k)}));
+
+    // analytics
+    const trC=(u)=>u?'var(--ok)':'var(--bad)';
+    const anDefs={
+      week:{barSub:'letzte 7 Tage',total:'€ 8.940',kpis:[{label:'Umsatz',value:'€ 8.940',trend:'▲ 12%',up:true,sub:'ggü. Vorwoche'},{label:'Transakt.',value:'312',trend:'▲ 6%',up:true,sub:'Ø € 28,70'},{label:'Ankäufe',value:'184',trend:'▲ 9%',up:true,sub:'47 Samml.'},{label:'Rohmarge',value:'61%',trend:'▲ 2 pt',up:true,sub:'WE 39%'}],bars:[['Mo',1020],['Di',1284],['Mi',1140],['Do',1460],['Fr',1880],['Sa',2010],['So',146]],cats:[['Vinyl',6140,'6.140','var(--accent)'],['CD',1250,'1.250','var(--info)'],['Getränke',890,'890','var(--honey)'],['Sonst.',660,'660','var(--text-3)']],week:[['Mo',64],['Di',72],['Mi',68],['Do',81],['Fr',92],['Sa',100],['So',12]],bestDay:'Sa'},
+      month:{barSub:'pro Woche',total:'€ 36.420',kpis:[{label:'Umsatz',value:'€ 36.4k',trend:'▲ 8%',up:true,sub:'ggü. Mai'},{label:'Transakt.',value:'1.284',trend:'▲ 5%',up:true,sub:'Ø € 28,40'},{label:'Ankäufe',value:'742',trend:'▲ 4%',up:true,sub:'168 Samml.'},{label:'Rohmarge',value:'60%',trend:'▼ 1 pt',up:false,sub:'WE 40%'}],bars:[['KW23',8210],['KW24',9040],['KW25',8940],['KW26',10230]],cats:[['Vinyl',24980,'24.980','var(--accent)'],['CD',5120,'5.120','var(--info)'],['Getränke',3640,'3.640','var(--honey)'],['Sonst.',2680,'2.680','var(--text-3)']],week:[['Mo',61],['Di',70],['Mi',66],['Do',83],['Fr',94],['Sa',100],['So',14]],bestDay:'Sa'},
+      quarter:{barSub:'pro Monat',total:'€ 104.860',kpis:[{label:'Umsatz',value:'€ 105k',trend:'▲ 15%',up:true,sub:'ggü. Q1'},{label:'Transakt.',value:'3.706',trend:'▲ 11%',up:true,sub:'Ø € 28,30'},{label:'Ankäufe',value:'2.118',trend:'▲ 13%',up:true,sub:'486 Samml.'},{label:'Rohmarge',value:'61%',trend:'▲ 3 pt',up:true,sub:'WE 39%'}],bars:[['Apr',31980],['Mai',36460],['Jun',36420]],cats:[['Vinyl',72350,'72.350','var(--accent)'],['CD',14820,'14.820','var(--info)'],['Getränke',10240,'10.240','var(--honey)'],['Sonst.',7450,'7.450','var(--text-3)']],week:[['Mo',63],['Di',71],['Mi',67],['Do',82],['Fr',93],['Sa',100],['So',13]],bestDay:'Sa'},
+    };
+    const _ap=s.anPeriod||'week'; const _an=anDefs[_ap];
+    const anSegStyle=(a)=>`flex:1;min-height:36px;border-radius:var(--r-pill);border:none;cursor:pointer;font-family:var(--font-body);font-weight:${a?700:600};font-size:12.5px;background:${a?'var(--surface)':'transparent'};color:${a?'var(--text)':'var(--text-3)'};box-shadow:${a?'var(--shadow-1)':'none'};`;
+    const setAn=(k)=>()=>this.setState({anPeriod:k});
+    const anSeg=[['week','Woche'],['month','Monat'],['quarter','Quartal']].map(([k,l])=>({label:l,style:anSegStyle(_ap===k),onClick:setAn(k)}));
+    const _bm=Math.max.apply(null,_an.bars.map(b=>b[1]));
+    const anBars=_an.bars.map(b=>({l:b[0],h:Math.round(b[1]/_bm*100)+'%',c:b[1]===_bm?'var(--accent)':'var(--accent-soft)'}));
+    const _ct=_an.cats.reduce((a,c)=>a+c[1],0);
+    const anCats=_an.cats.map(c=>({l:c[0],d:'€ '+c[2],c:c[3],w:(c[1]/_ct*100).toFixed(1)+'%',p:Math.round(c[1]/_ct*100)+'%'}));
+    const anWeek=_an.week.map(w=>({l:w[0],h:w[1]+'%',p:w[1]+'%',c:w[1]===100?'var(--accent)':'var(--accent-soft)'}));
+    const anKpis=_an.kpis.map(k=>Object.assign({},k,{trendColor:trC(k.up)}));
+    const anTop=[
+      {rank:'1',title:'Discovery',artist:'Daft Punk',sales:'14',rev:'€ 462'},
+      {rank:'2',title:'Kind of Blue',artist:'Miles Davis',sales:'11',rev:'€ 418'},
+      {rank:'3',title:'OK Computer',artist:'Radiohead',sales:'9',rev:'€ 270'},
+      {rank:'4',title:'Violator',artist:'Depeche Mode',sales:'8',rev:'€ 224'},
+      {rank:'5',title:'Rumours',artist:'Fleetwood Mac',sales:'7',rev:'€ 161'},
+    ];
+
+    // ankauf grade chips
+    const grades=['M','NM','VG+','VG','G+','G'].map((l,i)=>({l,style:`padding:8px 13px;border-radius:var(--r-pill);font-size:12.5px;font-weight:${i===2?700:600};background:${i===2?'var(--accent)':'var(--surface-3)'};color:${i===2?'var(--on-accent)':'var(--text-3)'};cursor:pointer;`}));
+
+    // payment
+    const payBtn=(a)=>`min-height:var(--tap);border-radius:var(--r-md);border:1.5px solid ${a?'var(--accent)':'var(--border-strong)'};background:${a?'var(--accent-soft)':'var(--surface-2)'};color:${a?'var(--accent-ink)':'var(--text-2)'};font-family:var(--font-body);font-weight:${a?700:600};font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;`;
+    const setPay=(v)=>()=>this.setState({payment:v});
+    const seg=(a)=>`flex:1;min-height:36px;border-radius:var(--r-pill);border:none;cursor:pointer;font-family:var(--font-body);font-weight:${a?700:600};font-size:12.5px;background:${a?'var(--surface)':'transparent'};color:${a?'var(--text)':'var(--text-3)'};box-shadow:${a?'var(--shadow-1)':'none'};display:inline-flex;align-items:center;justify-content:center;gap:6px;`;
+
+    return {
+      theme:s.theme, themeIcon:s.theme==='dark'?'☾':'☀',
+      toggleTheme:()=>this.setState(p=>({theme:p.theme==='light'?'dark':'light'})),
+      title:tt[0], sub:tt[1],
+      showBack:s.screen==='public', goHome:go('home'), goStock:go('stock'), goPublic:go('public'),
+      isHome:s.screen==='home', isSearch:s.screen==='search', isStock:s.screen==='stock', isWish:s.screen==='wish', isAnalytics:s.screen==='analytics', isPublic:s.screen==='public',
+      tabs, quickActions, sales, matches, results,
+      stock, stockFilters, stockCount:stock.length, stockEmpty:stock.length===0,
+      stockQuery:s.stockQuery||'', setStockQuery:(e)=>this.setState({stockQuery:e.target.value}), resetStock:()=>this.setState({stockQuery:'',stockStatus:'all'}),
+      wishes, wlMineStyle:seg(s.wlView==='mine'), wlAllStyle:seg(s.wlView==='all'), setWlMine:()=>this.setState({wlView:'mine'}), setWlAll:()=>this.setState({wlView:'all'}),
+      pubColls, pubItems,
+      anSeg, anBarSub:_an.barSub, anTotal:_an.total, anKpis, anBars, anCats, anWeek, anTop, anBestDay:_an.bestDay,
+      openSell:openSheet('sell',{title:'Schnellverkauf',artist:'Artikel scannen',grade:'—',vk:'€ 0,00',vkRaw:'0'}),
+      anySheet:!!s.sheet, isSell:s.sheet==='sell', isBuy:s.sheet==='buy', closeSheet, stop:(e)=>{if(e&&e.stopPropagation)e.stopPropagation();},
+      sel:s.sel||{}, grades,
+      payCash:payBtn(s.payment==='cash'), payCard:payBtn(s.payment==='card'), payPaypal:payBtn(s.payment==='paypal'), payVoucher:payBtn(s.payment==='voucher'),
+      setPayCash:setPay('cash'), setPayCard:setPay('card'), setPayPaypal:setPay('paypal'), setPayVoucher:setPay('voucher'),
+    };
+  }
+}
+</script>
+</body>
+</html>
