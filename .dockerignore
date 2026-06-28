@@ -9,3 +9,10 @@ coverage
 dist
 .git
 .DS_Store
+# Not needed to build the image (kept out of the build context for speed).
+playwright-report
+test-results
+.superpowers
+.memory
+*.zip
+.design-handoff

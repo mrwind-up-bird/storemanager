@@ -124,5 +124,27 @@ export function DrizzleTenantAdapter(): Adapter {
       const u = await getTenantUser(tenant.id, Number(id));
       return u ? toAdapterUser(u) : null;
     },
+    // ── Presence-only methods ──────────────────────────────────────────────
+    // Auth.js's config assertion (effective `database` session strategy, since an adapter
+    // is present) requires the FULL sessionMethods surface — createUser, getUserByEmail,
+    // getUserByAccount, updateUser, linkAccount — to EXIST on the adapter, even though the
+    // credentials + jwt.encode recipe never invokes them (users are created by provisioning,
+    // sessions are minted in jwt.encode). They are defined here so the assertion passes.
+    // Reads fail-closed to null; the mutating ones throw — they must never run in this flow.
+    async createUser() {
+      throw new Error('DrizzleTenantAdapter.createUser is unsupported (users come from provisioning).');
+    },
+    async getUserByEmail() {
+      return null;
+    },
+    async getUserByAccount() {
+      return null;
+    },
+    async updateUser() {
+      throw new Error('DrizzleTenantAdapter.updateUser is unsupported (credentials-only adapter).');
+    },
+    async linkAccount() {
+      throw new Error('DrizzleTenantAdapter.linkAccount is unsupported (credentials-only adapter).');
+    },
   };
 }

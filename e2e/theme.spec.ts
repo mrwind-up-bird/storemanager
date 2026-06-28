@@ -8,6 +8,11 @@ test.describe('theming cascade — accent + dark mode', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+    // Per-tenant SSR branding (src/app/layout.tsx) inlines `:root{--accent:<tenantColor>}` into
+    // <head> to kill FOUC; that overlay deliberately overrides the data-accent-driven global
+    // accent cascade these design-token tests probe. Strip it so the cascade is tested in
+    // isolation. (The branding overlay itself is asserted by e2e/branding.spec.ts.)
+    await page.evaluate(() => document.querySelector('style[data-qr-branding]')?.remove());
   });
 
   test('initial paint is already themed — no FOUC (SSR sets data-theme/data-accent)', async ({

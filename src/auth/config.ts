@@ -50,7 +50,15 @@ export async function verifyCredentials(args: {
 
 export const authConfig: NextAuthConfig = {
   adapter: DrizzleTenantAdapter(),
-  session: { strategy: 'database', maxAge: SESSION_MAX_AGE_S },
+  // NOTE: do NOT set `strategy: 'database'` explicitly. Auth.js's config assertion throws
+  // UnsupportedStrategy ("Signing in with credentials only supported if JWT strategy is
+  // enabled") whenever `session.strategy === 'database'` AND every provider is credentials
+  // (see @auth/core lib/utils/assert.js). Omitting the strategy keeps the EFFECTIVE strategy
+  // as 'database' anyway — init.js defaults to `adapter ? 'database' : 'jwt'` — so the opaque
+  // session token minted by jwt.encode below is still persisted + resolved via the tenant
+  // adapter (getSessionAndUser), without tripping the assertion. This is the canonical
+  // Auth.js credentials-with-database-sessions recipe.
+  session: { maxAge: SESSION_MAX_AGE_S },
   trustHost: true,
   cookies: {
     sessionToken: {

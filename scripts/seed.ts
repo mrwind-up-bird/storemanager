@@ -8,6 +8,7 @@ import * as schema from '../src/db/schema';
 import { provisionTenant, type ProvisionInput } from '../src/lib/provisioning';
 import { recordHash } from '../src/db/hash';
 import { hashPassword } from '../src/lib/password';
+import { getEmailAdapter, sendCredentialsEmail } from '../src/lib/email';
 
 // ---------------------------------------------------------------------------
 // Tenant definitions
@@ -163,6 +164,40 @@ async function ensureRecord(
   console.log(`[seed]   Inserted "${rec.title}" — ${rec.artist} (${rec.releaseYear}).`);
 }
 
+/** Build the tenant login URL, omitting the port when it is the protocol default. */
+function loginUrlFor(slug: string, protocol: string, rootDomain: string): string {
+  const port = process.env['APP_PORT'] ?? '3000';
+  const isDefault = (protocol === 'https' && port === '443') || (protocol === 'http' && port === '80');
+  const portPart = isDefault ? '' : `:${port}`;
+  return `${protocol}://${slug}.${rootDomain}${portPart}/login`;
+}
+
+/**
+ * Dispatch the credential email to the tenant admin via the configured MAIL_DRIVER
+ * (mailpit in compose → lands in Mailpit; console otherwise). Non-fatal: a mail failure
+ * must NOT abort the seed (web depends on seed completing successfully). Only sends when
+ * the password is known (usedPassword !== null). Satisfies §9.10.
+ */
+async function sendCredentialMail(
+  tenant: ProvisionInput,
+  password: string | null,
+  protocol: string,
+  rootDomain: string,
+): Promise<void> {
+  if (password === null) return;
+  try {
+    await sendCredentialsEmail(getEmailAdapter(), {
+      to: tenant.adminEmail,
+      tenantName: tenant.name,
+      loginUrl: loginUrlFor(tenant.slug, protocol, rootDomain),
+      temporaryPassword: password,
+    });
+    console.log(`[seed]   Credential mail dispatched to ${tenant.adminEmail} (${process.env['MAIL_DRIVER'] ?? 'console'}).`);
+  } catch (err) {
+    console.warn(`[seed]   WARN: credential mail to ${tenant.adminEmail} failed (non-fatal):`, err instanceof Error ? err.message : err);
+  }
+}
+
 function printCredentials(tenant: ProvisionInput, password: string | null, protocol: string, rootDomain: string): void {
   console.log('[seed] ┌──────────────────────────────────────────────────────');
   console.log(`[seed] │  Tenant:   ${tenant.name} (${tenant.slug})`);
@@ -198,6 +233,7 @@ async function main(): Promise<void> {
     // ── demo tenant ────────────────────────────────────────────────────────
     const { tenantId: demoId, usedPassword: demoPw } = await ensureTenant(DEMO_TENANT, ownerPool);
     printCredentials(DEMO_TENANT, demoPw, protocol, rootDomain);
+    await sendCredentialMail(DEMO_TENANT, demoPw, protocol, rootDomain);
 
     console.log(`[seed] Seeding records for "${DEMO_TENANT.slug}"...`);
     for (const rec of DEMO_RECORDS) {
@@ -207,6 +243,7 @@ async function main(): Promise<void> {
     // ── vinylcave tenant ───────────────────────────────────────────────────
     const { tenantId: vinylId, usedPassword: vinylPw } = await ensureTenant(VINYLCAVE_TENANT, ownerPool);
     printCredentials(VINYLCAVE_TENANT, vinylPw, protocol, rootDomain);
+    await sendCredentialMail(VINYLCAVE_TENANT, vinylPw, protocol, rootDomain);
 
     console.log(`[seed] Seeding records for "${VINYLCAVE_TENANT.slug}"...`);
     for (const rec of VINYLCAVE_RECORDS) {

@@ -1,0 +1,122 @@
+# q·records storemanager — Slice 0 stack.
+# `docker compose up -d --build` brings up: db → migrate → seed → web/worker/mailpit.
+# Ordering is enforced via depends_on conditions; seed runs on every `up` (idempotent),
+# so a fresh stack is migrated + seeded + logged-into in one command.
+#
+# All app services share ONE image (qrecords-storemanager:local) so `--build` builds once.
+# Only `web` carries `build:`; the rest reference the same image and add `build:` too so a
+# bare `docker compose up --build` works even if web hasn't been built first.
+
+x-app-image: &app-image qrecords-storemanager:local
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: qrecords
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      # Consumed by docker/postgres/init/01-roles.sql via psql \getenv. MUST match the
+      # user:pass embedded in DATABASE_URL / DATABASE_OWNER_URL in .env.compose.
+      QR_OWNER_PASSWORD: owner_secret
+      QR_APP_PASSWORD: app_secret
+    volumes:
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d qrecords"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  migrate:
+    image: *app-image
+    build: .
+    # migrate.cjs is a self-contained cjs bundle; invoke its exported runMigrations()
+    # explicitly (the import.meta "run if main" guard is inert under cjs).
+    command:
+      - node
+      - -e
+      - require('/app/migrate.cjs').runMigrations().then(()=>process.exit(0)).catch((e)=>{console.error(e);process.exit(1)})
+    env_file: .env.compose
+    environment:
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  seed:
+    image: *app-image
+    build: .
+    # seed.cjs runs main() on load (no import.meta guard). Idempotent; sends the credential
+    # mail to Mailpit. NO `profiles:` gate — a plain `up` MUST seed, else there is no admin
+    # to log in with on demo.localhost (§9.8).
+    command: ["node", "/app/seed.cjs"]
+    env_file: .env.compose
+    environment:
+      NODE_ENV: production
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      mailpit:
+        condition: service_healthy
+    restart: "no"
+
+  web:
+    image: *app-image
+    build: .
+    # CMD in the Dockerfile is /app/entrypoint-web.sh (boot guard → node server.js).
+    env_file: .env.compose
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+    ports:
+      - "3000:3000"
+    depends_on:
+      # seed depends_on migrate, so this transitively orders db → migrate → seed → web.
+      seed:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+    healthcheck:
+      # `/` on the bare root domain is 404 (no tenant); /api/auth/session is always-allowed
+      # and returns 200 regardless of tenant/session — a true "server is up" probe.
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/api/auth/session || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  worker:
+    image: *app-image
+    build: .
+    command: ["/app/entrypoint-worker.sh"]
+    env_file: .env.compose
+    environment:
+      NODE_ENV: production
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"   # HTTP UI + API (consumed by e2e/mailpit.spec.ts)
+    # 1025 (SMTP) stays internal — seed reaches it via mailpit:1025 on the compose network.
+    environment:
+      MP_MAX_MESSAGES: "5000"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 3s
+
+volumes:
+  db_data:
