@@ -4,8 +4,11 @@ const rootDomain = process.env.ROOT_DOMAIN ?? 'localhost';
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  serverActions: {
-    allowedOrigins: [rootDomain, `*.${rootDomain}`],
+  outputFileTracingRoot: __dirname,
+  experimental: {
+    serverActions: {
+      allowedOrigins: [rootDomain, `*.${rootDomain}`],
+    },
   },
 };
 

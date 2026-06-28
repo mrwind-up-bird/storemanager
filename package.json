@@ -11,7 +11,7 @@
     "build": "next build",
     "start": "next start",
     "worker": "tsx src/worker/index.ts",
-    "lint": "next lint",
+    "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
