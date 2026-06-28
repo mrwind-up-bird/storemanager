@@ -104,11 +104,21 @@ function contrastRatio(l1: number, l2: number): number {
 const L_WHITE = 1; // #FFFFFF
 const L_DARK = luminance('#111111'); // ≈ 0.00562
 
+/** Shared hex format guard — throws on anything that is not #RGB or #RRGGBB. */
+function assertValidHex(hex: string): void {
+  if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(hex)) {
+    throw new Error(
+      `Invalid hex color: "${hex}" — expected #RGB or #RRGGBB`,
+    );
+  }
+}
+
 /**
  * Returns '#FFFFFF' or '#111111' — whichever yields the higher contrast
  * ratio against the given background colour.
  */
 export function accentOnColor(hex: string): '#FFFFFF' | '#111111' {
+  assertValidHex(hex);
   const L = luminance(hex);
   const withWhite = contrastRatio(L_WHITE, L);
   const withDark = contrastRatio(L, L_DARK);
@@ -123,6 +133,7 @@ export function accentOnColor(hex: string): '#FFFFFF' | '#111111' {
 export function assertAccessibleAccent(
   hex: string,
 ): { onAccent: '#FFFFFF' | '#111111' } {
+  assertValidHex(hex);
   const L = luminance(hex);
   const withWhite = contrastRatio(L_WHITE, L);
   const withDark = contrastRatio(L, L_DARK);

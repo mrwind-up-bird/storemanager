@@ -69,7 +69,7 @@ const VINYLCAVE_RECORDS: RecordSeed[] = [
 async function ensureTenant(
   input: ProvisionInput,
   ownerPool: Pool,
-): Promise<{ tenantId: number; usedPassword: string }> {
+): Promise<{ tenantId: number; usedPassword: string | null }> {
   const db = drizzle(ownerPool, { schema });
 
   const existing = await db
@@ -100,7 +100,7 @@ async function ensureTenant(
       return { tenantId, usedPassword: seedPassword };
     }
 
-    return { tenantId, usedPassword: '(not changed — SEED_ADMIN_PASSWORD not set)' };
+    return { tenantId, usedPassword: null };
   }
 
   // New tenant: provision with explicit password if provided.
@@ -163,11 +163,15 @@ async function ensureRecord(
   console.log(`[seed]   Inserted "${rec.title}" — ${rec.artist} (${rec.releaseYear}).`);
 }
 
-function printCredentials(tenant: ProvisionInput, password: string, protocol: string, rootDomain: string): void {
+function printCredentials(tenant: ProvisionInput, password: string | null, protocol: string, rootDomain: string): void {
   console.log('[seed] ┌──────────────────────────────────────────────────────');
   console.log(`[seed] │  Tenant:   ${tenant.name} (${tenant.slug})`);
   console.log(`[seed] │  Email:    ${tenant.adminEmail}`);
-  console.log(`[seed] │  Password: ${password}`);
+  if (password !== null) {
+    console.log(`[seed] │  Password: ${password}`);
+  } else {
+    console.log(`[seed] │  [skipped — password unchanged, SEED_ADMIN_PASSWORD not set]`);
+  }
   console.log(`[seed] │  URL:      ${protocol}://${tenant.slug}.${rootDomain}`);
   console.log('[seed] └──────────────────────────────────────────────────────');
 }

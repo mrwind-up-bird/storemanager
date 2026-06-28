@@ -67,4 +67,28 @@ describe('assertAccessibleAccent', () => {
     // L(#7a7a7a) ≈ 0.194: contrast with white ≈ 4.30, contrast with #111111 ≈ 4.39
     expect(() => assertAccessibleAccent('#7a7a7a')).toThrow(/WCAG AA/);
   });
+
+  it('throws for invalid hex (#zzzzzz) — NaN-bypass must not silently pass', () => {
+    expect(() => assertAccessibleAccent('#zzzzzz')).toThrow(/Invalid hex/);
+  });
+
+  it('throws for non-hex string (not-a-color)', () => {
+    expect(() => assertAccessibleAccent('not-a-color')).toThrow(/Invalid hex/);
+  });
+
+  it('throws WCAG AA (not format) error for a valid-but-inaccessible hex (#7a7a7a)', () => {
+    // Confirms the format guard does not interfere with valid hex that fails contrast
+    expect(() => assertAccessibleAccent('#7a7a7a')).toThrow(/WCAG AA/);
+    expect(() => assertAccessibleAccent('#7a7a7a')).not.toThrow(/Invalid hex/);
+  });
+});
+
+describe('accentOnColor — invalid hex guard', () => {
+  it('throws for invalid hex (#zzzzzz)', () => {
+    expect(() => accentOnColor('#zzzzzz')).toThrow(/Invalid hex/);
+  });
+
+  it('throws for non-hex string (not-a-color)', () => {
+    expect(() => accentOnColor('not-a-color')).toThrow(/Invalid hex/);
+  });
 });
