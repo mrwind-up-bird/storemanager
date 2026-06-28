@@ -97,6 +97,14 @@ body {
   }
 }
 
+@utility focus-ring-within {
+  &:has(:focus-visible) {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: var(--r-sm);
+  }
+}
+
 /* ── Reduced motion (verbatim from handoff) ── */
 @media (prefers-reduced-motion:reduce) {
   * {

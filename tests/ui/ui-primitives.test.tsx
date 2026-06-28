@@ -121,11 +121,16 @@ describe('Input', () => {
     expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
   });
 
-  it('error prop sets aria-invalid', () => {
+  it('error prop sets aria-invalid="true"', () => {
     render(<Input aria-label="Field" error />);
-    // error flag changes border — visible via border style; aria-invalid passed through
     const input = screen.getByRole('textbox');
-    expect(input).toBeInTheDocument();
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('no error prop: aria-invalid absent', () => {
+    render(<Input aria-label="Field" />);
+    const input = screen.getByRole('textbox');
+    expect(input).not.toHaveAttribute('aria-invalid');
   });
 });
 
@@ -291,6 +296,12 @@ describe('Toggle', () => {
     await user.click(screen.getByRole('switch'));
     expect(onChange).toHaveBeenCalledWith(true);
   });
+
+  it('label wrapper carries focus-ring-within class (keyboard focus guard)', () => {
+    const { container } = render(<Toggle checked={false} onChange={vi.fn()} label="Enable" />);
+    const label = container.querySelector('label');
+    expect(label).toHaveClass('focus-ring-within');
+  });
 });
 
 // ── Checkbox ───────────────────────────────────────────────────────────────────
@@ -308,6 +319,12 @@ describe('Checkbox', () => {
     await user.click(screen.getByRole('checkbox'));
     expect(onChange).toHaveBeenCalledWith(true);
   });
+
+  it('label wrapper carries focus-ring-within class (keyboard focus guard)', () => {
+    const { container } = render(<Checkbox checked={false} onChange={vi.fn()} label="Accept" />);
+    const label = container.querySelector('label');
+    expect(label).toHaveClass('focus-ring-within');
+  });
 });
 
 // ── SegmentedControl ───────────────────────────────────────────────────────────
@@ -324,5 +341,12 @@ describe('SegmentedControl', () => {
   it('the radio matching value is checked', () => {
     render(<SegmentedControl options={opts} value="grid" onChange={vi.fn()} aria-label="View" />);
     expect(screen.getByRole('radio', { name: 'Kacheln' })).toBeChecked();
+  });
+
+  it('every option label carries focus-ring-within class (keyboard focus guard)', () => {
+    const { container } = render(<SegmentedControl options={opts} value="list" onChange={vi.fn()} aria-label="View" />);
+    const labels = container.querySelectorAll('label');
+    expect(labels.length).toBe(2);
+    labels.forEach((label) => expect(label).toHaveClass('focus-ring-within'));
   });
 });

@@ -15,6 +15,7 @@ export function Toggle({ checked, onChange, label, disabled = false, id: propId 
   return (
     <label
       htmlFor={id}
+      className="focus-ring-within"
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 12,
         cursor: disabled ? 'not-allowed' : 'pointer',

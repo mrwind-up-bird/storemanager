@@ -29,6 +29,7 @@ export function SegmentedControl({ options, value, onChange, 'aria-label': ariaL
           <label
             key={opt.value}
             htmlFor={inputId}
+            className="focus-ring-within"
             style={{
               display: 'inline-block', padding: '6px 14px',
               borderRadius: 'var(--r-pill)', fontSize: '12.5px',

@@ -15,6 +15,7 @@ export function Checkbox({ checked, onChange, label, disabled = false, id: propI
   return (
     <label
       htmlFor={id}
+      className="focus-ring-within"
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 12,
         cursor: disabled ? 'not-allowed' : 'pointer',

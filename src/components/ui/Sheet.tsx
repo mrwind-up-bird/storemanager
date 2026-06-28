@@ -65,7 +65,7 @@ export function Sheet({ open, onClose, title, side = 'right', children }: SheetP
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-label={title ?? 'Dialog'}
         style={{
           position: 'absolute', background: 'var(--surface)',
           border: '1px solid var(--border)', boxShadow: 'var(--shadow-3)',

@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
+import { useEffect, useId, useRef, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
@@ -34,6 +34,7 @@ export interface ModalProps {
 
 export function Modal({ open, onClose, title, children }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
 
   useEffect(() => {
     if (!open) return;
@@ -62,7 +63,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="modal-title"
+        aria-labelledby={titleId}
         style={{
           position: 'relative', background: 'var(--surface)',
           border: '1px solid var(--border)', borderRadius: 'var(--r-lg)',
@@ -78,7 +79,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
           }}
         >
           <span
-            id="modal-title"
+            id={titleId}
             style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '18px' }}
           >
             {title}

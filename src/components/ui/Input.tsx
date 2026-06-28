@@ -7,6 +7,7 @@ export function Input({ error = false, className, style, ...rest }: InputProps) 
     <input
       {...rest}
       // focus-ring-field: :focus-visible { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft) }
+      aria-invalid={error || undefined}
       className={`focus-ring-field${className ? ` ${className}` : ''}`}
       style={{
         width: '100%', minHeight: 'var(--tap)', padding: '0 14px',
