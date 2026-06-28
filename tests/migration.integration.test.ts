@@ -104,6 +104,37 @@ describe('0002_seed_plans.sql', () => {
 });
 
 describe('qr_app runtime role', () => {
+  it(
+    'fail-closed: empty-string app.current_tenant GUC returns 0 rows without an integer-cast error (policy NULLIF guard)',
+    async () => {
+      // withSuperadmin / withOwner (Task 6) set app.current_tenant to '' (empty string),
+      // not to NULL. A policy USING clause without NULLIF would try to evaluate ''::int and
+      // throw: "invalid input syntax for type integer". NULLIF('', '') → NULL → tenant_id = NULL
+      // is UNKNOWN → no rows match → fail-closed with no error. This test proves that path.
+      const appPool = new Pool({ connectionString: appUrl, max: 1 });
+      const c = await appPool.connect();
+      try {
+        await c.query('BEGIN');
+        // Transaction-local GUC set to empty string — exactly what withSuperadmin/withOwner do.
+        await c.query(`SELECT set_config('app.current_tenant', '', true)`);
+
+        // Must RESOLVE (not throw) and return 0 (fail-closed, NULLIF guard holds).
+        const recordsResult = await c.query(`SELECT count(*)::int AS n FROM records`);
+        expect(recordsResult.rows[0].n).toBe(0);
+
+        // Confirm the guard is uniform — same policy shape on users.
+        const usersResult = await c.query(`SELECT count(*)::int AS n FROM users`);
+        expect(usersResult.rows[0].n).toBe(0);
+
+        await c.query('ROLLBACK');
+      } finally {
+        c.release();
+        await appPool.end();
+      }
+    },
+    60_000,
+  );
+
   it('is not a superuser, has no BYPASSRLS, and cannot see rows without tenant context', async () => {
     const appPool = new Pool({ connectionString: appUrl, max: 1 });
     const ownerPool = new Pool({ connectionString: ownerUrl, max: 1 });
