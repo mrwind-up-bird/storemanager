@@ -1,5 +1,9 @@
 import { pathToFileURL } from 'node:url';
 import PgBoss from 'pg-boss';
+// Type-only import — erased at compile time, so it does NOT trigger the lazy
+// runtime import of ./jobs/analyticsSummary (and its @/db → @/env chain). It just
+// keeps the queue registration and the real handler sharing ONE payload type.
+import type { AnalyticsSummaryPayload } from './jobs/analyticsSummary';
 
 /**
  * Canonical queue name registry.
@@ -35,8 +39,6 @@ export async function startWorker(): Promise<void> {
   // Both must be imported AFTER env vars are set (i.e. not at module-load time).
   const { env } = await import('@/env');
   const { handleAnalyticsSummaryRefresh } = await import('./jobs/analyticsSummary');
-
-  type AnalyticsSummaryPayload = { tenantId: number };
 
   const boss = new PgBoss(env.PGBOSS_DATABASE_URL);
 

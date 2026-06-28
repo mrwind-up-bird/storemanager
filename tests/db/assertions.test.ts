@@ -10,6 +10,16 @@ vi.mock('@/db/client', () => ({
 import { appPool } from '@/db/client';
 import { assertDatabaseSafety } from '@/db/assertions';
 
+/** The tenant_id-bearing tables a sound DB reports — matches TENANT_SCOPED_TABLES. */
+const SOUND_TENANT_ID_TABLES = [
+  'users',
+  'user_detail',
+  'sessions',
+  'records',
+  'purchases',
+  'permalinks',
+];
+
 type FakeOpts = {
   rolsuper?: boolean;
   rolbypassrls?: boolean;
@@ -17,6 +27,8 @@ type FakeOpts = {
   force?: boolean;
   policy?: boolean;
   recordsCount?: string;
+  /** Override the set of public base tables reported to have a tenant_id column (drift guard). */
+  tenantIdTables?: string[];
 };
 
 function fakeClient(opts: FakeOpts = {}) {
@@ -25,6 +37,13 @@ function fakeClient(opts: FakeOpts = {}) {
       if (text.includes('pg_roles')) {
         return {
           rows: [{ rolsuper: opts.rolsuper ?? false, rolbypassrls: opts.rolbypassrls ?? false }],
+        };
+      }
+      if (text.includes('information_schema')) {
+        return {
+          rows: (opts.tenantIdTables ?? SOUND_TENANT_ID_TABLES).map((table_name) => ({
+            table_name,
+          })),
         };
       }
       if (text.includes('relrowsecurity')) {
@@ -84,5 +103,20 @@ describe('assertDatabaseSafety', () => {
   it('throws if records returns rows without tenant context (RLS not fail-closed)', async () => {
     arm({ recordsCount: '3' });
     await expect(assertDatabaseSafety()).rejects.toThrow(/without tenant context/);
+  });
+
+  // ── Fix 5: TENANT_SCOPED_TABLES drift guard ───────────────────────────────
+  it('throws when a tenant_id-bearing table is ABSENT from TENANT_SCOPED_TABLES (drift)', async () => {
+    // A future slice added `invoices` (with a tenant_id) but forgot to extend the list.
+    arm({ tenantIdTables: [...SOUND_TENANT_ID_TABLES, 'invoices'] });
+    await expect(assertDatabaseSafety()).rejects.toThrow(/TENANT_SCOPED_TABLES/);
+    await expect(assertDatabaseSafety()).rejects.toThrow(/invoices/);
+  });
+
+  it('throws when a listed table has no tenant_id column in public (reverse drift)', async () => {
+    // The DB no longer reports `permalinks` as tenant-scoped, but it is still listed.
+    arm({ tenantIdTables: SOUND_TENANT_ID_TABLES.filter((t) => t !== 'permalinks') });
+    await expect(assertDatabaseSafety()).rejects.toThrow(/TENANT_SCOPED_TABLES/);
+    await expect(assertDatabaseSafety()).rejects.toThrow(/permalinks/);
   });
 });

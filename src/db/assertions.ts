@@ -34,6 +34,45 @@ export async function assertDatabaseSafety(): Promise<void> {
       throw new Error('assertDatabaseSafety: app role has BYPASSRLS — refusing to start');
     }
 
+    // ── Drift guard ───────────────────────────────────────────────────────────
+    // Discover every base table in `public` that carries a `tenant_id` column and
+    // assert the set equals TENANT_SCOPED_TABLES EXACTLY. A future slice that adds a
+    // tenant-scoped table but forgets to extend this list (or forgets FORCE RLS / the
+    // tenant_isolation policy) would otherwise silently skip the per-table validation
+    // below — this turns that drift into a hard boot failure instead.
+    const drift = await client.query(
+      `SELECT c.table_name
+         FROM information_schema.columns c
+         JOIN information_schema.tables t
+           ON t.table_schema = c.table_schema AND t.table_name = c.table_name
+        WHERE c.table_schema = 'public'
+          AND c.column_name = 'tenant_id'
+          AND t.table_type = 'BASE TABLE'`,
+    );
+    const discovered = new Set(
+      (drift.rows as { table_name: string }[]).map((row) => row.table_name),
+    );
+    const expected = new Set<string>(TENANT_SCOPED_TABLES);
+    const hasTenantIdButUnlisted = [...discovered].filter((t) => !expected.has(t)).sort();
+    const listedButNoTenantId = [...expected].filter((t) => !discovered.has(t)).sort();
+    if (hasTenantIdButUnlisted.length > 0 || listedButNoTenantId.length > 0) {
+      const parts: string[] = [];
+      if (hasTenantIdButUnlisted.length > 0) {
+        parts.push(
+          `have a tenant_id column but are absent from TENANT_SCOPED_TABLES: [${hasTenantIdButUnlisted.join(', ')}]`,
+        );
+      }
+      if (listedButNoTenantId.length > 0) {
+        parts.push(
+          `are in TENANT_SCOPED_TABLES but have no tenant_id column in public: [${listedButNoTenantId.join(', ')}]`,
+        );
+      }
+      throw new Error(
+        `assertDatabaseSafety: TENANT_SCOPED_TABLES drift — table(s) ${parts.join('; and ')}. ` +
+          `Update TENANT_SCOPED_TABLES (and the RLS migration: ENABLE/FORCE + tenant_isolation) to match.`,
+      );
+    }
+
     for (const table of TENANT_SCOPED_TABLES) {
       const sec = await client.query(
         `SELECT relrowsecurity, relforcerowsecurity FROM pg_class WHERE oid = $1::regclass`,

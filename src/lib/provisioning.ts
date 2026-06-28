@@ -4,6 +4,7 @@ import { withOwner } from '@/db/tenant';
 import { tenants, users, permalinks } from '@/db/schema';
 import { RESERVED_SUBDOMAINS } from '@/lib/subdomain';
 import { assertAccessibleAccent } from '@/lib/tenant';
+import { DEFAULT_PRIMARY_COLOR } from '@/lib/branding';
 import { hashPassword } from '@/lib/password';
 
 // ---------------------------------------------------------------------------
@@ -138,7 +139,7 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
         name,
         plan,
         config: {
-          branding: { primaryColor: primaryColor ?? '#C03A20', logo: null },
+          branding: { primaryColor: primaryColor ?? DEFAULT_PRIMARY_COLOR, logo: null },
         },
         limits: {},
       })

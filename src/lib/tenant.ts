@@ -5,8 +5,9 @@ import { cache } from 'react';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { eq } from 'drizzle-orm';
-import { withOwner } from '@/db/tenant';
+import { withSuperadmin } from '@/db/tenant';
 import { tenants } from '@/db/schema';
+import { DEFAULT_PRIMARY_COLOR } from '@/lib/branding';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -38,7 +39,11 @@ export const getCurrentTenant: () => Promise<Tenant> = cache(
     const slug = await getCurrentTenantSlug();
     if (!slug) notFound();
 
-    const rows = await withOwner((tx) =>
+    // Read-only registry lookup on the RLS-bound runtime pool (qr_app holds
+    // GRANT SELECT on `tenants`, which carries no RLS). withOwner (BYPASSRLS) is
+    // reserved for provisioning/migrations — this per-request hot path stays on
+    // the least-privileged role (spec §4.2).
+    const rows = await withSuperadmin((tx) =>
       tx.select().from(tenants).where(eq(tenants.slug, slug)).limit(1),
     );
 
@@ -56,7 +61,7 @@ export const getCurrentTenant: () => Promise<Tenant> = cache(
       domain: row.domain ?? null,
       plan: row.plan,
       branding: {
-        primaryColor: config.branding?.primaryColor ?? '#E8533A',
+        primaryColor: config.branding?.primaryColor ?? DEFAULT_PRIMARY_COLOR,
         logo: config.branding?.logo ?? null,
       },
       limits: (row.limits ?? {}) as Record<string, unknown>,

@@ -6,6 +6,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from '../src/db/schema';
 import { provisionTenant, type ProvisionInput } from '../src/lib/provisioning';
+import { DEFAULT_PRIMARY_COLOR } from '../src/lib/branding';
 import { recordHash } from '../src/db/hash';
 import { hashPassword } from '../src/lib/password';
 import { getEmailAdapter, sendCredentialsEmail } from '../src/lib/email';
@@ -18,7 +19,7 @@ const DEMO_TENANT: ProvisionInput = {
   slug: 'demo',
   name: 'Q-Records Demo',
   adminEmail: 'admin@demo.test',
-  primaryColor: '#E8552E', // deep coral — achieves ≥ 4.5:1 contrast with #111111
+  primaryColor: DEFAULT_PRIMARY_COLOR, // coral-500 — achieves ≥ 4.5:1 contrast with #111111
   plan: 'free',
 };
 
