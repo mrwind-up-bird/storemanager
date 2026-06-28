@@ -12,10 +12,19 @@ export default defineConfig({
     // Component tests (*.tsx and tests/ui/**) need a DOM; everything else stays in the fast node env.
     environmentMatchGlobs: [
       ['tests/ui/**', 'jsdom'],
+      ['tests/**/*.tsx', 'jsdom'],
       ['**/*.tsx', 'jsdom'],
     ],
     // jest-dom matchers extend vitest's `expect`; RTL tests call cleanup() in their own afterEach.
-    setupFiles: ['@testing-library/jest-dom/vitest'],
+    // jsdom-webstorage: fixes Node.js 22 compat — see tests/__setup__/jsdom-webstorage.ts
+    setupFiles: ['@testing-library/jest-dom/vitest', './tests/__setup__/jsdom-webstorage.ts'],
+    // jsdom needs a URL so Web Storage (localStorage/sessionStorage) is enabled.
+    // Without this, Node.js 22's experimental localStorage shadows jsdom's implementation.
+    environmentOptions: {
+      jsdom: {
+        url: 'http://localhost/',
+      },
+    },
     // Don't set globals:true — tests import from 'vitest' explicitly (strict TS friendly)
   },
   resolve: {
