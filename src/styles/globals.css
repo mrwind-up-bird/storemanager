@@ -1,0 +1,114 @@
+/* src/styles/globals.css */
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* ── Tailwind v4 @theme bridge ──
+   Maps CSS custom properties to Tailwind's design-token namespace. */
+@theme {
+  /* colors */
+  --color-bg:               var(--bg);
+  --color-surface:          var(--surface);
+  --color-surface-2:        var(--surface-2);
+  --color-surface-3:        var(--surface-3);
+  --color-border:           var(--border);
+  --color-border-strong:    var(--border-strong);
+  --color-text:             var(--text);
+  --color-text-2:           var(--text-2);
+  --color-text-3:           var(--text-3);
+  --color-accent:           var(--accent);
+  --color-accent-hover:     var(--accent-hover);
+  --color-accent-press:     var(--accent-press);
+  --color-accent-soft:      var(--accent-soft);
+  --color-accent-ink:       var(--accent-ink);
+  --color-on-accent:        var(--on-accent);
+  --color-focus:            var(--focus);
+  --color-ok:               var(--ok);
+  --color-ok-soft:          var(--ok-soft);
+  --color-warn:             var(--warn);
+  --color-warn-soft:        var(--warn-soft);
+  --color-bad:              var(--bad);
+  --color-bad-soft:         var(--bad-soft);
+  --color-info:             var(--info);
+  --color-info-soft:        var(--info-soft);
+  --color-honey:            var(--honey);
+  --color-honey-soft:       var(--honey-soft);
+  --color-honey-ink:        var(--honey-ink);
+  /* coral ramp */
+  --color-coral-50:  var(--coral-50);  --color-coral-100: var(--coral-100);
+  --color-coral-200: var(--coral-200); --color-coral-300: var(--coral-300);
+  --color-coral-400: var(--coral-400); --color-coral-500: var(--coral-500);
+  --color-coral-600: var(--coral-600); --color-coral-700: var(--coral-700);
+  --color-coral-800: var(--coral-800); --color-coral-900: var(--coral-900);
+  /* neutral ramp */
+  --color-n-0:   var(--n-0);   --color-n-50:  var(--n-50);
+  --color-n-100: var(--n-100); --color-n-200: var(--n-200);
+  --color-n-300: var(--n-300); --color-n-400: var(--n-400);
+  --color-n-500: var(--n-500); --color-n-600: var(--n-600);
+  --color-n-700: var(--n-700); --color-n-800: var(--n-800);
+  --color-n-900: var(--n-900); --color-n-950: var(--n-950);
+  /* spacing */
+  --spacing-s1: var(--s1); --spacing-s2: var(--s2); --spacing-s3: var(--s3);
+  --spacing-s4: var(--s4); --spacing-s5: var(--s5); --spacing-s6: var(--s6);
+  --spacing-s7: var(--s7); --spacing-s8: var(--s8); --spacing-tap: var(--tap);
+  /* radius */
+  --radius-xs:   var(--r-xs);   --radius-sm:  var(--r-sm);
+  --radius-md:   var(--r-md);   --radius-lg:  var(--r-lg);
+  --radius-xl:   var(--r-xl);   --radius-pill: var(--r-pill);
+  /* shadows */
+  --shadow-1: var(--shadow-1);
+  --shadow-2: var(--shadow-2);
+  --shadow-3: var(--shadow-3);
+  /* fonts */
+  --font-display: var(--font-display);
+  --font-body:    var(--font-body);
+  --font-mono:    var(--font-mono);
+  /* motion */
+  --ease:  var(--ease);
+  --dur-1: var(--dur-1);
+  --dur-2: var(--dur-2);
+  --dur-3: var(--dur-3);
+}
+
+/* ── Base reset (verbatim from handoff) ── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* ── Focus utilities (use :focus-visible — never :focus alone) ──
+   Apply via Tailwind utility class: focus-ring-button / focus-ring-field */
+@utility focus-ring-button {
+  &:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+}
+
+@utility focus-ring-field {
+  &:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+}
+
+/* ── Reduced motion (verbatim from handoff) ── */
+@media (prefers-reduced-motion:reduce) {
+  * {
+    animation-duration:.001ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.001ms!important;
+  }
+}
+
+/* ── Spin keyframe (for Spinner component + VinylDisc) ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Theming shorthand helpers on <html> ── */
+[data-theme="light"] { background: #FAF6F1; }
+[data-theme="dark"]  { background: #120F0B; }

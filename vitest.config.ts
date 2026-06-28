@@ -7,6 +7,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   test: {
     environment: 'node',
+    // Exclude Playwright e2e specs — they use @playwright/test, not vitest.
+    exclude: ['e2e/**', 'node_modules/**'],
     // Component tests (*.tsx and tests/ui/**) need a DOM; everything else stays in the fast node env.
     environmentMatchGlobs: [
       ['tests/ui/**', 'jsdom'],

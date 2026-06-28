@@ -1,0 +1,211 @@
+/* src/styles/tokens.css — SINGLE SOURCE OF TRUTH for all design tokens.
+   Values verbatim from Design System 2026.dc.html and Q-Records App.dc.html.
+   Accent families (indigo/forest) authored from handoff primitive ramps.
+   DO NOT edit hex values here without updating the handoff. */
+
+:root {
+  /* ── Fonts ── */
+  --font-display:'Bricolage Grotesque',system-ui,sans-serif;
+  --font-body:'Hanken Grotesk',system-ui,-apple-system,sans-serif;
+  --font-mono:'Geist Mono',ui-monospace,SFMono-Regular,monospace;
+
+  /* ── Primitive ramps ── */
+  /* coral */
+  --coral-50:#FDF1EC;--coral-100:#FADCD0;--coral-200:#F5B9A3;
+  --coral-300:#F0917A;--coral-400:#EC6F50;--coral-500:#E8552E;
+  --coral-600:#CB4220;--coral-700:#A2351B;--coral-800:#7B2916;
+  --coral-900:#561D11;
+
+  /* amber/honey */
+  --amber-50:#FEF7EA;--amber-100:#FBEAC6;--amber-200:#F8D78D;
+  --amber-300:#F5C357;--amber-400:#F2A93B;--amber-500:#E08E18;
+  --amber-600:#BB7211;--amber-700:#93590F;
+  --honey-500:#E08E18;--honey-50:#FEF3E0;
+
+  /* warm neutral */
+  --n-0:#FFFFFF;--n-50:#FAF6F1;--n-100:#F2EBE2;--n-150:#EAE1D5;
+  --n-200:#E0D5C6;--n-300:#CDBEAB;--n-400:#AC9C86;--n-500:#857968;
+  --n-600:#665C4E;--n-700:#4C443A;--n-800:#332D26;--n-850:#26211B;
+  --n-900:#1B1712;--n-950:#120F0B;
+
+  /* semantic feedback primitives */
+  --green-500:#2F9E68;--green-600:#1F7E51;--green-50:#E8F5EE;
+  --red-500:#DC4B3E;--red-600:#B6362C;--red-50:#FCEDEB;
+  --blue-500:#3B82C4;--blue-600:#2C6AA3;--blue-50:#EAF2FA;
+
+  /* ── Semantic / light (default) ── */
+  --bg:var(--n-50);
+  --surface:var(--n-0);
+  --surface-2:var(--n-50);
+  --surface-3:var(--n-100);
+  --border:var(--n-200);
+  --border-strong:var(--n-300);
+  --text:var(--n-900);
+  --text-2:var(--n-600);
+  --text-3:var(--n-500);
+
+  /* default accent = coral */
+  --accent:var(--coral-500);
+  --accent-hover:var(--coral-600);
+  --accent-press:var(--coral-700);
+  --accent-soft:var(--coral-50);
+  --accent-soft-border:var(--coral-200);
+  --accent-ink:var(--coral-700);
+  --on-accent:#FFFFFF;
+
+  /* honey */
+  --honey:var(--amber-400);
+  --honey-soft:var(--amber-50);
+  --honey-ink:var(--amber-700);
+
+  /* focus */
+  --focus:var(--coral-500);
+
+  /* feedback */
+  --ok:var(--green-600);
+  --ok-soft:var(--green-50);
+  --warn:var(--honey-600,#BB7211);
+  --warn-soft:var(--amber-50);
+  --bad:var(--red-600);
+  --bad-soft:var(--red-50);
+  --info:var(--blue-600);
+  --info-soft:var(--blue-50);
+
+  /* disc (vinyl brand — pinned, not accent-tracked) */
+  --disc-base:#15110D;
+  --disc-groove-a:#1d1813;
+  --disc-groove-b:#2a221b;
+  --disc-label:var(--coral-500); /* intentionally pinned — see spec */
+
+  /* elevation */
+  --shadow-1:0 1px 2px rgba(40,28,16,.06),0 1px 3px rgba(40,28,16,.08);
+  --shadow-2:0 4px 10px -2px rgba(40,28,16,.10),0 2px 6px -2px rgba(40,28,16,.08);
+  --shadow-3:0 16px 32px -8px rgba(40,28,16,.16),0 6px 14px -6px rgba(40,28,16,.10);
+
+  /* radius */
+  --r-xs:6px;--r-sm:10px;--r-md:14px;
+  --r-lg:20px;--r-xl:28px;--r-pill:999px;
+
+  /* spacing */
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;
+  --s5:24px;--s6:32px;--s7:48px;--s8:64px;
+
+  /* motion */
+  --ease:cubic-bezier(.2,.7,.2,1);
+  --dur-1:120ms;--dur-2:220ms;--dur-3:380ms;
+
+  /* tap target */
+  --tap:44px;
+}
+
+/* ── Dark theme overrides ── */
+[data-theme="dark"] {
+  --bg:var(--n-950);
+  --surface:var(--n-900);
+  --surface-2:var(--n-850);
+  --surface-3:var(--n-800);
+  --border:#352e26;
+  --border-strong:#4a4035;
+  --text:var(--n-100);
+  --text-2:#c3b6a4;
+  --text-3:#9b8f7d;
+
+  /* default dark accent = dark-coral */
+  --accent:#F2734C;
+  --accent-hover:#F58A68;
+  --accent-press:#F7A085;
+  --accent-soft:#3a221880;
+  --accent-soft-border:#6e3a26;
+  --accent-ink:#F9B49C;
+  --on-accent:#2a0f06;
+
+  --honey:#F5C357;
+  --honey-soft:#3a2e1580;
+  --honey-ink:#F8D78D;
+
+  --focus:#F58A68;
+
+  --ok:#4FC489;
+  --ok-soft:#16352580;
+  --warn:#F2A93B;
+  --warn-soft:#3a2e1580;
+  --bad:#F0786C;
+  --bad-soft:#3a1c1880;
+  --info:#6BA7DC;
+  --info-soft:#16283a80;
+
+  --disc-base:#0a0805;
+  --disc-groove-a:#16110c;
+  --disc-groove-b:#231b14;
+  --disc-label:#F2734C; /* pinned dark-coral */
+
+  --shadow-1:0 1px 2px rgba(0,0,0,.4);
+  --shadow-2:0 6px 16px -4px rgba(0,0,0,.5);
+  --shadow-3:0 20px 40px -10px rgba(0,0,0,.6);
+}
+
+/* ── Accent family: coral (explicit; mirrors :root default for JS-driven switching) ── */
+[data-accent="coral"] {
+  --accent:var(--coral-500);
+  --accent-hover:var(--coral-600);
+  --accent-press:var(--coral-700);
+  --accent-soft:var(--coral-50);
+  --accent-soft-border:var(--coral-200);
+  --accent-ink:var(--coral-700);
+  --on-accent:#FFFFFF;
+  --focus:var(--coral-500);
+}
+[data-theme="dark"][data-accent="coral"] {
+  --accent:#F2734C;
+  --accent-hover:#F58A68;
+  --accent-press:#F7A085;
+  --accent-soft:#3a221880;
+  --accent-soft-border:#6e3a26;
+  --accent-ink:#F9B49C;
+  --on-accent:#2a0f06;
+  --focus:#F58A68;
+}
+
+/* ── Accent family: indigo (authored from blue-50/500/600 primitives in handoff) ── */
+[data-accent="indigo"] {
+  --accent:#3B82C4;
+  --accent-hover:#2C6AA3;
+  --accent-press:#1F5487;
+  --accent-soft:#EAF2FA;
+  --accent-soft-border:#93C4E8;
+  --accent-ink:#2C6AA3;
+  --on-accent:#FFFFFF;
+  --focus:#3B82C4;
+}
+[data-theme="dark"][data-accent="indigo"] {
+  --accent:#6BA7DC;
+  --accent-hover:#88BDE8;
+  --accent-press:#A4CEEF;
+  --accent-soft:#16283a80;
+  --accent-soft-border:#2a4a72;
+  --accent-ink:#9AC5EC;
+  --on-accent:#071829;
+  --focus:#6BA7DC;
+}
+
+/* ── Accent family: forest (authored from green-50/500/600 primitives in handoff) ── */
+[data-accent="forest"] {
+  --accent:#2F9E68;
+  --accent-hover:#1F7E51;
+  --accent-press:#165C3A;
+  --accent-soft:#E8F5EE;
+  --accent-soft-border:#8DCFAC;
+  --accent-ink:#1F7E51;
+  --on-accent:#FFFFFF;
+  --focus:#2F9E68;
+}
+[data-theme="dark"][data-accent="forest"] {
+  --accent:#4FC489;
+  --accent-hover:#6CD4A2;
+  --accent-press:#87E0B7;
+  --accent-soft:#16352580;
+  --accent-soft-border:#2a5540;
+  --accent-ink:#7FD8AD;
+  --on-accent:#062718;
+  --focus:#4FC489;
+}
