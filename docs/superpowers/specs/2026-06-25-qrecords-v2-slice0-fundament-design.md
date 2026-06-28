@@ -2,7 +2,7 @@
 
 **Datum:** 2026-06-25
 **Dachdokument:** `2026-06-25-qrecords-v2-architecture-overview.md`
-**Status:** Design — wartet auf Nutzer-Review vor writing-plans
+**Status:** Freigegeben (2026-06-27) → Implementierungsplan geschrieben + adversarial reviewed (7 Lenses) + gehärtet: `docs/superpowers/plans/2026-06-27-qrecords-v2-slice0-fundament.md`
 **Quelle der Härtung:** adversarielle 4-Lens-Review (Architektur/Security/Red-Team/Design), alle „proceed-with-changes"
 
 ---

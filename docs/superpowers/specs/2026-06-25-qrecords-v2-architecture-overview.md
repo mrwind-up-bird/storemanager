@@ -1,4 +1,4 @@
-# Q-Records Storemanager v2 — Architektur-Übersicht (Programm-Dachdokument)
+x# Q-Records Storemanager v2 — Architektur-Übersicht (Programm-Dachdokument)
 
 **Datum:** 2026-06-25
 **Status:** In Brainstorming/Design — bestätigte Eckentscheidungen, Slice-0-Spec separat
@@ -69,7 +69,7 @@ v1 bekam Tenant-Isolation „gratis" über einen gepatchten `pg.Pool.connect()`-
 
 | Slice | Inhalt | Status |
 |---|---|---|
-| **0 Fundament** | Scaffold, Design-System/Tokens/Primitives, Multi-Tenant-DB (`withTenant`+RLS), Auth-Shell, Worker-Gerüst, Tenant-Provisioning, Seed, Dev-Mail, docker-compose | **Spec geschrieben** → Review |
+| **0 Fundament** | Scaffold, Design-System/Tokens/Primitives, Multi-Tenant-DB (`withTenant`+RLS), Auth-Shell, Worker-Gerüst, Tenant-Provisioning, Seed, Dev-Mail, docker-compose | **Plan geschrieben + reviewed** → Implementierung |
 | 1 Inventar+Dashboard+Schaufenster | records/purchases/conditions + Seed, Lagerbestand (Liste/Kacheln/Filter/Status), Dashboard-KPIs, öffentliches Schaufenster (permalink) | geplant |
 | 2 Discogs+Ankauf | Discogs Such-API (OAuth, Rate-Limit), Discogs-Suche-Screen, Ankauf-Modal, Hash-Dedup, Marktdaten-Cache, vereinfachtes Pricing | geplant |
 | 3 Verkauf/POS+Wunschlisten | Verkauf-Modal + transactions, Zahlarten, Wunschlisten-CRUD (Künstler/Label/Titel/Land), E-Mail-Benachrichtigung bei Eingang, Benachrichtigen-Modal | geplant |
