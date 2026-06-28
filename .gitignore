@@ -40,3 +40,6 @@ coverage/
 .nyc_output/
 playwright-report/
 test-results/
+
+# Subagent-driven execution scratch (ledger, briefs, reports)
+.superpowers/
