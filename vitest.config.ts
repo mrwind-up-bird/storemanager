@@ -25,4 +25,9 @@ export default defineConfig({
       'server-only': path.resolve(__dirname, './tests/__mocks__/server-only.ts'),
     },
   },
+  // Enable React's automatic JSX transform so component tests don't need `import React`
+  esbuild: {
+    jsx: 'automatic',
+    jsxImportSource: 'react',
+  },
 });
