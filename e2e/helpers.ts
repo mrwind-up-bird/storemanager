@@ -31,3 +31,33 @@ export async function login(
   await expect(page).toHaveURL(`${baseUrl}/`);
   await page.waitForLoadState('domcontentloaded');
 }
+
+// ── Slice-1 additions ──────────────────────────────────────────────────────
+
+/** Seeded public permalink slugs used in E2E specs (Task 6 ensurePermalink). */
+export const DEMO_JAZZ_SLUG = 'jazz';
+export const DEMO_NEU_SLUG = 'neu';
+export const VC_VINYL_SLUG = 'vinyl';
+export const VC_NEU_SLUG = 'neu';
+
+/**
+ * Assert the full rendered HTML of the current page contains none of the private
+ * inventory field names that must never appear on the public storefront.
+ *
+ * Covers: purchasePrice / targetPrice / conditionRecord / conditionCover
+ * (both camelCase and snake_case forms, to catch RSC payloads and HTML attrs).
+ */
+export async function assertNoPrivateFields(page: Page): Promise<void> {
+  const html = await page.content();
+  // Field-name scan (camelCase + snake_case — catches RSC payloads and HTML attrs)
+  expect(html).not.toMatch(/purchase_price|purchasePrice/i);
+  expect(html).not.toMatch(/target_price|targetPrice/i);
+  expect(html).not.toMatch(/condition_record|conditionRecord/i);
+  expect(html).not.toMatch(/condition_cover|conditionCover/i);
+  // Value-level scan — a known seeded VK must never appear in the rendered output
+  // (guards against regressions that emit raw price values into meta strings or attrs).
+  // '24.90' is a seeded targetPrice for an in-stock record on BOTH tenants
+  // (demo "Kind of Blue" / vinylcave "Unknown Pleasures"), so it is shown on the
+  // jazz + vinyl storefronts iff the price leaked.
+  expect(html).not.toContain('24.90');
+}

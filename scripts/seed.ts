@@ -479,13 +479,31 @@ async function main(): Promise<void> {
 
 // ---------------------------------------------------------------------------
 // CLI entry guard — run main() only when executed directly, not on import.
-// This allows tests to import and call the exported helpers safely.
+//
+// Two runtimes invoke this file, and the guard must fire in BOTH while staying
+// inert on a plain `import` (so vitest can import the exported seed helpers):
+//
+//   • `pnpm db:seed` → `tsx scripts/seed.ts` (ESM): `import.meta.url` is this
+//     file's URL. Run only when process.argv[1] resolves to this file, so test
+//     imports (where argv[1] is the vitest binary) never trigger main().
+//
+//   • compose `seed` service → `node /app/seed.cjs`: the esbuild
+//     `--format=cjs` bundle replaces `import.meta` with `{}`, so
+//     `import.meta.url` is `undefined` (esbuild's [empty-import-meta] warning).
+//     The bundle is ALWAYS the process entrypoint, so run main(). We must NOT
+//     call fileURLToPath(undefined) — that throws ERR_INVALID_ARG_TYPE at load
+//     and would crash the seed service before main() ever runs.
 // ---------------------------------------------------------------------------
-const __filename = fileURLToPath(import.meta.url);
-if (
-  process.argv[1] === __filename ||
-  process.argv[1] === __filename.replace(/\.ts$/, '.js')
-) {
+const seedMetaUrl: string | undefined = import.meta.url;
+
+function isSeedDirectInvocation(): boolean {
+  // esbuild cjs bundle (node seed.cjs): import.meta.url is empty → entrypoint.
+  if (!seedMetaUrl) return true;
+  const self = fileURLToPath(seedMetaUrl);
+  return process.argv[1] === self || process.argv[1] === self.replace(/\.ts$/, '.js');
+}
+
+if (isSeedDirectInvocation()) {
   main()
     .then(() => process.exit(0))
     .catch((err: unknown) => {

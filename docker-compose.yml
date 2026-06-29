@@ -50,9 +50,11 @@ services:
   seed:
     image: *app-image
     build: .
-    # seed.cjs runs main() on load (no import.meta guard). Idempotent; sends the credential
-    # mail to Mailpit. NO `profiles:` gate — a plain `up` MUST seed, else there is no admin
-    # to log in with on demo.localhost (§9.8).
+    # seed.cjs self-runs main() when executed directly. Under esbuild's --format=cjs bundle
+    # `import.meta.url` is empty, so scripts/seed.ts's entry guard treats the bundle as the
+    # process entrypoint and runs main() (see isSeedDirectInvocation in scripts/seed.ts).
+    # Idempotent; sends the credential mail to Mailpit. NO `profiles:` gate — a plain `up`
+    # MUST seed, else there is no admin to log in with on demo.localhost (§9.8).
     command: ["node", "/app/seed.cjs"]
     env_file: .env.compose
     environment:
