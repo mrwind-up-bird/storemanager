@@ -159,7 +159,6 @@ async function ensureRecord(
     format: 'LP',
     genre: [],
     hash,
-    recordStatus: 'verfuegbar',
   });
 
   console.log(`[seed]   Inserted "${rec.title}" — ${rec.artist} (${rec.releaseYear}).`);
