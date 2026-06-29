@@ -8,6 +8,9 @@ out/
 build/
 next-env.d.ts
 
+# TS incremental build info
+*.tsbuildinfo
+
 # Production / Docker
 dist/
 
@@ -15,6 +18,8 @@ dist/
 .env
 .env.*
 !.env.example
+# Dev-only compose env (committed on purpose; contains no real secrets).
+!.env.compose
 .mcp.json
 
 # Design handoff: keep extracted reference, ignore the bulky source zip

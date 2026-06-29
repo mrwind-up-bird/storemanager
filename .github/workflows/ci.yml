@@ -1,0 +1,168 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'feat/**']
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ───────────────────────────── Lint · Typecheck · Unit/Integration ─────────────────────────────
+  lint-typecheck-test:
+    name: Lint · Typecheck · Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.1
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+
+      # vitest integration tests use @testcontainers/postgresql → need the Docker socket
+      # (available by default on ubuntu-latest runners).
+      - run: pnpm test
+
+  # ───────────────────────────── Build Next.js + Docker image ─────────────────────────────
+  build:
+    name: Build standalone image
+    runs-on: ubuntu-latest
+    needs: lint-typecheck-test
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.1
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Sanity: a host `next build` succeeds with minimal env (the Docker build supplies its
+      # own build-time ENV, see Dockerfile builder stage).
+      - name: Build Next.js (host sanity check)
+        run: pnpm build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+          DATABASE_URL: postgresql://qr_app:x@localhost:5432/qrecords
+          DATABASE_OWNER_URL: postgresql://qr_owner:x@localhost:5432/qrecords
+          PGBOSS_DATABASE_URL: postgresql://qr_owner:x@localhost:5432/qrecords
+          ROOT_DOMAIN: localhost
+          APP_PROTOCOL: http
+          APP_PORT: '3000'
+          AUTH_SECRET: ci-build-placeholder-secret-min-32-characters
+          ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          ENCRYPTION_KEY_ID: v1
+          MAIL_DRIVER: console
+          MAIL_HOST: localhost
+          MAIL_PORT: '1025'
+          MAIL_FROM: noreply@localhost
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build (and push on main)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ───────────────────────────── E2E acceptance (docker compose) ─────────────────────────────
+  e2e:
+    name: E2E acceptance (docker compose)
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.1
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright (chromium)
+        run: pnpm exec playwright install --with-deps chromium
+
+      # *.localhost resolves automatically in Chromium, but the node-side APIRequestContext
+      # (isolation/mailpit specs) needs OS resolution on Linux runners.
+      - name: Map *.localhost subdomains to loopback
+        run: |
+          sudo tee -a /etc/hosts >/dev/null <<'EOF'
+          127.0.0.1 demo.localhost
+          127.0.0.1 vinylcave.localhost
+          127.0.0.1 nope.localhost
+          127.0.0.1 www.localhost
+          EOF
+
+      # `up` runs db → migrate → seed → web/worker/mailpit. seed is on by default (no profile),
+      # so the stack is migrated + seeded before web becomes healthy. --wait blocks until healthy.
+      - name: docker compose up (build + migrate + seed + serve)
+        run: docker compose up -d --build --wait --wait-timeout 300
+
+      - name: Dump compose state
+        if: always()
+        run: docker compose ps
+
+      - name: Run Playwright E2E acceptance
+        run: pnpm e2e
+        env:
+          E2E_DEMO_EMAIL: admin@demo.test
+          E2E_DEMO_PASSWORD: E2eDevPassword1!
+          E2E_VC_EMAIL: admin@vinylcave.test
+          E2E_VC_PASSWORD: E2eDevPassword1!
+
+      - name: Compose logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail 200
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
