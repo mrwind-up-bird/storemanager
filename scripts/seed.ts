@@ -1,10 +1,12 @@
 // Must be first: loads .env into process.env before any src/* imports.
 import 'dotenv/config';
 
-import { eq, and } from 'drizzle-orm';
+import { fileURLToPath } from 'url';
+import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from '../src/db/schema';
+import type { RecordStatus } from '../src/db/schema';
 import { provisionTenant, type ProvisionInput } from '../src/lib/provisioning';
 import { DEFAULT_PRIMARY_COLOR } from '../src/lib/branding';
 import { recordHash } from '../src/db/hash';
@@ -19,7 +21,7 @@ const DEMO_TENANT: ProvisionInput = {
   slug: 'demo',
   name: 'Q-Records Demo',
   adminEmail: 'admin@demo.test',
-  primaryColor: DEFAULT_PRIMARY_COLOR, // coral-500 — achieves ≥ 4.5:1 contrast with #111111
+  primaryColor: DEFAULT_PRIMARY_COLOR,
   plan: 'free',
 };
 
@@ -27,12 +29,12 @@ const VINYLCAVE_TENANT: ProvisionInput = {
   slug: 'vinylcave',
   name: 'Vinyl Cave',
   adminEmail: 'admin@vinylcave.test',
-  primaryColor: '#5B4FCF', // deep indigo — achieves ≥ 4.5:1 contrast with white
+  primaryColor: '#5B4FCF',
   plan: 'small',
 };
 
 // ---------------------------------------------------------------------------
-// Sample records (3 per tenant — varied artist/title for realistic seed data)
+// Types
 // ---------------------------------------------------------------------------
 
 type RecordSeed = {
@@ -41,33 +43,143 @@ type RecordSeed = {
   country: string;
   releaseYear: number;
   label: string[];
+  format?: string;
+  genre?: string[];
 };
 
-const DEMO_RECORDS: RecordSeed[] = [
-  { title: 'Kind of Blue',  artist: 'Miles Davis',   country: 'US', releaseYear: 1959, label: ['Columbia'] },
-  { title: 'Blue Train',    artist: 'John Coltrane', country: 'US', releaseYear: 1958, label: ['Blue Note'] },
-  { title: 'Giant Steps',   artist: 'John Coltrane', country: 'US', releaseYear: 1960, label: ['Atlantic'] },
+/** A single physical copy to create for a record. recordIndex = 0-based index into the records array. */
+export type PurchaseSpec = {
+  recordIndex: number;
+  ek: string;
+  vk: string;
+  status: RecordStatus;
+  conditionRecord: number | null;
+  conditionCover: number | null;
+  soldPrice?: string;
+  soldDate?: Date;
+};
+
+export type PermalinkSpec = {
+  slug: string;
+  filter: { title?: string; genre?: string[]; format?: string[] };
+};
+
+// ---------------------------------------------------------------------------
+// Datasets — demo tenant (jazz catalogue)
+// ---------------------------------------------------------------------------
+
+export const DEMO_RECORDS: RecordSeed[] = [
+  // 0 — existing
+  { title: 'Kind of Blue',              artist: 'Miles Davis',                         country: 'US', releaseYear: 1959, label: ['Columbia'],   format: 'Vinyl',    genre: ['Jazz'] },
+  // 1 — existing
+  { title: 'Blue Train',                artist: 'John Coltrane',                       country: 'US', releaseYear: 1958, label: ['Blue Note'],  format: 'Vinyl',    genre: ['Jazz'] },
+  // 2 — existing
+  { title: 'Giant Steps',               artist: 'John Coltrane',                       country: 'US', releaseYear: 1960, label: ['Atlantic'],   format: 'Vinyl',    genre: ['Jazz'] },
+  // 3–14 new
+  { title: 'Bitches Brew',              artist: 'Miles Davis',                         country: 'US', releaseYear: 1970, label: ['Columbia'],   format: 'Vinyl',    genre: ['Jazz', 'Fusion'] },
+  { title: 'Mingus Ah Um',              artist: 'Charles Mingus',                      country: 'US', releaseYear: 1959, label: ['Columbia'],   format: 'Vinyl',    genre: ['Jazz'] },
+  { title: 'Head Hunters',              artist: 'Herbie Hancock',                      country: 'US', releaseYear: 1973, label: ['Columbia'],   format: 'Vinyl',    genre: ['Jazz', 'Funk'] },
+  { title: 'A Love Supreme',            artist: 'John Coltrane',                       country: 'US', releaseYear: 1965, label: ['Impulse!'],   format: 'Vinyl',    genre: ['Jazz'] },
+  { title: 'Maiden Voyage',             artist: 'Herbie Hancock',                      country: 'US', releaseYear: 1965, label: ['Blue Note'],  format: 'Vinyl',    genre: ['Jazz'] },
+  { title: 'The Shape of Jazz to Come', artist: 'Ornette Coleman',                     country: 'US', releaseYear: 1959, label: ['Atlantic'],   format: 'Vinyl',    genre: ['Jazz', 'Avant-Garde'] },
+  { title: 'Time Out',                  artist: 'Dave Brubeck',                        country: 'US', releaseYear: 1959, label: ['Columbia'],   format: 'CD',       genre: ['Jazz'] },
+  { title: 'Waltz for Debby',           artist: 'Bill Evans',                          country: 'US', releaseYear: 1962, label: ['Riverside'],  format: 'CD',       genre: ['Jazz'] },
+  { title: 'Saxophone Colossus',        artist: 'Sonny Rollins',                       country: 'US', releaseYear: 1956, label: ['Prestige'],   format: 'Vinyl',    genre: ['Jazz'] },
+  { title: "Moanin'",                   artist: 'Art Blakey & The Jazz Messengers',    country: 'US', releaseYear: 1958, label: ['Blue Note'],  format: 'Vinyl',    genre: ['Jazz'] },
+  { title: 'Sketches of Spain',         artist: 'Miles Davis',                         country: 'US', releaseYear: 1960, label: ['Columbia'],   format: 'Vinyl',    genre: ['Jazz'] },
+  { title: 'Speak No Evil',             artist: 'Wayne Shorter',                       country: 'US', releaseYear: 1966, label: ['Blue Note'],  format: 'Kassette', genre: ['Jazz'] },
 ];
 
-const VINYLCAVE_RECORDS: RecordSeed[] = [
-  { title: 'The Dark Side of the Moon', artist: 'Pink Floyd',   country: 'UK', releaseYear: 1973, label: ['Harvest'] },
-  { title: 'Abbey Road',                artist: 'The Beatles',  country: 'UK', releaseYear: 1969, label: ['Apple'] },
-  { title: 'Led Zeppelin IV',           artist: 'Led Zeppelin', country: 'UK', releaseYear: 1971, label: ['Atlantic'] },
+// 16 copies total for 15 records.
+// Record index 8 gets 2 copies (verfuegbar + verkauft) — demonstrates multi-copy model.
+// verfuegbar: 0,1,2,3,4,5,6,7,8(copy1),13,14  = 11
+// verkauft:   8(copy2),9,10                     =  3
+// verliehen:  11,12                              =  2
+export const DEMO_PURCHASES: PurchaseSpec[] = [
+  { recordIndex:  0, ek:  '8.00', vk: '24.90', status: 'verfuegbar', conditionRecord: 6, conditionCover: 6 },
+  { recordIndex:  1, ek: '10.00', vk: '29.90', status: 'verfuegbar', conditionRecord: 7, conditionCover: 6 },
+  { recordIndex:  2, ek:  '9.00', vk: '27.90', status: 'verfuegbar', conditionRecord: 6, conditionCover: 5 },
+  { recordIndex:  3, ek: '12.00', vk: '34.90', status: 'verfuegbar', conditionRecord: 5, conditionCover: 5 },
+  { recordIndex:  4, ek:  '7.00', vk: '19.90', status: 'verfuegbar', conditionRecord: 6, conditionCover: 6 },
+  { recordIndex:  5, ek: '11.00', vk: '32.90', status: 'verfuegbar', conditionRecord: 7, conditionCover: 7 },
+  { recordIndex:  6, ek: '15.00', vk: '44.90', status: 'verfuegbar', conditionRecord: 6, conditionCover: 5 },
+  { recordIndex:  7, ek: '13.00', vk: '38.90', status: 'verfuegbar', conditionRecord: 5, conditionCover: 4 },
+  // Two copies of record 8 — the verfuegbar one stays in-stock, the verkauft one is already gone.
+  { recordIndex:  8, ek:  '9.00', vk: '25.90', status: 'verfuegbar', conditionRecord: 6, conditionCover: 6 },
+  { recordIndex:  8, ek:  '6.00', vk: '18.90', status: 'verkauft',   conditionRecord: 4, conditionCover: 3, soldPrice: '18.90', soldDate: new Date('2026-05-14') },
+  { recordIndex:  9, ek:  '6.00', vk: '16.90', status: 'verkauft',   conditionRecord: 5, conditionCover: 5, soldPrice: '16.90', soldDate: new Date('2026-06-01') },
+  { recordIndex: 10, ek:  '5.00', vk: '14.90', status: 'verkauft',   conditionRecord: 6, conditionCover: 5, soldPrice: '14.00', soldDate: new Date('2026-06-10') },
+  { recordIndex: 11, ek:  '8.00', vk: '22.90', status: 'verliehen',  conditionRecord: 6, conditionCover: 6 },
+  { recordIndex: 12, ek:  '7.00', vk: '18.90', status: 'verliehen',  conditionRecord: 5, conditionCover: 5 },
+  { recordIndex: 13, ek: '10.00', vk: '28.90', status: 'verfuegbar', conditionRecord: 7, conditionCover: 6 },
+  { recordIndex: 14, ek:  '4.00', vk:  '9.90', status: 'verfuegbar', conditionRecord: 4, conditionCover: 3 },
+];
+
+export const DEMO_PERMALINKS: PermalinkSpec[] = [
+  { slug: 'jazz', filter: { genre: ['Jazz'] } },
+  { slug: 'neu',  filter: {} },
 ];
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Datasets — vinylcave tenant (rock/electronic catalogue)
 // ---------------------------------------------------------------------------
 
-/**
- * Provision a tenant only if its slug does not already exist.
- *
- * When `SEED_ADMIN_PASSWORD` is set AND the tenant already exists, the admin
- * user's password is updated to match the env var so re-runs always converge
- * to a known, deterministic login credential (required for Task 15 E2E).
- *
- * Returns the tenantId and the password that was used/set.
- */
+export const VINYLCAVE_RECORDS: RecordSeed[] = [
+  // 0 — existing
+  { title: 'The Dark Side of the Moon', artist: 'Pink Floyd',    country: 'UK', releaseYear: 1973, label: ['Harvest'],      format: 'Vinyl',    genre: ['Rock', 'Progressive Rock'] },
+  // 1 — existing
+  { title: 'Abbey Road',                artist: 'The Beatles',   country: 'UK', releaseYear: 1969, label: ['Apple'],         format: 'Vinyl',    genre: ['Rock'] },
+  // 2 — existing
+  { title: 'Led Zeppelin IV',           artist: 'Led Zeppelin',  country: 'UK', releaseYear: 1971, label: ['Atlantic'],      format: 'Vinyl',    genre: ['Rock', 'Hard Rock'] },
+  // 3–14 new
+  { title: 'Unknown Pleasures',         artist: 'Joy Division',  country: 'UK', releaseYear: 1979, label: ['Factory'],       format: 'Vinyl',    genre: ['Post-Punk'] },
+  { title: 'Remain in Light',           artist: 'Talking Heads', country: 'US', releaseYear: 1980, label: ['Sire'],          format: 'Vinyl',    genre: ['New Wave', 'Post-Punk'] },
+  { title: 'Violator',                  artist: 'Depeche Mode',  country: 'UK', releaseYear: 1990, label: ['Mute'],          format: 'Vinyl',    genre: ['Electronic', 'Synth-Pop'] },
+  { title: 'OK Computer',               artist: 'Radiohead',     country: 'UK', releaseYear: 1997, label: ['Parlophone'],    format: 'CD',       genre: ['Alternative', 'Rock'] },
+  { title: 'The Queen Is Dead',         artist: 'The Smiths',    country: 'UK', releaseYear: 1986, label: ['Rough Trade'],   format: 'Vinyl',    genre: ['Alternative', 'Indie'] },
+  { title: 'Power, Corruption & Lies',  artist: 'New Order',     country: 'UK', releaseYear: 1983, label: ['Factory'],       format: 'Vinyl',    genre: ['Electronic', 'Post-Punk'] },
+  { title: 'Never Mind the Bollocks',   artist: 'Sex Pistols',   country: 'UK', releaseYear: 1977, label: ['Virgin'],        format: 'Vinyl',    genre: ['Punk'] },
+  { title: 'The Joshua Tree',           artist: 'U2',            country: 'IE', releaseYear: 1987, label: ['Island'],        format: 'CD',       genre: ['Rock', 'Alternative'] },
+  { title: 'Pornography',               artist: 'The Cure',      country: 'UK', releaseYear: 1982, label: ['Fiction'],       format: 'Vinyl',    genre: ['Post-Punk', 'Gothic Rock'] },
+  { title: 'Closer',                    artist: 'Joy Division',  country: 'UK', releaseYear: 1980, label: ['Factory'],       format: 'Vinyl',    genre: ['Post-Punk'] },
+  { title: 'Music for the Masses',      artist: 'Depeche Mode',  country: 'UK', releaseYear: 1987, label: ['Mute'],          format: 'Vinyl',    genre: ['Electronic', 'Synth-Pop'] },
+  { title: 'Blue Monday',               artist: 'New Order',     country: 'UK', releaseYear: 1983, label: ['Factory'],       format: 'Kassette', genre: ['Electronic'] },
+];
+
+// 16 copies total for 15 records.
+// Record index 5 (Violator) gets 2 copies — demonstrates multi-copy model for vinylcave.
+// verfuegbar: 0,1,2,3,4,5(copy1),6,7,12,13,14 = 11
+// verkauft:   5(copy2),8,9                      =  3
+// verliehen:  10,11                              =  2
+export const VINYLCAVE_PURCHASES: PurchaseSpec[] = [
+  { recordIndex:  0, ek: '15.00', vk: '45.90', status: 'verfuegbar', conditionRecord: 6, conditionCover: 6 },
+  { recordIndex:  1, ek: '12.00', vk: '39.90', status: 'verfuegbar', conditionRecord: 7, conditionCover: 6 },
+  { recordIndex:  2, ek: '14.00', vk: '42.90', status: 'verfuegbar', conditionRecord: 5, conditionCover: 5 },
+  { recordIndex:  3, ek:  '8.00', vk: '24.90', status: 'verfuegbar', conditionRecord: 6, conditionCover: 5 },
+  { recordIndex:  4, ek: '10.00', vk: '29.90', status: 'verfuegbar', conditionRecord: 5, conditionCover: 5 },
+  // Two copies of Violator — one in stock, one sold.
+  { recordIndex:  5, ek: '11.00', vk: '34.90', status: 'verfuegbar', conditionRecord: 7, conditionCover: 6 },
+  { recordIndex:  5, ek:  '8.00', vk: '24.90', status: 'verkauft',   conditionRecord: 5, conditionCover: 4, soldPrice: '24.90', soldDate: new Date('2026-05-20') },
+  { recordIndex:  6, ek:  '7.00', vk: '19.90', status: 'verfuegbar', conditionRecord: 6, conditionCover: 6 },
+  { recordIndex:  7, ek:  '9.00', vk: '27.90', status: 'verfuegbar', conditionRecord: 6, conditionCover: 5 },
+  { recordIndex:  8, ek:  '8.00', vk: '22.90', status: 'verkauft',   conditionRecord: 5, conditionCover: 5, soldPrice: '22.90', soldDate: new Date('2026-06-03') },
+  { recordIndex:  9, ek:  '7.00', vk: '19.90', status: 'verkauft',   conditionRecord: 4, conditionCover: 4, soldPrice: '18.00', soldDate: new Date('2026-06-15') },
+  { recordIndex: 10, ek:  '6.00', vk: '16.90', status: 'verliehen',  conditionRecord: 6, conditionCover: 6 },
+  { recordIndex: 11, ek:  '9.00', vk: '26.90', status: 'verliehen',  conditionRecord: 5, conditionCover: 4 },
+  { recordIndex: 12, ek:  '8.00', vk: '23.90', status: 'verfuegbar', conditionRecord: 6, conditionCover: 6 },
+  { recordIndex: 13, ek: '10.00', vk: '29.90', status: 'verfuegbar', conditionRecord: 5, conditionCover: 5 },
+  { recordIndex: 14, ek:  '3.00', vk:  '8.90', status: 'verfuegbar', conditionRecord: 4, conditionCover: 3 },
+];
+
+export const VINYLCAVE_PERMALINKS: PermalinkSpec[] = [
+  { slug: 'vinyl', filter: { format: ['Vinyl'] } },
+  { slug: 'neu',   filter: {} },
+];
+
+// ---------------------------------------------------------------------------
+// Internal helpers (not exported — use seedTenantInventory from tests)
+// ---------------------------------------------------------------------------
+
 async function ensureTenant(
   input: ProvisionInput,
   ownerPool: Pool,
@@ -87,17 +199,11 @@ async function ensureTenant(
     console.log(`[seed] Tenant "${input.slug}" already exists (id=${tenantId}), skipping creation.`);
 
     if (seedPassword) {
-      // Converge: update the admin password to the deterministic env var value.
       const newHash = await hashPassword(seedPassword);
       await db
         .update(schema.users)
         .set({ password: newHash })
-        .where(
-          and(
-            eq(schema.users.tenantId, tenantId),
-            eq(schema.users.role, 'admin'),
-          ),
-        );
+        .where(and(eq(schema.users.tenantId, tenantId), eq(schema.users.role, 'admin')));
       console.log(`[seed]   Updated admin password for "${input.slug}" to SEED_ADMIN_PASSWORD value.`);
       return { tenantId, usedPassword: seedPassword };
     }
@@ -105,24 +211,19 @@ async function ensureTenant(
     return { tenantId, usedPassword: null };
   }
 
-  // New tenant: provision with explicit password if provided.
-  const result = await provisionTenant({
-    ...input,
-    password: seedPassword ?? undefined,
-  });
+  const result = await provisionTenant({ ...input, password: seedPassword ?? undefined });
   console.log(`[seed] Provisioned tenant "${input.slug}" (id=${result.tenantId}).`);
   return { tenantId: result.tenantId, usedPassword: result.temporaryPassword };
 }
 
 /**
- * Insert a sample record for a tenant if its dedup hash does not already exist
- * for that tenant.  Uses qr_owner (BYPASSRLS) with an explicit tenantId.
+ * Idempotent record insert. Returns the record's id (existing or newly inserted).
  */
 async function ensureRecord(
   tenantId: number,
   rec: RecordSeed,
   ownerPool: Pool,
-): Promise<void> {
+): Promise<number> {
   const db = drizzle(ownerPool, { schema });
 
   const hash = recordHash({
@@ -136,35 +237,166 @@ async function ensureRecord(
   const existing = await db
     .select({ id: schema.records.id })
     .from(schema.records)
+    .where(and(eq(schema.records.hash, hash), eq(schema.records.tenantId, tenantId)))
+    .limit(1);
+
+  if (existing.length > 0 && existing[0]) {
+    console.log(`[seed]   Record "${rec.title}" already exists, skipping.`);
+    return existing[0].id;
+  }
+
+  const [inserted] = await db
+    .insert(schema.records)
+    .values({
+      tenantId,
+      title: rec.title,
+      artist: rec.artist,
+      label: rec.label,
+      country: rec.country,
+      releaseYear: rec.releaseYear,
+      format: rec.format ?? 'Vinyl',
+      genre: rec.genre ?? [],
+      hash,
+    })
+    .returning({ id: schema.records.id });
+
+  console.log(`[seed]   Inserted "${rec.title}" — ${rec.artist} (${rec.releaseYear}).`);
+  return inserted!.id;
+}
+
+// ---------------------------------------------------------------------------
+// Exported helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Idempotent purchase (copy) insert. Skip if a row already exists with the
+ * same (tenantId, recordId, purchasePrice, status) — sufficient uniqueness for
+ * the deterministic seed dataset.
+ */
+export async function ensurePurchase(
+  ownerPool: Pool,
+  input: {
+    tenantId: number;
+    recordId: number;
+    ek: string;
+    vk: string;
+    status: RecordStatus;
+    conditionRecord: number | null;
+    conditionCover: number | null;
+    soldPrice?: string;
+    soldDate?: Date;
+  },
+): Promise<void> {
+  const db = drizzle(ownerPool, { schema });
+
+  const existing = await db
+    .select({ id: schema.purchases.id })
+    .from(schema.purchases)
     .where(
       and(
-        eq(schema.records.hash, hash),
-        eq(schema.records.tenantId, tenantId),
+        eq(schema.purchases.tenantId, input.tenantId),
+        eq(schema.purchases.recordId, input.recordId),
+        eq(schema.purchases.purchasePrice, input.ek),
+        eq(schema.purchases.status, input.status),
       ),
     )
     .limit(1);
 
   if (existing.length > 0) {
-    console.log(`[seed]   Record "${rec.title}" already exists, skipping.`);
-    return;
+    return; // already seeded
   }
 
-  await db.insert(schema.records).values({
-    tenantId,
-    title: rec.title,
-    artist: rec.artist,
-    label: rec.label,
-    country: rec.country,
-    releaseYear: rec.releaseYear,
-    format: 'LP',
-    genre: [],
-    hash,
+  await db.insert(schema.purchases).values({
+    tenantId: input.tenantId,
+    recordId: input.recordId,
+    purchasePrice: input.ek,
+    targetPrice: input.vk,
+    status: input.status,
+    conditionRecord: input.conditionRecord,
+    conditionCover: input.conditionCover,
+    soldPrice: input.soldPrice ?? null,
+    soldDate: input.soldDate ?? null,
   });
 
-  console.log(`[seed]   Inserted "${rec.title}" — ${rec.artist} (${rec.releaseYear}).`);
+  console.log(`[seed]   Purchase for record ${input.recordId} (${input.status}) created.`);
 }
 
-/** Build the tenant login URL, omitting the port when it is the protocol default. */
+/**
+ * Idempotent permalink insert. Skip if (tenantId, slug) already exists.
+ */
+export async function ensurePermalink(
+  ownerPool: Pool,
+  input: {
+    tenantId: number;
+    slug: string;
+    filter: PermalinkSpec['filter'];
+  },
+): Promise<void> {
+  const db = drizzle(ownerPool, { schema });
+
+  const existing = await db
+    .select({ id: schema.permalinks.id })
+    .from(schema.permalinks)
+    .where(and(eq(schema.permalinks.tenantId, input.tenantId), eq(schema.permalinks.slug, input.slug)))
+    .limit(1);
+
+  if (existing.length > 0) {
+    return; // already seeded
+  }
+
+  await db.insert(schema.permalinks).values({
+    tenantId: input.tenantId,
+    slug: input.slug,
+    filter: input.filter,
+  });
+
+  console.log(`[seed]   Permalink "/${input.slug}" created.`);
+}
+
+/**
+ * Seeds records, purchases, and permalinks for a tenant.
+ * Exported so integration tests can call it directly with a testcontainer ownerPool.
+ */
+export async function seedTenantInventory(
+  ownerPool: Pool,
+  tenantId: number,
+  records: RecordSeed[],
+  purchases: PurchaseSpec[],
+  permalinks: PermalinkSpec[],
+): Promise<void> {
+  const recordIds: number[] = [];
+  for (const rec of records) {
+    const id = await ensureRecord(tenantId, rec, ownerPool);
+    recordIds.push(id);
+  }
+
+  for (const spec of purchases) {
+    const recordId = recordIds[spec.recordIndex];
+    if (recordId === undefined) {
+      throw new Error(`[seed] Invalid recordIndex ${spec.recordIndex} (records.length=${records.length})`);
+    }
+    await ensurePurchase(ownerPool, {
+      tenantId,
+      recordId,
+      ek: spec.ek,
+      vk: spec.vk,
+      status: spec.status,
+      conditionRecord: spec.conditionRecord,
+      conditionCover: spec.conditionCover,
+      soldPrice: spec.soldPrice,
+      soldDate: spec.soldDate,
+    });
+  }
+
+  for (const pl of permalinks) {
+    await ensurePermalink(ownerPool, { tenantId, slug: pl.slug, filter: pl.filter });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CLI helpers (unchanged from Slice 0 except loginUrlFor / printCredentials)
+// ---------------------------------------------------------------------------
+
 function loginUrlFor(slug: string, protocol: string, rootDomain: string): string {
   const port = process.env['APP_PORT'] ?? '3000';
   const isDefault = (protocol === 'https' && port === '443') || (protocol === 'http' && port === '80');
@@ -172,12 +404,6 @@ function loginUrlFor(slug: string, protocol: string, rootDomain: string): string
   return `${protocol}://${slug}.${rootDomain}${portPart}/login`;
 }
 
-/**
- * Dispatch the credential email to the tenant admin via the configured MAIL_DRIVER
- * (mailpit in compose → lands in Mailpit; console otherwise). Non-fatal: a mail failure
- * must NOT abort the seed (web depends on seed completing successfully). Only sends when
- * the password is known (usedPassword !== null). Satisfies §9.10.
- */
 async function sendCredentialMail(
   tenant: ProvisionInput,
   password: string | null,
@@ -221,10 +447,9 @@ async function main(): Promise<void> {
     throw new Error('[seed] DATABASE_OWNER_URL is not set. Check your .env file.');
   }
 
-  const protocol = process.env['APP_PROTOCOL'] ?? 'http';
-  const rootDomain = process.env['ROOT_DOMAIN'] ?? 'localhost';
+  const protocol   = process.env['APP_PROTOCOL'] ?? 'http';
+  const rootDomain = process.env['ROOT_DOMAIN']  ?? 'localhost';
 
-  // Use a direct pool for seed queries (avoid importing @/db/client which pulls in env.ts).
   const ownerPool = new Pool({ connectionString: ownerUrl });
 
   try {
@@ -235,30 +460,36 @@ async function main(): Promise<void> {
     printCredentials(DEMO_TENANT, demoPw, protocol, rootDomain);
     await sendCredentialMail(DEMO_TENANT, demoPw, protocol, rootDomain);
 
-    console.log(`[seed] Seeding records for "${DEMO_TENANT.slug}"...`);
-    for (const rec of DEMO_RECORDS) {
-      await ensureRecord(demoId, rec, ownerPool);
-    }
+    console.log(`[seed] Seeding inventory for "${DEMO_TENANT.slug}"...`);
+    await seedTenantInventory(ownerPool, demoId, DEMO_RECORDS, DEMO_PURCHASES, DEMO_PERMALINKS);
 
     // ── vinylcave tenant ───────────────────────────────────────────────────
     const { tenantId: vinylId, usedPassword: vinylPw } = await ensureTenant(VINYLCAVE_TENANT, ownerPool);
     printCredentials(VINYLCAVE_TENANT, vinylPw, protocol, rootDomain);
     await sendCredentialMail(VINYLCAVE_TENANT, vinylPw, protocol, rootDomain);
 
-    console.log(`[seed] Seeding records for "${VINYLCAVE_TENANT.slug}"...`);
-    for (const rec of VINYLCAVE_RECORDS) {
-      await ensureRecord(vinylId, rec, ownerPool);
-    }
+    console.log(`[seed] Seeding inventory for "${VINYLCAVE_TENANT.slug}"...`);
+    await seedTenantInventory(ownerPool, vinylId, VINYLCAVE_RECORDS, VINYLCAVE_PURCHASES, VINYLCAVE_PERMALINKS);
 
     console.log('[seed] Done. Safe to re-run (idempotent).');
   } finally {
     await ownerPool.end();
   }
-
-  process.exit(0);
 }
 
-main().catch((err: unknown) => {
-  console.error('[seed] Fatal error:', err);
-  process.exit(1);
-});
+// ---------------------------------------------------------------------------
+// CLI entry guard — run main() only when executed directly, not on import.
+// This allows tests to import and call the exported helpers safely.
+// ---------------------------------------------------------------------------
+const __filename = fileURLToPath(import.meta.url);
+if (
+  process.argv[1] === __filename ||
+  process.argv[1] === __filename.replace(/\.ts$/, '.js')
+) {
+  main()
+    .then(() => process.exit(0))
+    .catch((err: unknown) => {
+      console.error('[seed] Fatal error:', err);
+      process.exit(1);
+    });
+}
