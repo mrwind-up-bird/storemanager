@@ -70,7 +70,7 @@ v1 bekam Tenant-Isolation „gratis" über einen gepatchten `pg.Pool.connect()`-
 | Slice | Inhalt | Status |
 |---|---|---|
 | **0 Fundament** | Scaffold, Design-System/Tokens/Primitives, Multi-Tenant-DB (`withTenant`+RLS), Auth-Shell, Worker-Gerüst, Tenant-Provisioning, Seed, Dev-Mail, docker-compose | **Plan geschrieben + reviewed** → Implementierung |
-| 1 Inventar+Dashboard+Schaufenster | records/purchases/conditions + Seed, Lagerbestand (Liste/Kacheln/Filter/Status), Dashboard-KPIs, öffentliches Schaufenster (permalink) | geplant |
+| 1 Inventar+Dashboard+Schaufenster | records/purchases/conditions + Seed, Lagerbestand (Liste/Kacheln/Filter/Status), Dashboard-KPIs, öffentliches Schaufenster (permalink) | **Plan geschrieben + reviewed** → Implementierung |
 | 2 Discogs+Ankauf | Discogs Such-API (OAuth, Rate-Limit), Discogs-Suche-Screen, Ankauf-Modal, Hash-Dedup, Marktdaten-Cache, vereinfachtes Pricing | geplant |
 | 3 Verkauf/POS+Wunschlisten | Verkauf-Modal + transactions, Zahlarten, Wunschlisten-CRUD (Künstler/Label/Titel/Land), E-Mail-Benachrichtigung bei Eingang, Benachrichtigen-Modal | geplant |
 | 4 Analytik+Batch+Etiketten | Analytik-Screen (Woche/Monat/Quartal, Charts, Top), collection batch-Ankauf + Etikettendruck (jsPDF), CSV-Export | geplant |
