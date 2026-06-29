@@ -26,6 +26,11 @@ describe('InventoryKpi', () => {
     expect(screen.getByText('8')).toBeDefined();
   });
 
+  it('kpi-inventory-available element contains exactly the available count', () => {
+    render(<InventoryKpi aggregates={MOCK_AGG} />);
+    expect(screen.getByTestId('kpi-inventory-available').textContent).toBe('8');
+  });
+
   it('shows the label "Artikel im Lager"', () => {
     render(<InventoryKpi aggregates={MOCK_AGG} />);
     expect(screen.getByText('Artikel im Lager')).toBeDefined();
@@ -104,5 +109,19 @@ describe('EmptyPanel', () => {
       />,
     );
     expect(screen.getByTestId('honey-dot')).toBeDefined();
+  });
+
+  it('spreads testId as data-testid on the outer card', () => {
+    const { container } = render(
+      <EmptyPanel title="Test" emptyMessage="msg" testId="panel-letzte-verkaeufe" />,
+    );
+    expect(container.firstElementChild?.getAttribute('data-testid')).toBe('panel-letzte-verkaeufe');
+  });
+
+  it('emits no data-testid attribute when testId is omitted', () => {
+    const { container } = render(
+      <EmptyPanel title="Test" emptyMessage="msg" />,
+    );
+    expect(container.firstElementChild?.getAttribute('data-testid')).toBeNull();
   });
 });
