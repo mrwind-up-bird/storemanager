@@ -1,50 +1,87 @@
 // src/app/s/[permalink]/page.tsx
 import { notFound } from 'next/navigation';
 import { getCurrentTenant } from '@/lib/tenant';
-import { withTenant } from '@/db/tenant';
-import { permalinks } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { resolvePermalink, listStorefront } from '@/lib/storefront';
+import { StorefrontGrid } from './_components/StorefrontGrid';
+import { StorefrontSearch } from './_components/StorefrontSearch';
 
 interface Props {
   params: Promise<{ permalink: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export default async function PublicPermalinkPage({ params }: Props) {
-  const { permalink: slug } = await params;
+function readQ(sp: Record<string, string | string[] | undefined>): string {
+  const raw = sp.q;
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return typeof value === 'string' ? value.trim().slice(0, 80) : '';
+}
 
-  // getCurrentTenant reads x-tenant-slug from headers — set by edge middleware.
-  // notFound() propagates naturally if the slug resolves to nothing.
+export default async function PublicStorefrontPage({ params, searchParams }: Props) {
+  const { permalink: slug } = await params;
+  const sp = await searchParams;
+  const q = readQ(sp);
+
+  // getCurrentTenant reads x-tenant-slug from headers — set by edge middleware. NO requireSession.
   const tenant = await getCurrentTenant();
 
-  const row = await withTenant({ tenantId: tenant.id, userId: null }, (tx) =>
-    tx
-      .select({ id: permalinks.id, filter: permalinks.filter, createdAt: permalinks.createdAt })
-      .from(permalinks)
-      .where(and(eq(permalinks.slug, slug), eq(permalinks.tenantId, tenant.id)))
-      .then((rows) => rows[0] ?? null),
-  );
-
-  if (!row) {
-    notFound(); // §9.4: unknown permalink → 404, NOT another tenant's data
+  const resolved = await resolvePermalink({ tenantId: tenant.id }, slug);
+  if (!resolved) {
+    notFound(); // unknown permalink → 404, NEVER another tenant's data
   }
 
-  // Slice 3 will render full public storefront here.
+  const records = await listStorefront({ tenantId: tenant.id }, resolved.filter, q || undefined);
+
   return (
-    <main style={{ padding: 'clamp(18px,3vw,32px)', fontFamily: 'var(--font-body)' }}>
-      <h1
+    <main
+      style={{
+        maxWidth: 1200,
+        margin: '0 auto',
+        padding: 'clamp(20px,4vw,40px)',
+        fontFamily: 'var(--font-body)',
+      }}
+    >
+      <p
+        style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: '12px',
+          letterSpacing: '.08em',
+          textTransform: 'uppercase',
+          color: 'var(--text-3)',
+          marginBottom: 6,
+        }}
+      >
+        q·records · Live-Bestand
+      </p>
+      <h2
         style={{
           fontFamily: 'var(--font-display)',
           fontWeight: 800,
-          fontSize: 'clamp(28px,5vw,40px)',
+          fontSize: 'clamp(28px,5vw,42px)',
           letterSpacing: '-.02em',
-          marginBottom: '8px',
+          marginBottom: 'clamp(16px,3vw,26px)',
+          color: 'var(--text)',
         }}
       >
-        {tenant.name}
-      </h1>
-      <p style={{ color: 'var(--text-2)', fontSize: '15px' }}>
-        Schaufenster · <span style={{ fontFamily: 'var(--font-mono)' }}>{slug}</span> — Slice 3 folgt.
-      </p>
+        {resolved.title}
+      </h2>
+
+      <StorefrontSearch initialQ={q} />
+      <StorefrontGrid records={records} />
+
+      <footer
+        style={{
+          marginTop: 'clamp(32px,6vw,56px)',
+          paddingTop: 'clamp(16px,3vw,24px)',
+          borderTop: '1px solid var(--border)',
+          color: 'var(--text-3)',
+          fontSize: '13px',
+        }}
+      >
+        <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--text-2)' }}>{tenant.name}</p>
+        <p style={{ marginTop: 4 }}>
+          Öffnungszeiten &amp; Adresse folgen · betrieben mit q·records
+        </p>
+      </footer>
     </main>
   );
 }
@@ -53,7 +90,8 @@ export async function generateMetadata({ params }: Props) {
   const { permalink: slug } = await params;
   try {
     const tenant = await getCurrentTenant();
-    return { title: `${tenant.name} · ${slug}` };
+    const resolved = await resolvePermalink({ tenantId: tenant.id }, slug);
+    return { title: resolved ? `${tenant.name} · ${resolved.title}` : tenant.name };
   } catch {
     return { title: slug };
   }

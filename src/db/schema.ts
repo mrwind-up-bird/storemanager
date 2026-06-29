@@ -1,11 +1,14 @@
 import {
   boolean,
+  check,
+  index,
   integer,
   jsonb,
   numeric,
   pgEnum,
   pgTable,
   serial,
+  smallint,
   text,
   timestamp,
   unique,
@@ -29,6 +32,7 @@ export const recordStatusEnum = pgEnum('record_status', [
   'verkauft',
   'verliehen',
 ]);
+export type RecordStatus = (typeof recordStatusEnum.enumValues)[number];
 
 // ── Registry tables (no tenant RLS) ─────────────────────────────────────────
 
@@ -122,9 +126,6 @@ export const records = pgTable(
     discogsId: integer('discogs_id'),
     /** sha256 hex — dedup key; see src/db/hash.ts */
     hash: varchar('hash', { length: 64 }).notNull(),
-    recordStatus: recordStatusEnum('record_status')
-      .notNull()
-      .default('verfuegbar'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
@@ -133,22 +134,41 @@ export const records = pgTable(
   }),
 );
 
-export const purchases = pgTable('purchases', {
-  id: serial('id').primaryKey(),
-  tenantId: integer('tenant_id')
-    .notNull()
-    .references(() => tenants.id),
-  recordId: integer('record_id')
-    .notNull()
-    .references(() => records.id),
-  purchasePrice: numeric('purchase_price', { precision: 10, scale: 2 }),
-  targetPrice: numeric('target_price', { precision: 10, scale: 2 }),
-  soldPrice: numeric('sold_price', { precision: 10, scale: 2 }),
-  soldDate: timestamp('sold_date', { withTimezone: true }),
-  paymentMethod: text('payment_method'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
-});
+export const purchases = pgTable(
+  'purchases',
+  {
+    id: serial('id').primaryKey(),
+    tenantId: integer('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    recordId: integer('record_id')
+      .notNull()
+      .references(() => records.id),
+    purchasePrice: numeric('purchase_price', { precision: 10, scale: 2 }),
+    targetPrice: numeric('target_price', { precision: 10, scale: 2 }),
+    soldPrice: numeric('sold_price', { precision: 10, scale: 2 }),
+    soldDate: timestamp('sold_date', { withTimezone: true }),
+    paymentMethod: text('payment_method'),
+    // ── copy-as-inventory (Slice 1): status + condition live on the physical copy ──
+    status: recordStatusEnum('status').notNull().default('verfuegbar'),
+    conditionRecord: smallint('condition_record'),
+    conditionCover: smallint('condition_cover'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (t) => ({
+    tenantStatusIdx: index('purchases_tenant_status_idx').on(t.tenantId, t.status),
+    recordIdx: index('purchases_record_idx').on(t.recordId),
+    conditionRecordRange: check(
+      'purchases_condition_record_range',
+      sql`${t.conditionRecord} BETWEEN 0 AND 7`,
+    ),
+    conditionCoverRange: check(
+      'purchases_condition_cover_range',
+      sql`${t.conditionCover} BETWEEN 0 AND 7`,
+    ),
+  }),
+);
 
 export const permalinks = pgTable(
   'permalinks',
