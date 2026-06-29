@@ -14,6 +14,8 @@ let parseInventoryFilters: (typeof import('@/lib/inventory'))['parseInventoryFil
 let teardown: (() => Promise<void>) | undefined;
 let tenantA: number;
 let tenantB: number;
+let tenantC: number; // ILIKE metachar escaping tests
+let tenantD: number; // genreOptions isolation + formatSplit other bucket
 
 async function insertRecord(
   tenantId: number,
@@ -108,6 +110,29 @@ beforeAll(async () => {
     format: 'Vinyl', genre: ['Jazz'], releaseYear: 1957, country: 'US', hash: 'b1',
   });
   await insertPurchase(tenantB, b1, { status: 'verfuegbar', conditionRecord: 7, conditionCover: 7, ek: '20.00', vk: '50.00' });
+
+  // ── Tenant C: 2 records for ILIKE metachar escaping tests ─────────────────
+  // c1 title contains a literal %, c2 is a normal record with no metacharacters.
+  tenantC = (await seedTenant({ slug: 'metachar', name: 'Metachar Store' })).tenantId;
+  const c1 = await insertRecord(tenantC, {
+    title: '50% Off', artist: 'Promo Artist', label: ['Promo'],
+    format: 'CD', genre: ['Pop'], releaseYear: 2020, country: 'DE', hash: 'c1',
+  });
+  const c2 = await insertRecord(tenantC, {
+    title: 'Normal Record', artist: 'Promo Artist', label: ['Promo'],
+    format: 'CD', genre: ['Pop'], releaseYear: 2021, country: 'DE', hash: 'c2',
+  });
+  await insertPurchase(tenantC, c1, { status: 'verfuegbar', conditionRecord: 7, conditionCover: 7, ek: '5.00', vk: '10.00' });
+  await insertPurchase(tenantC, c2, { status: 'verfuegbar', conditionRecord: 7, conditionCover: 7, ek: '5.00', vk: '10.00' });
+
+  // ── Tenant D: genreOptions isolation + formatSplit other bucket ────────────
+  // d1 has genre 'Reggae' (absent from tenantA) and format 'Kassette' (the 'other' bucket).
+  tenantD = (await seedTenant({ slug: 'isolation', name: 'Isolation Store' })).tenantId;
+  const d1 = await insertRecord(tenantD, {
+    title: 'No Woman No Cry', artist: 'Bob Marley', label: ['Island'],
+    format: 'Kassette', genre: ['Reggae'], releaseYear: 1974, country: 'JM', hash: 'd1',
+  });
+  await insertPurchase(tenantD, d1, { status: 'verfuegbar', conditionRecord: 6, conditionCover: 6, ek: '8.00', vk: '15.00' });
 }, 180_000);
 
 afterAll(async () => {
@@ -180,6 +205,48 @@ describe('inventoryAggregates — status tab is IGNORED in counts/value', () => 
     expect(agg.valueAvailable).toBe(48); // verfuegbar vk in set: 30 + 18
     expect(agg.formatSplit).toEqual({ vinyl: 2, cd: 0, other: 0 });
     expect(agg.genreOptions).toEqual(['Electronic', 'Jazz', 'Rock']); // independent of the format filter
+  });
+});
+
+describe('listInventory — ILIKE metacharacter escaping', () => {
+  it('literal % in q matches only rows containing %, not all rows (wildcard proof)', async () => {
+    // With correct escaping, q='50%' → pattern %50\%% → matches '50% Off' by substring
+    const byFull = await listInventory({ tenantId: tenantC, userId: null }, { q: '50%' });
+    expect(byFull).toHaveLength(1);
+    expect(byFull[0].title).toBe('50% Off');
+
+    // With correct escaping, q='%' → pattern %\%% → matches only strings containing a literal %
+    // If % were unescaped it would produce %% and match every non-empty string (returns 2 rows).
+    const byWildcard = await listInventory({ tenantId: tenantC, userId: null }, { q: '%' });
+    expect(byWildcard).toHaveLength(1);        // only '50% Off' contains a literal percent
+    expect(byWildcard[0].title).toBe('50% Off');
+  });
+
+  it('literal _ in q returns 0 rows (not wildcard-matching all rows)', async () => {
+    // With correct escaping, q='_' → pattern %\_% → matches strings containing a literal underscore.
+    // If _ were unescaped it would produce %_% which matches any string with ≥1 character (returns all rows).
+    const rows = await listInventory({ tenantId: tenantC, userId: null }, { q: '_' });
+    expect(rows).toHaveLength(0); // no tenantC record title contains a literal underscore
+  });
+});
+
+describe('inventoryAggregates — genreOptions cross-tenant isolation', () => {
+  it('tenant A genreOptions does not contain genres present only in other tenants', async () => {
+    // tenantD has a record with genre ['Reggae']; tenantA has no Reggae records.
+    // If genreOptions leaked across tenants (missing WHERE tenant_id), 'Reggae' would appear.
+    const agg = await inventoryAggregates({ tenantId: tenantA, userId: null }, {});
+    expect(agg.genreOptions).not.toContain('Reggae');
+    expect(agg.genreOptions).toEqual(['Electronic', 'Jazz', 'Rock']); // unchanged from baseline
+  });
+});
+
+describe('inventoryAggregates — formatSplit other bucket', () => {
+  it('Kassette format is counted in the other bucket, not vinyl or cd', async () => {
+    // tenantD has one verfuegbar Kassette copy — the only format that hits the else branch.
+    const agg = await inventoryAggregates({ tenantId: tenantD, userId: null }, {});
+    expect(agg.formatSplit.other).toBeGreaterThanOrEqual(1);
+    expect(agg.formatSplit.vinyl).toBe(0);
+    expect(agg.formatSplit.cd).toBe(0);
   });
 });
 
