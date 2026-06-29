@@ -1,5 +1,9 @@
-import { CoverPlaceholder, VinylDisc, Button } from '@/components/ui';
+import { CoverPlaceholder, Button } from '@/components/ui';
 import type { StorefrontRecord } from '@/lib/storefront';
+
+/** CD → --info, everything else (Vinyl, Kassette, null) → --accent */
+const discColor = (format: string | null) =>
+  format === 'CD' ? 'var(--info)' : 'var(--accent)';
 
 const AVAILABILITY: Record<StorefrontRecord['availability'], { label: string; color: string }> = {
   in: { label: 'Verfügbar im Store', color: 'var(--ok)' },
@@ -53,17 +57,7 @@ export function StorefrontGrid({ records }: { records: StorefrontRecord[] }) {
             }}
           >
             <div style={{ position: 'relative' }}>
-              <CoverPlaceholder aspectRatio={1} />
-              <div
-                aria-hidden="true"
-                style={{ position: 'absolute', right: '-26%', top: '50%', transform: 'translateY(-50%)' }}
-              >
-                <VinylDisc
-                  size={120}
-                  variant="card"
-                  labelColor={r.format === 'Vinyl' ? 'var(--accent)' : r.format === 'CD' ? 'var(--info)' : 'var(--disc-label)'}
-                />
-              </div>
+              <CoverPlaceholder aspectRatio={1} labelColor={discColor(r.format)} />
               <span
                 style={{
                   position: 'absolute',

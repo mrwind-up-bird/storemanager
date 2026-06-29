@@ -2,7 +2,11 @@ import type { InventoryRow } from '@/lib/inventory';
 import type { Condition } from '@/components/ui/ConditionPill';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ConditionPill } from '@/components/ui/ConditionPill';
-import { VinylDisc } from '@/components/ui/VinylDisc';
+import { CoverPlaceholder } from '@/components/ui/CoverPlaceholder';
+
+/** CD → --info, everything else (Vinyl, Kassette, null) → --accent */
+const discColor = (format: string | null) =>
+  format === 'CD' ? 'var(--info)' : 'var(--accent)';
 
 export interface InventoryTilesProps {
   rows: InventoryRow[];
@@ -32,54 +36,9 @@ export function InventoryTiles({ rows }: InventoryTilesProps) {
             opacity: row.status === 'verkauft' ? 0.62 : undefined,
           }}
         >
-          {/* Card header — aspect-ratio:1.9, 62% cover, disc from right:-26% */}
-          <div style={{ position: 'relative', aspectRatio: '1.9', overflow: 'hidden' }}>
-            {/* Disc peeking from right — VinylDisc primitive with format-aware labelColor */}
-            <div
-              aria-hidden="true"
-              style={{
-                position: 'absolute',
-                right: '-26%',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '64%',
-              }}
-            >
-              <VinylDisc
-                size={160}
-                variant="card"
-                labelColor={
-                  row.format === 'Vinyl'
-                    ? 'var(--accent)'
-                    : row.format === 'CD'
-                      ? 'var(--info)'
-                      : 'var(--disc-label)'
-                }
-              />
-            </div>
-            {/* Cover placeholder — 62% of width, hatched */}
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                width: '62%',
-                background:
-                  'repeating-linear-gradient(135deg,var(--surface-3) 0 11px,var(--surface-2) 11px 22px)',
-                display: 'grid',
-                placeItems: 'center',
-                borderRight: '1px solid var(--border)',
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 11,
-                  color: 'var(--text-3)',
-                }}
-              >
-                cover
-              </span>
-            </div>
+          {/* Card header — single format-coloured disc via CoverPlaceholder */}
+          <div style={{ position: 'relative' }}>
+            <CoverPlaceholder aspectRatio={1.9} labelColor={discColor(row.format)} />
             {/* StatusBadge overlay — top-left, backdrop-blur */}
             <span
               style={{

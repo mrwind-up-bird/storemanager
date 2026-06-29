@@ -9,9 +9,11 @@
 export interface CoverPlaceholderProps {
   aspectRatio?: number;  // default 1 (square), set 1.9 for landscape card variant
   className?: string;
+  /** Label-ring colour for the peeking disc. Defaults to var(--disc-label). */
+  labelColor?: string;
 }
 
-export function CoverPlaceholder({ aspectRatio = 1, className }: CoverPlaceholderProps) {
+export function CoverPlaceholder({ aspectRatio = 1, className, labelColor = 'var(--disc-label)' }: CoverPlaceholderProps) {
   return (
     <div className={className} style={{ position: 'relative', aspectRatio, overflow: 'hidden' }}>
       {/* Disc peeking from the right — verbatim positions from Q-Records App.dc.html line 404 */}
@@ -22,7 +24,7 @@ export function CoverPlaceholder({ aspectRatio = 1, className }: CoverPlaceholde
           width: '78%', aspectRatio: 1, borderRadius: '50%', boxShadow: 'var(--shadow-2)',
           background: [
             'radial-gradient(circle at 50% 50%,var(--surface) 0 5%,#0000 5.4%)',
-            'radial-gradient(circle at 50% 50%,var(--disc-label) 5.4% 30%,#0000 30.4%)',
+            `radial-gradient(circle at 50% 50%,${labelColor} 5.4% 30%,#0000 30.4%)`,
             'repeating-radial-gradient(circle at 50% 50%,var(--disc-groove-a) 0 1.5px,var(--disc-groove-b) 1.5px 3.4px)',
             'var(--disc-base)',
           ].join(','),
