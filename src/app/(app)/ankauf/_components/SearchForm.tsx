@@ -10,6 +10,7 @@ import { SearchField } from '@/components/ui/SearchField';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { searchDiscogs } from '../actions';
 import { ResultsGrid } from './ResultsGrid';
+import { AnkaufModal } from './AnkaufModal';
 import type { DiscogsSearchResult } from '@/lib/discogs/types';
 
 const VIEW_OPTIONS = [
@@ -215,28 +216,9 @@ export function SearchForm({ connected: _connected, username }: SearchFormProps)
         </>
       )}
 
-      {/* ── Task 13 modal mount point ─────────────────────────────────────────
-       * When Task 13 implements AnkaufModal, replace this comment block with:
-       *
-       *   {selected && (
-       *     <AnkaufModal
-       *       release={selected}
-       *       onClose={() => setSelected(null)}
-       *     />
-       *   )}
-       *
-       * `selected` holds the DiscogsSearchResult that the user clicked "Ankaufen" on.
-       * Import AnkaufModal from './AnkaufModal'.
-       * ─────────────────────────────────────────────────────────────────── */}
+      {/* ── Ankauf modal (Task 13) ───────────────────────────────────────── */}
       {selected && (
-        /* Task 13 placeholder — remove this div and add AnkaufModal import */
-        <div
-          role="dialog"
-          aria-label="Ankaufen (wird implementiert)"
-          data-testid="ankauf-modal-placeholder"
-          style={{ display: 'none' }}
-          data-selected-id={selected.discogsId}
-        />
+        <AnkaufModal result={selected} onClose={() => setSelected(null)} />
       )}
     </div>
   );
