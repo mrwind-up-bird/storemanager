@@ -75,6 +75,11 @@ services:
       NODE_ENV: production
       PORT: "3000"
       HOSTNAME: "0.0.0.0"
+      DISCOGS_DRIVER: fake
+      DISCOGS_CONSUMER_KEY: dev-key
+      DISCOGS_CONSUMER_SECRET: dev-secret
+      DISCOGS_API_URL: https://api.discogs.com
+      DISCOGS_USER_AGENT: "QRecordsStoremanager/2.0 +https://q-records.example"
     ports:
       - "3000:3000"
     depends_on:
@@ -99,6 +104,11 @@ services:
     env_file: .env.compose
     environment:
       NODE_ENV: production
+      DISCOGS_DRIVER: fake
+      DISCOGS_CONSUMER_KEY: dev-key
+      DISCOGS_CONSUMER_SECRET: dev-secret
+      DISCOGS_API_URL: https://api.discogs.com
+      DISCOGS_USER_AGENT: "QRecordsStoremanager/2.0 +https://q-records.example"
     depends_on:
       migrate:
         condition: service_completed_successfully

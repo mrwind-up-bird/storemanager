@@ -16,6 +16,8 @@ const VALID_ENV: Record<string, string> = {
   MAIL_HOST: 'localhost',
   MAIL_PORT: '1025',
   MAIL_FROM: 'noreply@localhost',
+  DISCOGS_CONSUMER_KEY: 'test-key',
+  DISCOGS_CONSUMER_SECRET: 'test-secret',
 };
 
 afterEach(() => {
