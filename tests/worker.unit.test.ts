@@ -39,6 +39,13 @@ describe('QUEUE constants', () => {
     expect(QUEUE.analyticsSummaryRefresh).toBe('system.analytics_summary.refresh');
   });
 
+  it('discogsListingCreate equals the canonical queue name (env-less import)', async () => {
+    // `import { QUEUE }` must resolve without env set — a top-level VALUE import of
+    // the job module would pull @/db → @/env and break this.
+    const { QUEUE } = await import('@/worker/index');
+    expect(QUEUE.discogsListingCreate).toBe('tenant.discogs.listing.create');
+  });
+
   it('QUEUE is structurally readonly (as const)', async () => {
     const { QUEUE } = await import('@/worker/index');
     // TypeScript enforces this at compile time; at runtime the value must be a string
