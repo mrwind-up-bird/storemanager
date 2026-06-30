@@ -205,7 +205,10 @@ OAuth 1.0a, HMAC-SHA1. Consumer key/secret from `env.DISCOGS_CONSUMER_KEY/_SECRE
 Pure helpers to unit-test against a known vector:
 ```ts
 export function percentEncode(s: string): string;            // RFC3986
-export function signatureBaseString(method: string, url: string, params: Record<string,string>): string;
+// params accept multi-valued keys (real OAuth/query params can repeat, e.g. RFC 5849 §3.4.1.1's
+// duplicate `a3`). Array values are expanded to repeated key=value pairs before sort+encode.
+// Single-valued callers pass a plain Record<string,string> (assignable, backward-compatible).
+export function signatureBaseString(method: string, url: string, params: Record<string, string | string[]>): string;
 export function hmacSha1Base64(baseString: string, signingKey: string): string;
 /** Builds the `Authorization: OAuth …` header value for a request. */
 export function buildOAuthHeader(args: {
