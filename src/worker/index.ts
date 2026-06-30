@@ -15,6 +15,7 @@ import type { AnalyticsSummaryPayload } from './jobs/analyticsSummary';
  */
 export const QUEUE = {
   analyticsSummaryRefresh: 'system.analytics_summary.refresh',
+  discogsListingCreate: 'tenant.discogs.listing.create',
 } as const;
 
 /**
