@@ -128,13 +128,17 @@ export function ResultCard({ result, onAnkauf }: ResultCardProps) {
               border: 'none',
               borderRadius: 'var(--r-pill)',
               background: 'var(--accent)',
-              color: 'var(--accent-ink)',
+              color: 'var(--on-accent)',
               fontFamily: 'var(--font-body)',
               fontWeight: 700,
               fontSize: '13px',
               cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
             }}
           >
+            <span aria-hidden="true">⤓</span>
             Ankaufen
           </button>
 

@@ -55,7 +55,7 @@ export function ConnectPrompt() {
           lineHeight: 'var(--tap)',
           borderRadius: 'var(--r-pill)',
           background: 'var(--accent)',
-          color: 'var(--accent-ink)',
+          color: 'var(--on-accent)',
           fontFamily: 'var(--font-body)',
           fontWeight: 700,
           fontSize: '14px',
