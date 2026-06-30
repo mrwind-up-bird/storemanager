@@ -13,18 +13,7 @@ import {
   DiscogsError,
 } from '@/lib/discogs/types';
 import { mapFormat } from '@/lib/discogs/format';
-
-// TODO(Task 7): replace with discogsGradeKey from pricing.ts
-const DISCOGS_GRADE_KEYS: Record<number, string> = {
-  0: 'Poor (P)',
-  1: 'Fair (F)',
-  2: 'Good (G)',
-  3: 'Good Plus (G+)',
-  4: 'Very Good (VG)',
-  5: 'Very Good Plus (VG+)',
-  6: 'Near Mint (NM or M-)',
-  7: 'Mint (M)',
-};
+import { discogsGradeKey, type ConditionGrade } from '@/lib/pricing';
 
 interface RawResult {
   id: number;
@@ -216,8 +205,8 @@ export function createHttpDiscogsAdapter(): DiscogsAdapter {
       const body = (await requestJson('POST', '/marketplace/listings', auth, {
         body: {
           release_id: input.releaseId,
-          condition: DISCOGS_GRADE_KEYS[input.conditionRecord] ?? 'Poor (P)',
-          sleeve_condition: DISCOGS_GRADE_KEYS[input.conditionCover] ?? 'Poor (P)',
+          condition: discogsGradeKey(input.conditionRecord as ConditionGrade),
+          sleeve_condition: discogsGradeKey(input.conditionCover as ConditionGrade),
           price: input.price,
           status: 'For Sale',
         },
