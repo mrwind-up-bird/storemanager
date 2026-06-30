@@ -84,4 +84,23 @@ describe('ankauf actions', () => {
     expect(r.ok).toBe(true);
     expect(enqueueSpy).toHaveBeenCalledTimes(1);
   });
+  it('ankaufRecord returns ok+listingSkipped when enqueue fails, purchase still committed', async () => {
+    enqueueSpy.mockRejectedValueOnce(new Error('queue down'));
+    const r = await actions.ankaufRecord({
+      release,
+      purchasePrice: '6.00',
+      targetPrice: '20.00',
+      conditionRecord: 3,
+      conditionCover: 3,
+      listOnDiscogs: true,
+    });
+    expect(r).toMatchObject({ ok: true, listingSkipped: true });
+    if (r.ok) {
+      expect(typeof r.purchaseId).toBe('number');
+      // Verify the purchase row was committed despite the enqueue failure.
+      const { ownerPool } = await import('@/db/client');
+      const { rows } = await ownerPool.query('SELECT id FROM purchases WHERE id = $1', [r.purchaseId]);
+      expect(rows).toHaveLength(1);
+    }
+  });
 });

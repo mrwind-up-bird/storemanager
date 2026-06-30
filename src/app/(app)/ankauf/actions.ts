@@ -109,22 +109,33 @@ export async function ankaufRecord(
   }
 
   const ctx = { tenantId: user.tenantId, userId: user.id };
+  let recordId: number;
+  let purchaseId: number;
   try {
-    const { recordId, purchaseId } = await performAnkauf(ctx, parsed.data);
-    if (parsed.data.listOnDiscogs) {
-      await enqueueDiscogsListing({ tenantId: user.tenantId, purchaseId });
-    }
-    revalidatePath('/inventar');
-    revalidatePath('/');
-    return { ok: true, recordId, purchaseId };
+    ({ recordId, purchaseId } = await performAnkauf(ctx, parsed.data));
   } catch {
     return { ok: false, reason: 'error' };
   }
+
+  revalidatePath('/inventar');
+  revalidatePath('/');
+
+  if (parsed.data.listOnDiscogs) {
+    try {
+      await enqueueDiscogsListing({ tenantId: user.tenantId, purchaseId });
+    } catch (err) {
+      console.error('[ankauf] listing enqueue failed after purchase committed', err);
+      return { ok: true, recordId, purchaseId, listingSkipped: true };
+    }
+  }
+
+  return { ok: true, recordId, purchaseId };
 }
 
 export async function disconnectDiscogs(): Promise<void> {
   const user = await requireSession();
   if (!(user.role === 'admin' || user.isSuperadmin)) forbidden();
+  if (!(await isValidOrigin())) return;
   await deleteConnection({ tenantId: user.tenantId, userId: user.id });
   revalidatePath('/ankauf');
 }
