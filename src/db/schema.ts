@@ -218,3 +218,160 @@ export const discogsConnections = pgTable(
     tenantUnique: unique('discogs_connections_tenant').on(t.tenantId),
   }),
 );
+
+// ── Slice 3 Enums ────────────────────────────────────────────────────────────
+
+export const paymentMethodEnum = pgEnum('payment_method', [
+  'bar',
+  'karte',
+  'paypal',
+  'gutschein',
+]);
+export type PaymentMethod = (typeof paymentMethodEnum.enumValues)[number];
+
+export const wishlistStatusEnum = pgEnum('wishlist_status', [
+  'open',
+  'notified',
+  'closed',
+]);
+export type WishlistStatus = (typeof wishlistStatusEnum.enumValues)[number];
+
+export const wishlistMatchStatusEnum = pgEnum('wishlist_match_status', [
+  'pending',
+  'notified',
+  'dismissed',
+]);
+export type WishlistMatchStatus = (typeof wishlistMatchStatusEnum.enumValues)[number];
+
+// ── Slice 3: POS / Sales + Wishlists (RLS applied in 0007_slice3_rls.sql) ────
+
+export const quickItems = pgTable(
+  'quick_items',
+  {
+    id: serial('id').primaryKey(),
+    tenantId: integer('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    name: text('name').notNull(),
+    price: numeric('price', { precision: 10, scale: 2 }).notNull(),
+    active: boolean('active').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (t) => ({
+    tenantActiveIdx: index('quick_items_tenant_active_idx').on(t.tenantId, t.active),
+    priceNonneg: check('quick_items_price_nonneg', sql`${t.price} >= 0`),
+  }),
+);
+
+export const transactions = pgTable(
+  'transactions',
+  {
+    id: serial('id').primaryKey(),
+    tenantId: integer('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    soldByUserId: integer('sold_by_user_id')
+      .notNull()
+      .references(() => users.id),
+    paymentMethod: paymentMethodEnum('payment_method').notNull(),
+    subtotal: numeric('subtotal', { precision: 10, scale: 2 }).notNull(),
+    discount: numeric('discount', { precision: 10, scale: 2 }).notNull().default('0'),
+    total: numeric('total', { precision: 10, scale: 2 }).notNull(),
+    voucherCode: text('voucher_code'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (t) => ({
+    tenantCreatedIdx: index('transactions_tenant_created_idx').on(t.tenantId, t.createdAt),
+    discountNonneg: check('transactions_discount_nonneg', sql`${t.discount} >= 0`),
+    discountLeSubtotal: check('transactions_discount_le_subtotal', sql`${t.discount} <= ${t.subtotal}`),
+    totalConsistent: check('transactions_total_consistent', sql`${t.total} = ${t.subtotal} - ${t.discount}`),
+    // HARDENED (Nemesis/Ipcha): §3.3 invariant pushed to the DB — voucherCode present IFF gutschein.
+    voucherIffGutschein: check(
+      'transactions_voucher_iff_gutschein',
+      sql`(${t.paymentMethod} = 'gutschein') = (${t.voucherCode} IS NOT NULL)`,
+    ),
+  }),
+);
+
+export const transactionItems = pgTable(
+  'transaction_items',
+  {
+    id: serial('id').primaryKey(),
+    tenantId: integer('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    transactionId: integer('transaction_id')
+      .notNull()
+      .references(() => transactions.id),
+    purchaseId: integer('purchase_id').references(() => purchases.id),
+    quickItemId: integer('quick_item_id').references(() => quickItems.id),
+    label: text('label').notNull(),
+    unitPrice: numeric('unit_price', { precision: 10, scale: 2 }).notNull(),
+    quantity: integer('quantity').notNull().default(1),
+  },
+  (t) => ({
+    tenantTransactionIdx: index('transaction_items_tenant_transaction_idx').on(t.tenantId, t.transactionId),
+    tenantPurchaseIdx: index('transaction_items_tenant_purchase_idx').on(t.tenantId, t.purchaseId),
+    quantityPositive: check('transaction_items_quantity_positive', sql`${t.quantity} >= 1`),
+    // HARDENED (Nemesis/Ipcha): the derived position-type invariant pushed to the DB (defence-in-depth).
+    //   inventory: purchaseId set, quickItemId null, quantity 1 · quick: quickItemId set, purchaseId null · adhoc: both null
+    kindExclusive: check(
+      'transaction_items_kind_exclusive',
+      sql`NOT (${t.purchaseId} IS NOT NULL AND ${t.quickItemId} IS NOT NULL)`,
+    ),
+    inventoryQtyOne: check(
+      'transaction_items_inventory_qty_one',
+      sql`${t.purchaseId} IS NULL OR ${t.quantity} = 1`,
+    ),
+  }),
+);
+
+export const wishlists = pgTable(
+  'wishlists',
+  {
+    id: serial('id').primaryKey(),
+    tenantId: integer('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    createdByUserId: integer('created_by_user_id')
+      .notNull()
+      .references(() => users.id),
+    customerName: text('customer_name').notNull(),
+    customerEmail: text('customer_email').notNull(),
+    artist: text('artist').notNull(),
+    label: text('label'),
+    title: text('title'),
+    country: text('country'),
+    status: wishlistStatusEnum('status').notNull().default('open'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (t) => ({
+    tenantStatusIdx: index('wishlists_tenant_status_idx').on(t.tenantId, t.status),
+  }),
+);
+
+export const wishlistMatches = pgTable(
+  'wishlist_matches',
+  {
+    id: serial('id').primaryKey(),
+    tenantId: integer('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    wishlistId: integer('wishlist_id')
+      .notNull()
+      .references(() => wishlists.id),
+    purchaseId: integer('purchase_id')
+      .notNull()
+      .references(() => purchases.id),
+    recordId: integer('record_id')
+      .notNull()
+      .references(() => records.id),
+    status: wishlistMatchStatusEnum('status').notNull().default('pending'),
+    notifiedAt: timestamp('notified_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (t) => ({
+    tenantStatusIdx: index('wishlist_matches_tenant_status_idx').on(t.tenantId, t.status),
+    wishlistPurchaseUnique: unique('wishlist_matches_wishlist_purchase').on(t.wishlistId, t.purchaseId),
+  }),
+);
