@@ -439,8 +439,8 @@ export async function ensureDiscogsConnection(ownerPool: Pool, input: {
 }): Promise<void>;
 ```
 Encrypt token/tokenSecret via `encryptSecret(x, { tenantId })`, insert into `discogs_connections`
-(skip if a row for tenant exists). Seed a fake connection for the **demo** tenant ONLY (leave a second
-tenant e.g. `vinylcorner` WITHOUT one) so E2E can assert both the connected and the connect-prompt states.
+(skip if a row for tenant exists). Seed a fake connection for the **demo** tenant ONLY (leave the second seeded
+tenant — slug `vinylcave`, confirm in scripts/seed.ts — WITHOUT one) so E2E can assert both the connected and the connect-prompt states.
 
 `e2e/discogs.spec.ts` (env `DISCOGS_DRIVER=fake`):
 1. tenant without connection → `/ankauf` shows `connect-discogs-prompt`.

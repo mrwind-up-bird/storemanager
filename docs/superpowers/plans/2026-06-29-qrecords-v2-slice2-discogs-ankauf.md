@@ -180,8 +180,11 @@ process.env.DISCOGS_CONSUMER_SECRET = 'test-secret';
 
 ```ts
 // tests/env-discogs.test.ts
-import { describe, it, expect } from 'vitest';
-import { envSchema } from '@/env';
+// IMPORTANT: NEVER statically `import … from '@/env'` — src/env.ts runs
+// `envSchema.parse(process.env)` at module-eval, which throws a ZodError the
+// moment the file loads (vitest does not populate process.env). Mirror the
+// existing tests/unit/env.test.ts pattern: stub env, then dynamic-import.
+import { describe, it, expect, afterEach, vi } from 'vitest';
 
 const base = {
   ROOT_DOMAIN: 'localhost', DATABASE_URL: 'postgres://x/y', DATABASE_OWNER_URL: 'postgres://x/y',
@@ -191,14 +194,20 @@ const base = {
   DISCOGS_CONSUMER_KEY: 'ck', DISCOGS_CONSUMER_SECRET: 'cs',
 };
 
+afterEach(() => { vi.unstubAllEnvs(); vi.resetModules(); });
+
 describe('env Discogs keys', () => {
-  it('defaults DISCOGS_API_URL, USER_AGENT, DRIVER', () => {
+  it('defaults DISCOGS_API_URL, USER_AGENT, DRIVER', async () => {
+    for (const [k, v] of Object.entries(base)) vi.stubEnv(k, v);
+    const { envSchema } = await import('@/env');
     const e = envSchema.parse(base);
     expect(e.DISCOGS_API_URL).toBe('https://api.discogs.com');
     expect(e.DISCOGS_DRIVER).toBe('http');
     expect(e.DISCOGS_USER_AGENT).toContain('QRecordsStoremanager');
   });
-  it('requires consumer key + secret', () => {
+  it('requires consumer key + secret', async () => {
+    for (const [k, v] of Object.entries(base)) vi.stubEnv(k, v);
+    const { envSchema } = await import('@/env');
     const { DISCOGS_CONSUMER_KEY: _omit, ...without } = base;
     expect(() => envSchema.parse(without)).toThrow();
   });
@@ -259,11 +268,15 @@ describe('signatureBaseString + hmacSha1Base64 (RFC 5849 example)', () => {
     expect(base).toContain('a2%3Dr%2520b');
     expect(base).toContain('b5%3D%253D%25253D');
   });
-  it('produces a stable HMAC-SHA1 for a known key', () => {
+  it('matches the RFC 5849 §3.4.1.1 published signature (real vector)', () => {
+    // RFC 5849 example: consumer secret 'j49sk3j29djd', token secret 'dh893hdasih9'.
+    // Signing key = percentEncode(cs) + '&' + percentEncode(ts) = 'j49sk3j29djd&dh893hdasih9'.
+    // The RFC publishes the resulting HMAC-SHA1 signature as 'r6/TJjbCOr97/+UU0NsvSne7s5g='.
     const base = signatureBaseString('POST', 'http://example.com/request', params);
-    const sig = hmacSha1Base64(base, 'consumer-secret&token-secret');
-    expect(sig).toMatch(/^[A-Za-z0-9+/]+=*$/); // base64
-    expect(hmacSha1Base64(base, 'consumer-secret&token-secret')).toBe(sig); // deterministic
+    const sig = hmacSha1Base64(base, 'j49sk3j29djd&dh893hdasih9');
+    expect(sig).toBe('r6/TJjbCOr97/+UU0NsvSne7s5g=');
+    // If this assertion fails, the IMPLEMENTATION is wrong (base-string or HMAC), not the
+    // expected value — RFC 5849 §3.4.1.1 is authoritative. Do NOT edit the expected to match.
   });
 });
 
@@ -358,7 +371,7 @@ export function buildOAuthHeader(args: {
 
 - [ ] **Step 4: Run — expect PASS.**
 
-Run: `pnpm test tests/discogs-oauth.test.ts` → PASS. (If the double-encode assertions need adjusting to the exact RFC output, fix the expected strings against the actual `signatureBaseString` output — the implementation is correct; the vector assertions are illustrative.)
+Run: `pnpm test tests/discogs-oauth.test.ts` → PASS. The base-string double-encode assertions and the RFC 5849 signature are real regression guards — they are correct as written; if any fails, the implementation is wrong, not the expected value.
 
 - [ ] **Step 5: Typecheck + commit.**
 ```bash
@@ -1272,7 +1285,12 @@ export async function handleDiscogsListingCreate(job: PgBoss.Job<DiscogsListingP
 
 > **Caveat (resolve during impl):** `getConnection(ctx)` opens its OWN `withTenant` (a second transaction), which is fine but means the read isn't in the handler's tx. Acceptable here (the connection is independent). If a reviewer prefers a single tx, inline a connection read on `tx` instead. Keep the behaviour identical; document the choice.
 
-- [ ] **Step 3: Register the queue + handler in `startWorker()`** (mirror analyticsSummary): `await boss.createQueue(QUEUE.discogsListingCreate);` and a `boss.work<DiscogsListingPayload>(QUEUE.discogsListingCreate, async (jobs) => { for (const j of jobs) await handleDiscogsListingCreate(j); })`. Add the type-only import of `DiscogsListingPayload`.
+- [ ] **Step 3: Register the queue + handler in `startWorker()`** (mirror analyticsSummary). **CRITICAL — the handler MUST be lazy-imported *inside* `startWorker()`, never at module top.** The existing worker lazy-imports `@/env` + `./jobs/analyticsSummary` inside `startWorker()` precisely so `import { QUEUE } from '@/worker/index'` (used by `tests/worker.unit.test.ts`) does NOT transitively pull `@/db/client → @/env` and trip Zod validation before env is set. A top-level `import { handleDiscogsListingCreate } from './jobs/discogsListing'` would re-break that (its chain is `@/db/tenant → @/db/client → @/env`). So:
+  - Top of file: add ONLY the type-only import `import type { DiscogsListingPayload } from './jobs/discogsListing';`.
+  - Inside `startWorker()`, alongside the existing lazy imports: `const { handleDiscogsListingCreate } = await import('./jobs/discogsListing');`.
+  - Then `await boss.createQueue(QUEUE.discogsListingCreate);` and
+    `await boss.work<DiscogsListingPayload>(QUEUE.discogsListingCreate, async (jobs) => { for (const j of jobs) await handleDiscogsListingCreate(j); });`.
+  - Add an assertion to `tests/worker.unit.test.ts` (or the existing QUEUE-import test) that `import { QUEUE }` still works without env set and `QUEUE.discogsListingCreate === 'tenant.discogs.listing.create'`.
 
 - [ ] **Step 4: Run PASS + typecheck + commit.**
 ```bash
@@ -1404,7 +1422,7 @@ git commit -m "feat(slice2): Ankauf modal — EK/VK, condition pills, live VK su
 - Consumes: everything above; the locked testids (C11).
 - Produces: a seeded fake connection for `demo` + the E2E acceptance suite.
 
-- [ ] **Step 1: Add `ensureDiscogsConnection` to `scripts/seed.ts`** per C12 (encrypt tokens via `encryptSecret({tenantId})`, idempotent on tenant). In `main()`, after seeding the demo tenant inventory, call it for the demo tenant ONLY with a fake username + fake token/secret. Leave the second tenant (`vinylcorner`) without a connection.
+- [ ] **Step 1: Add `ensureDiscogsConnection` to `scripts/seed.ts`** per C12 (encrypt tokens via `encryptSecret({tenantId})`, idempotent on tenant). In `main()`, after seeding the demo tenant inventory, call it for the demo tenant ONLY with a fake username + fake token/secret. Leave the second tenant — slug **`vinylcave`** (confirm against `scripts/seed.ts`; it is NOT `vinylcorner`) — without a connection, so E2E scenario 1 can assert the connect-prompt on `vinylcave`.
 
 - [ ] **Step 2: Wire `DISCOGS_DRIVER=fake`** into the e2e stack (the compose web+worker env used by Playwright, and any `e2e` script env).
 
@@ -1441,3 +1459,5 @@ git commit -m "test(slice2): seed fake Discogs connection + E2E acceptance (conn
 - **Worker `getConnection` tx caveat (Task 11)** — noted inline; pick one approach and keep behaviour identical.
 - **Discogs OAuth header double-encoding (Task 3)** — verify the base-string assertions against actual output; the implementation follows RFC 5849, the test's expected strings are the thing to adjust if needed.
 - Keep every Discogs HTTP call behind `discogsLimiter` and the fake driver in CI — never a real network call in tests/e2e.
+- **`forbidden()` inside the connect GET Route Handler (Task 9)** relies on `experimental.authInterrupts` (enabled). It is used in Slice-0 pages, but Route-Handler usage is newer surface — confirm it behaves on the pinned Next 15 version during impl; if it doesn't, return `new NextResponse(null, { status: 403 })` instead.
+- **Task 11 worker registration** — handler is lazy-imported inside `startWorker()` (see Task 11 Step 3); never add a top-level value import of `./jobs/discogsListing`.
