@@ -40,8 +40,9 @@ describe('QUEUE constants', () => {
   });
 
   it('discogsListingCreate equals the canonical queue name (env-less import)', async () => {
-    // `import { QUEUE }` must resolve without env set — a top-level VALUE import of
-    // the job module would pull @/db → @/env and break this.
+    // Verifies the queue-name constant and that `import { QUEUE }` resolves without
+    // env set. (The real guard against a value-import regression is the structural
+    // `import type` of the job module in worker/index.ts, not this env-mocked test.)
     const { QUEUE } = await import('@/worker/index');
     expect(QUEUE.discogsListingCreate).toBe('tenant.discogs.listing.create');
   });

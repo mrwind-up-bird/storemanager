@@ -76,23 +76,35 @@ describe('handleDiscogsListingCreate', () => {
     expect(row?.discogsListingId).toBeTruthy();
   });
 
-  it('is idempotent on re-run (listingId unchanged)', async () => {
-    const { purchaseId } = await performAnkauf(
-      { tenantId: tenantA, userId: null },
-      {
-        release: release(43),
-        purchasePrice: '3',
-        targetPrice: '22.50',
-        conditionRecord: 5,
-        conditionCover: 4,
-        listOnDiscogs: true,
-      },
-    );
-    await handle(fakeJob(purchaseId));
-    const first = await status(purchaseId);
-    expect(first?.discogsListingStatus).toBe('listed');
-    await handle(fakeJob(purchaseId));
-    expect((await status(purchaseId))?.discogsListingId).toBe(first?.discogsListingId);
+  it('is idempotent on re-run (createListing called exactly once)', async () => {
+    const { getDiscogsAdapter } = await import('@/lib/discogs/index');
+    // getDiscogsAdapter() caches a singleton, and the handler calls it itself, so
+    // spying on the returned object's method instruments the SAME instance the
+    // handler uses — a true guard against re-listing on the second run.
+    const spy = vi.spyOn(getDiscogsAdapter(), 'createListing');
+    try {
+      const { purchaseId } = await performAnkauf(
+        { tenantId: tenantA, userId: null },
+        {
+          release: release(43),
+          purchasePrice: '3',
+          targetPrice: '22.50',
+          conditionRecord: 5,
+          conditionCover: 4,
+          listOnDiscogs: true,
+        },
+      );
+      await handle(fakeJob(purchaseId));
+      const first = await status(purchaseId);
+      expect(first?.discogsListingStatus).toBe('listed');
+
+      await handle(fakeJob(purchaseId));
+      expect((await status(purchaseId))?.discogsListingId).toBe(first?.discogsListingId);
+      // The second run must short-circuit on the idempotency guard — no new listing.
+      expect(spy).toHaveBeenCalledTimes(1);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('marks failed when the record has no discogsId', async () => {
