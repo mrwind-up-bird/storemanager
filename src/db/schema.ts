@@ -34,6 +34,14 @@ export const recordStatusEnum = pgEnum('record_status', [
 ]);
 export type RecordStatus = (typeof recordStatusEnum.enumValues)[number];
 
+export const discogsListingStatusEnum = pgEnum('discogs_listing_status', [
+  'not_listed',
+  'pending',
+  'listed',
+  'failed',
+]);
+export type DiscogsListingStatus = (typeof discogsListingStatusEnum.enumValues)[number];
+
 // ── Registry tables (no tenant RLS) ─────────────────────────────────────────
 
 export const tenants = pgTable('tenants', {
@@ -153,6 +161,10 @@ export const purchases = pgTable(
     status: recordStatusEnum('status').notNull().default('verfuegbar'),
     conditionRecord: smallint('condition_record'),
     conditionCover: smallint('condition_cover'),
+    discogsListingId: text('discogs_listing_id'),
+    discogsListingStatus: discogsListingStatusEnum('discogs_listing_status')
+      .notNull()
+      .default('not_listed'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
@@ -183,5 +195,26 @@ export const permalinks = pgTable(
   },
   (t) => ({
     slugTenantUnique: unique('permalinks_slug_tenant').on(t.slug, t.tenantId),
+  }),
+);
+
+export const discogsConnections = pgTable(
+  'discogs_connections',
+  {
+    id: serial('id').primaryKey(),
+    tenantId: integer('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    discogsUsername: text('discogs_username').notNull(),
+    /** encryptSecret payload, AAD={tenantId} */
+    oauthToken: text('oauth_token').notNull(),
+    /** encryptSecret payload, AAD={tenantId} */
+    oauthTokenSecret: text('oauth_token_secret').notNull(),
+    connectedByUserId: integer('connected_by_user_id').references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (t) => ({
+    tenantUnique: unique('discogs_connections_tenant').on(t.tenantId),
   }),
 );

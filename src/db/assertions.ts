@@ -9,6 +9,7 @@ const TENANT_SCOPED_TABLES = [
   'records',
   'purchases',
   'permalinks',
+  'discogs_connections',
 ] as const;
 
 /**
