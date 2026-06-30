@@ -550,7 +550,7 @@ export function AnkaufModal({ result, onClose }: AnkaufModalProps) {
                   width: 22,
                   height: 22,
                   borderRadius: '50%',
-                  background: '#fff',
+                  background: 'var(--on-accent)',
                   boxShadow: 'var(--shadow-1)',
                   transition: 'left var(--dur-1) var(--ease)',
                 }}
