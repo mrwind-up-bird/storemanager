@@ -23,6 +23,12 @@ services:
     volumes:
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
       - db_data:/var/lib/postgresql/data
+    # Host port mapping (E2E only): e2e/discogs.spec.ts connects as qr_owner to assert
+    # the Discogs listing-status transition (pending→listed; no UI surface) and the
+    # record-dedup gate (two purchases, one record). Mapped to 55432 to avoid clashing
+    # with a local Postgres on 5432. See E2E_DATABASE_URL in e2e/helpers.ts.
+    ports:
+      - "55432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d qrecords"]
       interval: 5s
@@ -75,6 +81,11 @@ services:
       NODE_ENV: production
       PORT: "3000"
       HOSTNAME: "0.0.0.0"
+      DISCOGS_DRIVER: fake
+      DISCOGS_CONSUMER_KEY: dev-key
+      DISCOGS_CONSUMER_SECRET: dev-secret
+      DISCOGS_API_URL: https://api.discogs.com
+      DISCOGS_USER_AGENT: "QRecordsStoremanager/2.0 +https://q-records.example"
     ports:
       - "3000:3000"
     depends_on:
@@ -99,6 +110,11 @@ services:
     env_file: .env.compose
     environment:
       NODE_ENV: production
+      DISCOGS_DRIVER: fake
+      DISCOGS_CONSUMER_KEY: dev-key
+      DISCOGS_CONSUMER_SECRET: dev-secret
+      DISCOGS_API_URL: https://api.discogs.com
+      DISCOGS_USER_AGENT: "QRecordsStoremanager/2.0 +https://q-records.example"
     depends_on:
       migrate:
         condition: service_completed_successfully

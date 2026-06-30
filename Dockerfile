@@ -51,7 +51,9 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
     MAIL_DRIVER=console \
     MAIL_HOST=localhost \
     MAIL_PORT=1025 \
-    MAIL_FROM=noreply@localhost
+    MAIL_FROM=noreply@localhost \
+    DISCOGS_CONSUMER_KEY=build-time-placeholder-discogs-key \
+    DISCOGS_CONSUMER_SECRET=build-time-placeholder-discogs-secret
 
 # Next.js standalone output (.next/standalone/server.js + traced node_modules).
 RUN pnpm build

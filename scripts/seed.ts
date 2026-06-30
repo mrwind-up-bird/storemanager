@@ -12,6 +12,7 @@ import { DEFAULT_PRIMARY_COLOR } from '../src/lib/branding';
 import { recordHash } from '../src/db/hash';
 import { hashPassword } from '../src/lib/password';
 import { getEmailAdapter, sendCredentialsEmail } from '../src/lib/email';
+import { encryptSecret } from '../src/lib/crypto';
 
 // ---------------------------------------------------------------------------
 // Tenant definitions
@@ -32,6 +33,24 @@ const VINYLCAVE_TENANT: ProvisionInput = {
   primaryColor: '#5B4FCF',
   plan: 'small',
 };
+
+// ---------------------------------------------------------------------------
+// Fake Discogs connection — DEMO tenant ONLY (Slice 2, C12)
+// ---------------------------------------------------------------------------
+//
+// Seeded so E2E can exercise BOTH connection states:
+//   • demo       → has a (fake) connection → /ankauf renders the search form.
+//   • vinylcave  → NO connection           → /ankauf renders connect-discogs-prompt.
+//
+// The token/secret below are fabricated and used only with DISCOGS_DRIVER=fake
+// (the fake adapter ignores the auth entirely). They are stored ENCRYPTED at rest
+// (encryptSecret, AAD-bound to the tenant) and must NEVER reach any client payload.
+// e2e/discogs.spec.ts scans the rendered /ankauf HTML + every search/suggestion
+// network body for the EXACT DEMO_DISCOGS_FAKE_TOKEN string below — so keep these
+// in sync with the copies in e2e/helpers.ts.
+export const DEMO_DISCOGS_USERNAME = 'qrecords-demo-seller';
+export const DEMO_DISCOGS_FAKE_TOKEN = 'e2e-fake-oauth-token-demo-DO-NOT-LEAK-7f3a9c';
+export const DEMO_DISCOGS_FAKE_SECRET = 'e2e-fake-oauth-secret-demo-DO-NOT-LEAK-2b8e1d';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -354,6 +373,48 @@ export async function ensurePermalink(
 }
 
 /**
+ * Idempotent Discogs connection insert (Slice 2, C12).
+ *
+ * Skips if a row already exists for the tenant (discogs_connections has a
+ * UNIQUE(tenant_id) constraint). The OAuth token + token-secret are encrypted at
+ * rest via encryptSecret(x, { tenantId }) — AAD-bound to the tenant, so the
+ * ciphertext cannot be moved to another tenant.
+ *
+ * Exported so integration tests can seed a connection with a testcontainer ownerPool.
+ */
+export async function ensureDiscogsConnection(
+  ownerPool: Pool,
+  input: { tenantId: number; discogsUsername: string; token: string; tokenSecret: string },
+): Promise<void> {
+  const db = drizzle(ownerPool, { schema });
+
+  const existing = await db
+    .select({ id: schema.discogsConnections.id })
+    .from(schema.discogsConnections)
+    .where(eq(schema.discogsConnections.tenantId, input.tenantId))
+    .limit(1);
+
+  if (existing.length > 0) {
+    console.log(
+      `[seed]   Discogs connection for tenant ${input.tenantId} already exists, skipping.`,
+    );
+    return;
+  }
+
+  await db.insert(schema.discogsConnections).values({
+    tenantId: input.tenantId,
+    discogsUsername: input.discogsUsername,
+    oauthToken: encryptSecret(input.token, { tenantId: input.tenantId }),
+    oauthTokenSecret: encryptSecret(input.tokenSecret, { tenantId: input.tenantId }),
+    connectedByUserId: null,
+  });
+
+  console.log(
+    `[seed]   Discogs connection for "${input.discogsUsername}" (tenant ${input.tenantId}) created.`,
+  );
+}
+
+/**
  * Seeds records, purchases, and permalinks for a tenant.
  * Exported so integration tests can call it directly with a testcontainer ownerPool.
  */
@@ -462,6 +523,15 @@ async function main(): Promise<void> {
 
     console.log(`[seed] Seeding inventory for "${DEMO_TENANT.slug}"...`);
     await seedTenantInventory(ownerPool, demoId, DEMO_RECORDS, DEMO_PURCHASES, DEMO_PERMALINKS);
+
+    // Fake Discogs connection — DEMO tenant ONLY (vinylcave stays unconnected, C12).
+    console.log(`[seed] Seeding fake Discogs connection for "${DEMO_TENANT.slug}"...`);
+    await ensureDiscogsConnection(ownerPool, {
+      tenantId: demoId,
+      discogsUsername: DEMO_DISCOGS_USERNAME,
+      token: DEMO_DISCOGS_FAKE_TOKEN,
+      tokenSecret: DEMO_DISCOGS_FAKE_SECRET,
+    });
 
     // ── vinylcave tenant ───────────────────────────────────────────────────
     const { tenantId: vinylId, usedPassword: vinylPw } = await ensureTenant(VINYLCAVE_TENANT, ownerPool);

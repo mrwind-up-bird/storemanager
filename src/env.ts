@@ -47,6 +47,13 @@ export const envSchema = z.object({
     'MAIL_FROM must be a valid email address',
   ),
 
+  // ── Discogs ───────────────────────────────────────────────
+  DISCOGS_CONSUMER_KEY: z.string().min(1),
+  DISCOGS_CONSUMER_SECRET: z.string().min(1),
+  DISCOGS_API_URL: z.string().url().default('https://api.discogs.com'),
+  DISCOGS_USER_AGENT: z.string().min(1).default('QRecordsStoremanager/2.0 +https://q-records.example'),
+  DISCOGS_DRIVER: z.enum(['http', 'fake']).default('http'),
+
   // ── Pool / timeouts ───────────────────────────────────────
   DB_POOL_MAX: z.coerce.number().int().positive().default(10),
   DB_STATEMENT_TIMEOUT_MS: z.coerce.number().int().nonnegative().default(10_000),

@@ -85,6 +85,9 @@ export async function setupTestDatabase(): Promise<TestDatabase> {
   process.env.MAIL_HOST ??= 'localhost';
   process.env.MAIL_PORT ??= '1025';
   process.env.MAIL_FROM ??= 'test@qrecords.test';
+  process.env.DISCOGS_DRIVER = 'fake';
+  process.env.DISCOGS_CONSUMER_KEY = 'test-key';
+  process.env.DISCOGS_CONSUMER_SECRET = 'test-secret';
 
   return {
     container,

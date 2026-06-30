@@ -4,6 +4,7 @@
 // (see scripts/seed.ts DEMO_TENANT/VINYLCAVE_TENANT.adminEmail) — NOT *.localhost.
 // Passwords are deterministic via SEED_ADMIN_PASSWORD (.env.compose → E2eDevPassword1!).
 import { expect, type Page } from '@playwright/test';
+import { Pool } from 'pg';
 
 export const DEMO_URL = 'http://demo.localhost:3000';
 export const VINYLCAVE_URL = 'http://vinylcave.localhost:3000';
@@ -60,4 +61,51 @@ export async function assertNoPrivateFields(page: Page): Promise<void> {
   // (demo "Kind of Blue" / vinylcave "Unknown Pleasures"), so it is shown on the
   // jazz + vinyl storefronts iff the price leaked.
   expect(html).not.toContain('24.90');
+}
+
+// ── Slice-2 additions (Discogs Ankauf) ──────────────────────────────────────
+
+/**
+ * Fake Discogs connection seeded for the DEMO tenant ONLY.
+ *
+ * MUST stay in sync with scripts/seed.ts (DEMO_DISCOGS_* consts + the
+ * ensureDiscogsConnection call in main()). The token/secret are the exact
+ * plaintext values the no-token-leak scenario scans for — so the scan is
+ * non-vacuous (a leak of the real seeded value would be caught).
+ */
+export const DEMO_DISCOGS_USERNAME = 'qrecords-demo-seller';
+export const DEMO_DISCOGS_FAKE_TOKEN = 'e2e-fake-oauth-token-demo-DO-NOT-LEAK-7f3a9c';
+export const DEMO_DISCOGS_FAKE_SECRET = 'e2e-fake-oauth-secret-demo-DO-NOT-LEAK-2b8e1d';
+
+/**
+ * Owner connection string for the compose Postgres, exposed on host port 55432
+ * (see docker-compose.yml db.ports). Used ONLY by e2e/discogs.spec.ts to assert
+ * server-side state with no UI surface: the Discogs listing-status transition and
+ * the record-dedup gate. Override via E2E_DATABASE_URL if your stack differs.
+ */
+export const E2E_DATABASE_URL =
+  process.env.E2E_DATABASE_URL ?? 'postgresql://qr_owner:owner_secret@localhost:55432/qrecords';
+
+/**
+ * Run a one-shot query against the e2e database. Opens + closes a fresh pool per
+ * call so no connection handle lingers to keep the Playwright runner alive.
+ */
+export async function dbQuery<T = Record<string, unknown>>(
+  sql: string,
+  params: unknown[] = [],
+): Promise<T[]> {
+  const pool = new Pool({ connectionString: E2E_DATABASE_URL });
+  try {
+    const res = await pool.query(sql, params);
+    return res.rows as T[];
+  } finally {
+    await pool.end();
+  }
+}
+
+/** Resolve the demo tenant's numeric id from the registry. */
+export async function demoTenantId(): Promise<number> {
+  const rows = await dbQuery<{ id: number }>(`SELECT id FROM tenants WHERE slug = 'demo' LIMIT 1`);
+  if (!rows[0]) throw new Error('demo tenant not found — is the stack seeded?');
+  return rows[0].id;
 }

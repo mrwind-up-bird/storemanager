@@ -39,6 +39,14 @@ describe('QUEUE constants', () => {
     expect(QUEUE.analyticsSummaryRefresh).toBe('system.analytics_summary.refresh');
   });
 
+  it('discogsListingCreate equals the canonical queue name (env-less import)', async () => {
+    // Verifies the queue-name constant and that `import { QUEUE }` resolves without
+    // env set. (The real guard against a value-import regression is the structural
+    // `import type` of the job module in worker/index.ts, not this env-mocked test.)
+    const { QUEUE } = await import('@/worker/index');
+    expect(QUEUE.discogsListingCreate).toBe('tenant.discogs.listing.create');
+  });
+
   it('QUEUE is structurally readonly (as const)', async () => {
     const { QUEUE } = await import('@/worker/index');
     // TypeScript enforces this at compile time; at runtime the value must be a string
