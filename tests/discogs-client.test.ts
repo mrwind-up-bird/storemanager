@@ -37,6 +37,8 @@ describe('http driver', () => {
     const a = createHttpDiscogsAdapter();
     const res = await a.search(auth, 'blue');
     expect(res[0]).toMatchObject({ discogsId: 42, format: 'Vinyl', median: 24.9, community: { want: 10, have: 5 } });
+    // "Artist - Title" split on first ' - '
+    expect(res[0]).toMatchObject({ artist: 'Artist', title: 'Blue' });
   });
   it('401 → DiscogsAuthError', async () => {
     mockFetch(401, {});
@@ -50,5 +52,26 @@ describe('http driver', () => {
     mockFetch(201, { listing_id: 9981 });
     const r = await createHttpDiscogsAdapter().createListing(auth, { releaseId: 42, conditionRecord: 5, conditionCover: 4, price: 25 });
     expect(r.listingId).toBe('9981');
+  });
+  it('priceSuggestions maps byGrade on 200', async () => {
+    mockFetch(200, {
+      'Very Good Plus (VG+)': { value: 22.5, currency: 'EUR' },
+      'Mint (M)': { value: 40, currency: 'EUR' },
+    });
+    const r = await createHttpDiscogsAdapter().priceSuggestions(auth, 42);
+    expect(r?.byGrade['Very Good Plus (VG+)']).toBe(22.5);
+    expect(r?.byGrade['Mint (M)']).toBe(40);
+  });
+  it('priceSuggestions → null on 403 (non-seller)', async () => {
+    mockFetch(403, {});
+    expect(await createHttpDiscogsAdapter().priceSuggestions(auth, 42)).toBeNull();
+  });
+  it('priceSuggestions → null on 404', async () => {
+    mockFetch(404, {});
+    expect(await createHttpDiscogsAdapter().priceSuggestions(auth, 42)).toBeNull();
+  });
+  it('priceSuggestions throws DiscogsAuthError on 401 (not swallowed)', async () => {
+    mockFetch(401, {});
+    await expect(createHttpDiscogsAdapter().priceSuggestions(auth, 42)).rejects.toBeInstanceOf(DiscogsAuthError);
   });
 });
