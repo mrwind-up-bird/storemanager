@@ -23,6 +23,12 @@ services:
     volumes:
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
       - db_data:/var/lib/postgresql/data
+    # Host port mapping (E2E only): e2e/discogs.spec.ts connects as qr_owner to assert
+    # the Discogs listing-status transition (pending→listed; no UI surface) and the
+    # record-dedup gate (two purchases, one record). Mapped to 55432 to avoid clashing
+    # with a local Postgres on 5432. See E2E_DATABASE_URL in e2e/helpers.ts.
+    ports:
+      - "55432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d qrecords"]
       interval: 5s
