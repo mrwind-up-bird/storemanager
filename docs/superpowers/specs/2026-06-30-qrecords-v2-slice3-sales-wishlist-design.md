@@ -29,7 +29,9 @@ Der 2026-Handoff zeichnet **kein** Kassen-/Warenkorb-Layout (das „Kasse" im Ma
 
 ## 3. Datenmodell
 
-Geld immer als **Integer-Cent** (`integer`, Spaltensuffix `Cents`). Alle neuen fachlichen Tabellen sind **tenant-scoped** und müssen die RLS-Invarianten erfüllen (Abschnitt 7).
+Geld als **`numeric(10,2)`** — konsistent mit den bestehenden `purchases`-Spalten `purchasePrice`/`targetPrice`/`soldPrice` (Drizzle liefert `numeric` als String). Exakte Beträge (Summen, Rabatt, Prozent→Betrag) werden in der Domäne **intern in Integer-Cent** über einen Money-Helper gerechnet und als 2-Dezimal-String gespeichert (kein Float). Alle neuen fachlichen Tabellen sind **tenant-scoped** und müssen die RLS-Invarianten erfüllen (Abschnitt 7).
+
+> **Hinweis (Codebase-Abgleich):** `purchases` hat bereits `soldPrice` (numeric 10,2), `soldDate` (timestamptz) und `paymentMethod` (text). Beim Verkauf eines Inventar-Exemplars schreibt `performSale` diese vorhandenen Spalten mit (denormalisierter Kopf-Snapshot je Exemplar), zusätzlich zur Transaktions-Position. `purchases.paymentMethod` bleibt `text` und speichert den Enum-Wert als String (keine riskante Spaltentyp-Migration auf der bestehenden Tabelle).
 
 ### 3.1 Enum `payment_method`
 
@@ -44,7 +46,7 @@ payment_method = 'bar' | 'karte' | 'paypal' | 'gutschein'
 | `id` | serial PK | |
 | `tenantId` | integer NOT NULL | RLS-Schlüssel |
 | `name` | text NOT NULL | z.B. „Kaffee" |
-| `priceCents` | integer NOT NULL | ≥ 0 |
+| `price` | numeric(10,2) NOT NULL | ≥ 0 |
 | `active` | boolean NOT NULL default true | inaktive werden nicht als Button gezeigt |
 | `createdAt` | timestamptz NOT NULL default now() | |
 
@@ -58,9 +60,9 @@ Ad-hoc-Positionen (Einmaliges) brauchen **keinen** Katalogeintrag — sie werden
 | `tenantId` | integer NOT NULL | RLS-Schlüssel |
 | `soldByUserId` | integer NOT NULL | Mitarbeiter/Inhaber, der kassiert hat |
 | `paymentMethod` | `payment_method` NOT NULL | |
-| `subtotalCents` | integer NOT NULL | Summe der Positionen vor Rabatt |
-| `discountCents` | integer NOT NULL default 0 | Rabatt auf die Transaktion (≥ 0, ≤ subtotal) |
-| `totalCents` | integer NOT NULL | = subtotal − discount, serverseitig berechnet |
+| `subtotal` | numeric(10,2) NOT NULL | Summe der Positionen vor Rabatt |
+| `discount` | numeric(10,2) NOT NULL default 0 | Rabatt auf die Transaktion (≥ 0, ≤ subtotal) |
+| `total` | numeric(10,2) NOT NULL | = subtotal − discount, serverseitig berechnet |
 | `voucherCode` | text NULL | nur bei `paymentMethod='gutschein'` |
 | `createdAt` | timestamptz NOT NULL default now() | |
 
@@ -76,7 +78,7 @@ Index: `(tenantId, createdAt)` für Analytik/Listen.
 | `purchaseId` | integer NULL | FK → `purchases.id` (Inventar-Exemplar) |
 | `quickItemId` | integer NULL | FK → `quick_items.id` (Katalog) |
 | `label` | text NOT NULL | Snapshot der Bezeichnung (Record-Titel / Quick-Name / Ad-hoc-Text) |
-| `unitPriceCents` | integer NOT NULL | Snapshot des Einzelpreises zum Verkaufszeitpunkt |
+| `unitPrice` | numeric(10,2) NOT NULL | Snapshot des Einzelpreises zum Verkaufszeitpunkt |
 | `quantity` | integer NOT NULL default 1 | Inventar immer 1; Quick/Ad-hoc ≥ 1 |
 
 **Positions-Typ** (abgeleitet, in Code als Union geführt):
@@ -191,8 +193,8 @@ Server-Action (`src/app/(app)/kasse/actions.ts`), gated auf Nicht-`kunde`:
 2. Input zod-validiert: Positionen (jeweils inventory/quick/adhoc), Zahlart, Rabatt, optional Gutschein-Code.
 3. **Eine** `withTenant({tenantId, userId})`-Transaktion:
    - Für jede Inventar-Position: `purchases`-Zeile mit `FOR UPDATE` lesen; **fail-closed**, wenn Status ∉ {`verfügbar`,`reserviert`} → ganze Transaktion bricht ab (kein Doppelverkauf).
-   - `subtotalCents` und `totalCents` **serverseitig** aus DB-/Katalog-Preisen berechnen (Client-Preise nur für Ad-hoc/Vorschlag, nie als Autorität für Inventar/Quick).
-   - `transactions` + `transaction_items` einfügen; referenzierte `purchases` → `verkauft`.
+   - `subtotal` und `total` **serverseitig** aus DB-/Katalog-Preisen berechnen (Money-Helper, intern Cent); Client-Preise nur für Ad-hoc/Vorschlag, nie als Autorität für Inventar/Quick.
+   - `transactions` + `transaction_items` einfügen; referenzierte `purchases` → `verkauft` **und** deren vorhandene Spalten `soldPrice` (= Positions-`unitPrice`), `soldDate` (= jetzt), `paymentMethod` (= Transaktions-Zahlart als String) mitschreiben.
 4. Rückgabe: Transaktions-ID; UI leert den Warenkorb / schließt das Modal.
 
 ### 6.2 Reservierung
@@ -222,7 +224,7 @@ Server-Action setzt `verfügbar↔reserviert` in einer `withTenant`-Transaktion 
 - **Kein Cross-Tenant-Leak** von `customerName`/`customerEmail`/Transaktionsdaten.
 - **RBAC:** Verkauf, Reservierung, Wunschlisten-CRUD und Benachrichtigung erfordern Session und Rolle ∈ {`mitarbeiter`,`admin`,`superadmin`} (`kunde` → `forbidden()`).
 - **CSRF:** Origin-Check (`isValidOrigin`, Slice-2-Muster) auf allen mutierenden Server-Actions.
-- **Geld:** ausschließlich Integer-Cent; Summen/Rabatt serverseitig nachgerechnet; `discountCents ≤ subtotalCents`.
+- **Geld:** Speicherung `numeric(10,2)` (kein Float); exakte Rechnung intern in Integer-Cent via Money-Helper; Summen/Rabatt serverseitig nachgerechnet; `discount ≤ subtotal`.
 - **Jobs:** idempotent, `{ retryLimit: 5, retryBackoff: true }`; transiente Fehler (z.B. SMTP) rethrow → Retry, permanente Fehler enden ohne Retry.
 - **Doppelverkauf:** `FOR UPDATE` + Status-Guard in der Verkaufs-Transaktion.
 
