@@ -11,6 +11,9 @@ import type { DiscogsListingPayload } from './jobs/discogsListing';
 // Type-only import (erased at compile time) — keeps the queue registration and the real
 // handler sharing ONE payload type without pulling the job module's @/db → @/env chain.
 import type { WishlistMatchPayload } from './jobs/wishlistMatch';
+// Type-only import (erased at compile time) — keeps the queue registration and the real
+// handler sharing ONE payload type without pulling the job module's @/db → @/env chain.
+import type { WishlistNotifyPayload } from './jobs/wishlistNotify';
 
 /**
  * Canonical queue name registry.
@@ -24,6 +27,7 @@ export const QUEUE = {
   analyticsSummaryRefresh: 'system.analytics_summary.refresh',
   discogsListingCreate: 'tenant.discogs.listing.create',
   wishlistMatch: 'tenant.wishlist.match',
+  wishlistNotify: 'tenant.wishlist.notify',
 } as const;
 
 /**
@@ -50,6 +54,7 @@ export async function startWorker(): Promise<void> {
   const { handleAnalyticsSummaryRefresh } = await import('./jobs/analyticsSummary');
   const { handleDiscogsListingCreate } = await import('./jobs/discogsListing');
   const { handleWishlistMatch } = await import('./jobs/wishlistMatch');
+  const { handleWishlistNotify } = await import('./jobs/wishlistNotify');
 
   const boss = new PgBoss(env.PGBOSS_DATABASE_URL);
 
@@ -104,6 +109,20 @@ export async function startWorker(): Promise<void> {
     },
   );
   console.log(`[worker] Handler registered for queue: ${QUEUE.wishlistMatch}`);
+
+  // Per-tenant wishlist notify job (Slice 3): send customer e-mail for a staff-confirmed match.
+  await boss.createQueue(QUEUE.wishlistNotify);
+  console.log(`[worker] Queue created/verified: ${QUEUE.wishlistNotify}`);
+
+  await boss.work<WishlistNotifyPayload>(
+    QUEUE.wishlistNotify,
+    async (jobs: PgBoss.Job<WishlistNotifyPayload>[]) => {
+      for (const job of jobs) {
+        await handleWishlistNotify(job);
+      }
+    },
+  );
+  console.log(`[worker] Handler registered for queue: ${QUEUE.wishlistNotify}`);
 
   const shutdown = async (signal: string): Promise<void> => {
     console.log(`[worker] Received ${signal}. Stopping pg-boss...`);
