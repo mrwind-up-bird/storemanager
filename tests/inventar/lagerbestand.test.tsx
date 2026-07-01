@@ -3,16 +3,34 @@
 
 /// <reference types="@testing-library/jest-dom/vitest" />
 
-import { describe, it, expect, afterEach, vi } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
+// vi.hoisted refs so we can control return values per test.
+const reserve = vi.hoisted(() =>
+  vi.fn(
+    async (): Promise<{ ok: true } | { ok: false; reason: 'conflict' | 'validation' | 'error'; message?: string }> =>
+      ({ ok: true }),
+  ),
+);
+const cancelReservation = vi.hoisted(() =>
+  vi.fn(
+    async (): Promise<{ ok: true } | { ok: false; reason: 'conflict' | 'validation' | 'error'; message?: string }> =>
+      ({ ok: true }),
+  ),
+);
+const mockRefresh = vi.hoisted(() => vi.fn());
 
 // InventoryList now wires the T9 sale/reservation actions — mock the module so no server code loads.
 vi.mock('@/app/(app)/kasse/actions', () => ({
   createSale: vi.fn(async () => ({ ok: true, transactionId: 1, total: '0.00' })),
-  reserve: vi.fn(async () => ({ ok: true })),
-  cancelReservation: vi.fn(async () => ({ ok: true })),
+  reserve,
+  cancelReservation,
 }));
+
+// InventoryList calls useRouter().refresh() on action failure.
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: mockRefresh }) }));
 
 // Components under test — imported AFTER env, no async DB imports here
 import { InventoryList } from '@/app/(app)/inventar/_components/InventoryList';
@@ -21,6 +39,13 @@ import { ViewToggle } from '@/app/(app)/inventar/_components/ViewToggle';
 import type { InventoryRow } from '@/lib/inventory';
 
 afterEach(cleanup);
+beforeEach(() => {
+  reserve.mockReset();
+  cancelReservation.mockReset();
+  mockRefresh.mockReset();
+  reserve.mockResolvedValue({ ok: true });
+  cancelReservation.mockResolvedValue({ ok: true });
+});
 
 const ROWS: InventoryRow[] = [
   {
@@ -135,6 +160,21 @@ describe('InventoryList', () => {
     // VG+ won't be in document
     expect(container.querySelector('[class*="pill"]')).toBeNull();
     expect(screen.queryByText('VG+')).not.toBeInTheDocument();
+  });
+
+  it('surfaces an inline error and calls router.refresh() when reserve returns ok:false (conflict)', async () => {
+    // Non-vacuous: the action resolves with an error, not ok:true.
+    reserve.mockResolvedValueOnce({ ok: false, reason: 'conflict' });
+
+    const user = userEvent.setup();
+    render(<InventoryList rows={ROWS} total={ROWS.length} />);
+
+    await user.click(screen.getByTestId('reserve-action'));
+
+    // Error signal is rendered in the DOM — not silently swallowed.
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+    // router.refresh() was triggered so the stale row gets an up-to-date status.
+    expect(mockRefresh).toHaveBeenCalledTimes(1);
   });
 });
 

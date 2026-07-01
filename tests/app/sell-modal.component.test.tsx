@@ -20,6 +20,9 @@ const cancelReservation = vi.hoisted(() => vi.fn(async () => ({ ok: true as cons
 
 vi.mock('@/app/(app)/kasse/actions', () => ({ createSale, reserve, cancelReservation }));
 
+// InventoryList (tested below) now calls useRouter().refresh() on action failure.
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+
 import { SellModal } from '@/app/(app)/inventar/_components/SellModal';
 import { InventoryList } from '@/app/(app)/inventar/_components/InventoryList';
 import type { InventoryRow } from '@/lib/inventory';

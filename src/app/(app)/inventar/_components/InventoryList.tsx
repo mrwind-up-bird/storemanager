@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { InventoryRow } from '@/lib/inventory';
 import type { Condition } from '@/components/ui/ConditionPill';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -22,16 +23,33 @@ const HEAD_CELL: React.CSSProperties = {
 };
 
 export function InventoryList({ rows, total }: InventoryListProps) {
+  const router = useRouter();
+
   // The row whose Einzel-Verkauf-Modal is open (null = none). copyId === purchases.id.
   const [sellRow, setSellRow] = useState<InventoryRow | null>(null);
+  // Per-row inline error messages keyed by copyId (purchaseId). Cleared on next attempt.
+  const [rowErrors, setRowErrors] = useState<Map<number, string>>(new Map());
 
-  // Reserve / cancel fire the T9 server actions; createSale/reserve/cancelReservation each
-  // revalidatePath('/inventar') (C11), so the server-rendered table refreshes on the next request.
-  const onReserve = (purchaseId: number) => {
-    void reserve({ purchaseId });
+  // Reserve / cancel await the T9 server action result so conflicts (e.g. a copy concurrently
+  // sold while the staff member hovered the button) are surfaced rather than swallowed.
+  // On ok:true the action calls revalidatePath('/inventar') server-side — no extra refresh needed.
+  // On ok:false we show an inline error on the row AND call router.refresh() so the stale row
+  // status (which the server revalidate did NOT update) gets corrected.
+  const onReserve = async (purchaseId: number) => {
+    setRowErrors((prev) => { const m = new Map(prev); m.delete(purchaseId); return m; });
+    const result = await reserve({ purchaseId });
+    if (!result.ok) {
+      setRowErrors((prev) => new Map(prev).set(purchaseId, 'Reservierung fehlgeschlagen – Artikel möglicherweise nicht mehr verfügbar.'));
+      router.refresh();
+    }
   };
-  const onCancelReservation = (purchaseId: number) => {
-    void cancelReservation({ purchaseId });
+  const onCancelReservation = async (purchaseId: number) => {
+    setRowErrors((prev) => { const m = new Map(prev); m.delete(purchaseId); return m; });
+    const result = await cancelReservation({ purchaseId });
+    if (!result.ok) {
+      setRowErrors((prev) => new Map(prev).set(purchaseId, 'Reservierung aufheben fehlgeschlagen – Artikel möglicherweise geändert.'));
+      router.refresh();
+    }
   };
 
   return (
@@ -147,7 +165,7 @@ export function InventoryList({ rows, total }: InventoryListProps) {
 
                   {/* Aktion — Verkaufen + Reservieren/Storno + ♡ Auf Wunschliste */}
                   <td style={{ padding: '13px 18px' }}>
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
                       {row.status === 'verfuegbar' && (
                         <button
                           type="button"
@@ -234,6 +252,19 @@ export function InventoryList({ rows, total }: InventoryListProps) {
                         {row.status === 'verkauft' ? 'Verkauft' : 'Verkaufen'}
                       </button>
                     </div>
+                    {rowErrors.has(row.copyId) && (
+                      <p
+                        role="alert"
+                        style={{
+                          margin: '4px 0 0',
+                          fontSize: '11.5px',
+                          color: 'var(--bad)',
+                          textAlign: 'right',
+                        }}
+                      >
+                        {rowErrors.get(row.copyId)}
+                      </p>
+                    )}
                   </td>
                 </tr>
               );
