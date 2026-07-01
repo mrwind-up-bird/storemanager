@@ -36,9 +36,10 @@ import {
 test.describe.configure({ mode: 'serial' });
 
 /** Open the first enabled "Verkaufen" row action on the inventory page (no registry testid for the
- *  trigger — it is selected by accessible name, per C12). */
+ *  trigger — it is selected by accessible name, per C12).
+ *  Note: :enabled filters out 'verliehen' rows which render a disabled "Verkaufen" button. */
 async function firstSellButton(page: Page) {
-  return page.getByRole('button', { name: /^verkaufen$/i }).first();
+  return page.locator('button:enabled').filter({ hasText: /^Verkaufen$/i }).first();
 }
 
 test.describe('Slice 3 — Verkauf/POS + Wunschlisten', () => {
@@ -115,18 +116,20 @@ test.describe('Slice 3 — Verkauf/POS + Wunschlisten', () => {
     // (b) Add the Kaffee quick item.
     await page.getByTestId(`kasse-quick-item-${kaffeeId}`).click();
 
-    // (c) Add an ad-hoc line (name + price selected by accessible label — no registry testid for the
-    //     ad-hoc fields; T10 provides labeled inputs).
+    // (c) Add an ad-hoc line — fill name + price first, then click the submit button.
+    //     The kasse-adhoc-add button is disabled until both fields have values, so fields
+    //     must be filled before the click. AdhocAdd exposes aria-label on both inputs.
+    await page.getByLabel(/bezeichnung/i).fill('Reinigung');
+    await page.getByLabel(/^Preis$/i).fill('5.00');
     await page.getByTestId('kasse-adhoc-add').click();
-    await page.getByLabel(/bezeichnung|name/i).last().fill('Reinigung');
-    await page.getByLabel(/preis/i).last().fill('5.00');
     const adhocPrice = 5.0;
 
     // Three cart lines present.
     const cart = page.getByTestId('kasse-cart');
     await expect(cart.getByTestId(/^kasse-cart-item-/)).toHaveCount(3);
 
-    // (d) Apply a €3.00 transaction discount.
+    // (d) Apply a €3.00 transaction discount (explicitly select amount mode first).
+    await page.getByTestId('kasse-discount-mode').selectOption('amount');
     await page.getByTestId('kasse-discount-input').fill('3.00');
     const discount = 3.0;
 
@@ -141,6 +144,11 @@ test.describe('Slice 3 — Verkauf/POS + Wunschlisten', () => {
     // (e) Pay by card and submit.
     await page.getByTestId('kasse-pay-karte').click();
     await page.getByTestId('kasse-submit').click();
+    // kasse-screen stays visible throughout (no navigation) — poll until the DB reflects the new
+    // transaction instead of relying on the no-op visibility check as a sync point.
+    await expect
+      .poll(async () => (await salesCounts(tenantId)).transactions, { timeout: 10_000 })
+      .toBe(before.transactions + 1);
     await expect(page.getByTestId('kasse-screen')).toBeVisible();
 
     // Server persisted the transaction with the recomputed total (numeric(10,2)).
@@ -159,8 +167,9 @@ test.describe('Slice 3 — Verkauf/POS + Wunschlisten', () => {
     expect(Number(tx[0]!.total)).toBeCloseTo(expectedTotal, 2);
 
     const items = await dbQuery<{ n: string }>(
-      `SELECT COUNT(*) AS n FROM transaction_items
-        WHERE transaction_id = (SELECT MAX(id) FROM transactions WHERE tenant_id = $1)`,
+      `SELECT COUNT(*) AS n FROM transaction_items ti
+         JOIN transactions t ON t.id = ti.transaction_id
+        WHERE t.tenant_id = $1 AND t.id = (SELECT MAX(id) FROM transactions WHERE tenant_id = $1)`,
       [tenantId],
     );
     expect(Number(items[0]!.n)).toBe(3);
@@ -194,8 +203,9 @@ test.describe('Slice 3 — Verkauf/POS + Wunschlisten', () => {
     await login(page, DEMO_URL, DEMO_EMAIL, DEMO_PASSWORD);
 
     // (a) Ankauf "Kind of Blue" (Miles Davis) via the Slice-2 fake Discogs flow.
+    //     The Discogs search input is type="search" → ARIA role is 'searchbox', not 'textbox'.
     await page.goto(`${DEMO_URL}/ankauf`);
-    await page.getByTestId('discogs-search-form').getByRole('textbox').first().fill('blue');
+    await page.getByTestId('discogs-search-form').getByRole('searchbox').first().fill('blue');
     await page.getByTestId('discogs-search-form').getByRole('button', { name: /such/i }).click();
     const results = page.getByTestId('discogs-results');
     await expect(results).toBeVisible();
@@ -245,7 +255,9 @@ test.describe('Slice 3 — Verkauf/POS + Wunschlisten', () => {
     await expect
       .poll(async () => (await salesCounts(tenantId)).notifiedMatches)
       .toBe(before.notifiedMatches + 1);
-    expect((await salesCounts(tenantId)).pendingMatches).toBe(before.pendingMatches);
+    await expect
+      .poll(async () => (await salesCounts(tenantId)).pendingMatches)
+      .toBe(before.pendingMatches);
   });
 
   test('5. no customer wishlist data leaks onto the public storefront', async ({ page }) => {
