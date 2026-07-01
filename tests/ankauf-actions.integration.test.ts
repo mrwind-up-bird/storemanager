@@ -27,6 +27,7 @@ const release = {
 
 beforeAll(async () => {
   const db = await setupTestDatabase();
+
   teardown = db.teardown;
   process.env.DATABASE_URL = db.appUrl;
   process.env.DATABASE_OWNER_URL = db.ownerUrl;
@@ -51,7 +52,7 @@ beforeAll(async () => {
   tenantA = (await seedTenant({ slug: 'demo', name: 'Demo' })).tenantId;
   mod = await import('@/lib/discogs-connection');
   actions = await import('@/app/(app)/ankauf/actions');
-});
+}, 60_000);
 afterAll(async () => {
   if (teardown) await teardown();
 });

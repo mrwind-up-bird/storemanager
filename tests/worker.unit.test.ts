@@ -33,6 +33,10 @@ vi.mock('@/db/tenant', () => ({
 
 vi.mock('server-only', () => ({}));
 
+vi.mock('@/lib/wishlist', () => ({
+  findAndPersistWishlistMatches: vi.fn(),
+}));
+
 describe('QUEUE constants', () => {
   it('analyticsSummaryRefresh equals the canonical queue name', async () => {
     const { QUEUE } = await import('@/worker/index');
@@ -56,6 +60,29 @@ describe('QUEUE constants', () => {
     const { QUEUE } = await import('@/worker/index');
     // TypeScript enforces this at compile time; at runtime the value must be a string
     expect(typeof QUEUE.analyticsSummaryRefresh).toBe('string');
+  });
+});
+
+describe('handleWishlistMatch', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('rethrows errors from findAndPersistWishlistMatches so pg-boss can retry (transient-rethrow)', async () => {
+    // Non-vacuous: the mock throws a transient error; we assert the handler does NOT swallow it.
+    // pg-boss retry semantics depend on this rethrow — a swallowed error would silently drop the job.
+    const { findAndPersistWishlistMatches } = await import('@/lib/wishlist');
+    vi.mocked(findAndPersistWishlistMatches).mockRejectedValueOnce(new Error('transient'));
+
+    const { handleWishlistMatch } = await import('@/worker/jobs/wishlistMatch');
+    const job = {
+      id: 'unit-test-job-id',
+      name: 'tenant.wishlist.match',
+      data: { tenantId: 1, purchaseId: 42, recordId: 7 },
+    } as unknown as import('pg-boss').Job<{ tenantId: number; purchaseId: number; recordId: number }>;
+
+    await expect(handleWishlistMatch(job)).rejects.toThrow('transient');
+    expect(findAndPersistWishlistMatches).toHaveBeenCalledOnce();
   });
 });
 
