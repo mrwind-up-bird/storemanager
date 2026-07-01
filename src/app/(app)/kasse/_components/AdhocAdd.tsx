@@ -11,6 +11,7 @@ export function AdhocAdd({ onAdd }: { onAdd: (name: string, price: string) => vo
   return (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
       <input
+        aria-label="Bezeichnung"
         placeholder="Bezeichnung"
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -22,6 +23,7 @@ export function AdhocAdd({ onAdd }: { onAdd: (name: string, price: string) => vo
         }}
       />
       <input
+        aria-label="Preis"
         placeholder="Preis"
         value={price}
         inputMode="decimal"
