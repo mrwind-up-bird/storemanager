@@ -261,8 +261,16 @@ test.describe('Slice 3 — Verkauf/POS + Wunschlisten', () => {
   });
 
   test('5. no customer wishlist data leaks onto the public storefront', async ({ page }) => {
-    await page.goto(`${DEMO_URL}/p/${DEMO_JAZZ_SLUG}`);
+    // Public storefront is /s/<permalink>, NOT /p/ (which is a 404 — assertions on 404 are trivial).
+    await page.goto(`${DEMO_URL}/s/${DEMO_JAZZ_SLUG}`);
     await page.waitForLoadState('domcontentloaded');
+
+    // Positive control: the real storefront rendered — at least one record card is visible.
+    // Guards against a 404 body making all no-leak assertions pass trivially.
+    const cards = page.getByRole('article');
+    await expect(cards.first()).toBeVisible();
+    expect(await cards.count()).toBeGreaterThan(0);
+
     await assertNoPrivateFields(page); // Slice-1 price/condition guard still holds
 
     const html = await page.content();
