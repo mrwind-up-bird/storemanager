@@ -42,10 +42,13 @@ export interface AnalyticsData {
 
 const EUR_WHOLE = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 });
 
-/** '€ 8.940' — whole-euro headline KPI value. The `/100` is a display-only rounding transform,
- *  not part of the SUM/subtract pipeline (that all happens upstream in integer cents). */
+/** '€ 8.940' — whole-euro headline KPI value. Splits `fromCents`' exact decimal string instead of
+ *  dividing by 100 as a float, per C1 ("fromCents only at the display edge"), then rounds to the
+ *  nearest whole euro from the fractional digits. */
 function formatEuro(cents: number): string {
-  return `€ ${EUR_WHOLE.format(Math.round(cents / 100))}`;
+  const [whole, frac] = fromCents(cents).split('.');
+  const rounded = Number(frac) >= 50 ? Number(whole) + 1 : Number(whole);
+  return `€ ${EUR_WHOLE.format(rounded)}`;
 }
 
 /** '€ 28,70' — 2-decimal display value. Splits `fromCents`' exact decimal string instead of

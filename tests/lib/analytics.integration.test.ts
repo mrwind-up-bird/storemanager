@@ -46,4 +46,26 @@ describe('getAnalytics(week)', () => {
       'Vormittag · 11–14 Uhr', 'Mittag · 14–16 Uhr', 'Nachmittag · 16–18 Uhr', 'Abend · 18–20 Uhr',
     ]);
   });
+
+  it('Umsatzverlauf for month is weekly (ISO-week) buckets covering the seeded week', async () => {
+    const a = await getAnalytics(ctx, 'month');
+    expect(a.period).toBe('month');
+    expect(a.umsatzverlauf.bars.length).toBeGreaterThanOrEqual(4); // weekly buckets across the month
+    for (const bar of a.umsatzverlauf.bars) {
+      expect(bar.label).toMatch(/^KW /);
+    }
+    expect(a.umsatzverlauf.totalCents).toBeGreaterThan(0);
+    expect(a.umsatzverlauf.bars.some((b) => b.valueCents > 0)).toBe(true); // the seeded week's bar
+  });
+
+  it('Umsatzverlauf for quarter is 3 monthly buckets covering the seeded month', async () => {
+    const a = await getAnalytics(ctx, 'quarter');
+    expect(a.period).toBe('quarter');
+    expect(a.umsatzverlauf.bars).toHaveLength(3); // one bar per month of the quarter
+    const monthShort = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+    for (const bar of a.umsatzverlauf.bars) {
+      expect(monthShort).toContain(bar.label);
+    }
+    expect(a.umsatzverlauf.totalCents).toBeGreaterThan(0);
+  });
 });
