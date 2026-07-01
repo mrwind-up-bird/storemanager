@@ -24,6 +24,7 @@ const SOUND_TENANT_ID_TABLES = [
   'transaction_items',
   'wishlists',
   'wishlist_matches',
+  'collections',
 ];
 
 type FakeOpts = {

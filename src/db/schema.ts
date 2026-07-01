@@ -142,6 +142,26 @@ export const records = pgTable(
   }),
 );
 
+// ── Slice 4: Batch-Ankauf collections (RLS applied in 0009_slice4_rls.sql) ──
+export const collections = pgTable(
+  'collections',
+  {
+    id: serial('id').primaryKey(),
+    tenantId: integer('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    sellerName: text('seller_name').notNull(),
+    sellerContact: text('seller_contact'),
+    acquiredAt: timestamp('acquired_at', { withTimezone: true }).notNull().defaultNow(),
+    note: text('note'),
+    createdByUserId: integer('created_by_user_id').references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (t) => ({
+    tenantAcquiredIdx: index('collections_tenant_acquired_idx').on(t.tenantId, t.acquiredAt),
+  }),
+);
+
 export const purchases = pgTable(
   'purchases',
   {
@@ -165,12 +185,15 @@ export const purchases = pgTable(
     discogsListingStatus: discogsListingStatusEnum('discogs_listing_status')
       .notNull()
       .default('not_listed'),
+    // ── Slice 4: optional link to the batch-Ankauf collection this copy came from ──
+    collectionId: integer('collection_id').references(() => collections.id),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
   (t) => ({
     tenantStatusIdx: index('purchases_tenant_status_idx').on(t.tenantId, t.status),
     recordIdx: index('purchases_record_idx').on(t.recordId),
+    collectionIdx: index('purchases_collection_idx').on(t.tenantId, t.collectionId),
     conditionRecordRange: check(
       'purchases_condition_record_range',
       sql`${t.conditionRecord} BETWEEN 0 AND 7`,
@@ -255,6 +278,8 @@ export const quickItems = pgTable(
     name: text('name').notNull(),
     price: numeric('price', { precision: 10, scale: 2 }).notNull(),
     active: boolean('active').notNull().default(true),
+    // ── Slice 4: analytics category bucket (nullable; existing rows unaffected) ──
+    category: text('category'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   },
   (t) => ({
