@@ -3,9 +3,16 @@
 
 /// <reference types="@testing-library/jest-dom/vitest" />
 
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
+// InventoryList now wires the T9 sale/reservation actions — mock the module so no server code loads.
+vi.mock('@/app/(app)/kasse/actions', () => ({
+  createSale: vi.fn(async () => ({ ok: true, transactionId: 1, total: '0.00' })),
+  reserve: vi.fn(async () => ({ ok: true })),
+  cancelReservation: vi.fn(async () => ({ ok: true })),
+}));
 
 // Components under test — imported AFTER env, no async DB imports here
 import { InventoryList } from '@/app/(app)/inventar/_components/InventoryList';
@@ -100,10 +107,11 @@ describe('InventoryList', () => {
     expect((rows[1] as HTMLElement).style.opacity).toBe('0.62');
   });
 
-  it('all Aktion buttons are disabled (no mutations in Slice 1)', () => {
+  it('activates Verkaufen for sellable rows and disables it for verkauft', () => {
     render(<InventoryList rows={ROWS} total={ROWS.length} />);
-    const btns = screen.getAllByRole('button', { name: /Verkauf/i });
-    btns.forEach((btn) => expect(btn).toBeDisabled());
+    // ROWS[0] is verfuegbar → enabled; ROWS[1] is verkauft → disabled "Verkauft".
+    expect(screen.getByRole('button', { name: /^Verkaufen$/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /Verkauft/i })).toBeDisabled();
   });
 
   it('shows footer with row count', () => {
