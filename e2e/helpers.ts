@@ -109,3 +109,51 @@ export async function demoTenantId(): Promise<number> {
   if (!rows[0]) throw new Error('demo tenant not found — is the stack seeded?');
   return rows[0].id;
 }
+
+// ── Slice-3 additions (Task 14) ─────────────────────────────────────────────
+
+/** A Mailpit message shape (subset of its API). */
+export interface MailpitMessage {
+  ID: string;
+  Subject: string;
+  To: Array<{ Address: string }>;
+}
+
+/** Fetch the current Mailpit inbox (newest first). Used to assert wishlist notification mail. */
+export async function mailpitMessages(
+  request: import('@playwright/test').APIRequestContext,
+): Promise<MailpitMessage[]> {
+  const res = await request.get(`${MAILPIT_API}/messages`);
+  if (!res.ok()) return [];
+  const body = (await res.json()) as { messages?: MailpitMessage[] };
+  return body.messages ?? [];
+}
+
+/** Per-tenant sales counters straight from the DB (no UI surface proves these alone). */
+export async function salesCounts(tenantId: number): Promise<{
+  transactions: number;
+  verkauft: number;
+  reserviert: number;
+  pendingMatches: number;
+  notifiedMatches: number;
+}> {
+  const rows = await dbQuery<{
+    transactions: string; verkauft: string; reserviert: string; pending: string; notified: string;
+  }>(
+    `SELECT
+       (SELECT COUNT(*) FROM transactions     WHERE tenant_id = $1)                                AS transactions,
+       (SELECT COUNT(*) FROM purchases        WHERE tenant_id = $1 AND status = 'verkauft')        AS verkauft,
+       (SELECT COUNT(*) FROM purchases        WHERE tenant_id = $1 AND status = 'reserviert')      AS reserviert,
+       (SELECT COUNT(*) FROM wishlist_matches WHERE tenant_id = $1 AND status = 'pending')         AS pending,
+       (SELECT COUNT(*) FROM wishlist_matches WHERE tenant_id = $1 AND status = 'notified')        AS notified`,
+    [tenantId],
+  );
+  const r = rows[0]!;
+  return {
+    transactions: Number(r.transactions),
+    verkauft: Number(r.verkauft),
+    reserviert: Number(r.reserviert),
+    pendingMatches: Number(r.pending),
+    notifiedMatches: Number(r.notified),
+  };
+}
