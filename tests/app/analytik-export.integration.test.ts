@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
 import { setupTestDatabase, seedTenant } from '../helpers/db';
+import { periodRange, berlinLocalYMD } from '@/lib/analytics-period';
 
 let GET: (typeof import('@/app/(app)/analytik/export/route'))['GET'];
 let withOwner: (typeof import('@/db/tenant'))['withOwner'];
@@ -85,10 +86,18 @@ describe('GET /analytik/export', () => {
     ).rejects.toThrow('FORBIDDEN');
   });
 
-  it('staff: text/csv, attachment filename, header + tenant-scoped row (no other-tenant leak)', async () => {
+  it('staff: text/csv, attachment filename (Berlin-local date), header + tenant-scoped row (no other-tenant leak)', async () => {
+    // Filename date must be `start`'s Berlin-LOCAL calendar date (not its UTC ISO date, which is
+    // always the previous day since Berlin is never behind UTC) — compute the same way the route does.
+    const { start } = periodRange('week', new Date());
+    const { year, month, day } = berlinLocalYMD(start);
+    const expectedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
     const res = await GET(new Request('http://localhost/analytik/export?period=week'));
     expect(res.headers.get('content-type')).toContain('text/csv');
-    expect(res.headers.get('content-disposition')).toContain('attachment; filename="analytik-');
+    expect(res.headers.get('content-disposition')).toBe(
+      `attachment; filename="analytik-week-${expectedDate}.csv"`,
+    );
 
     const body = await res.text();
     const lines = body.trim().split('\n');

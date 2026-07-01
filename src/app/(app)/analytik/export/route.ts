@@ -3,7 +3,7 @@ import { sql } from 'drizzle-orm';
 import { forbidden } from 'next/navigation';
 import { requireSession } from '@/auth/session';
 import { withTenant } from '@/db/tenant';
-import { periodRange, type AnalyticsPeriod } from '@/lib/analytics-period';
+import { periodRange, berlinLocalYMD, type AnalyticsPeriod } from '@/lib/analytics-period';
 import { toCents } from '@/lib/money';
 import { serializeAnalyticsCsv, type CsvTxRow } from '@/lib/analytics-csv';
 
@@ -39,7 +39,7 @@ export async function GET(request: Request): Promise<Response> {
       SELECT id, created_at, payment_method, subtotal, discount, total
       FROM transactions
       WHERE created_at >= ${start} AND created_at < ${end}
-      ORDER BY created_at
+      ORDER BY created_at, id
       LIMIT ${CAP + 1}
     `);
     const fetched = result.rows as TxRow[];
@@ -59,10 +59,13 @@ export async function GET(request: Request): Promise<Response> {
   });
 
   const csv = serializeAnalyticsCsv(rows, capped);
-  const startIso = start.toISOString().slice(0, 10);
+  // Filename date is `start`'s Berlin-LOCAL calendar date, not its UTC ISO date — `start` is a
+  // Berlin-local-midnight instant, so `.toISOString()` (UTC) would always land on the previous day.
+  const { year, month, day } = berlinLocalYMD(start);
+  const startDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   const headers = new Headers({
     'Content-Type': 'text/csv; charset=utf-8',
-    'Content-Disposition': `attachment; filename="analytik-${period}-${startIso}.csv"`,
+    'Content-Disposition': `attachment; filename="analytik-${period}-${startDate}.csv"`,
   });
   return new Response(csv, { headers });
 }

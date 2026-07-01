@@ -36,8 +36,10 @@ function berlinMidnightUTC(year: number, month: number, day: number): Date {
   return new Date(guess.getTime() - berlinOffsetMinutes(guess) * 60_000);
 }
 
-/** Berlin-local calendar date (Y/M/D) of `date`. */
-function berlinLocalYMD(date: Date): { year: number; month: number; day: number } {
+/** Berlin-local calendar date (Y/M/D) of `date`. Exported for callers that need a Berlin-local
+ *  date string outside this module (e.g. the CSV export route's filename — never derive a
+ *  Berlin-local date from `.toISOString()`, which is UTC and can land on the wrong day). */
+export function berlinLocalYMD(date: Date): { year: number; month: number; day: number } {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit',
   }).formatToParts(date);
