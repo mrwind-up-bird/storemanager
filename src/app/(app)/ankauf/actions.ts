@@ -1,11 +1,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { headers } from 'next/headers';
 import { forbidden } from 'next/navigation';
 import { z } from 'zod';
 import { requireSession } from '@/auth/session';
-import { env } from '@/env';
+import { isValidOrigin } from '@/lib/csrf';
 import { deleteConnection, getConnection } from '@/lib/discogs-connection';
 import { getDiscogsAdapter } from '@/lib/discogs';
 import { DiscogsAuthError } from '@/lib/discogs/types';
@@ -14,17 +13,6 @@ import { performAnkauf, type AnkaufInput } from '@/lib/ankauf';
 import { enqueueDiscogsListing, enqueueWishlistMatch } from '@/lib/jobs';
 
 export type SearchResultDTO = DiscogsSearchResult;
-
-/** Reject cross-site form posts to a mutating action (mirrors src/app/login/actions.ts). */
-async function isValidOrigin(): Promise<boolean> {
-  const h = await headers();
-  const origin = h.get('origin');
-  const host = h.get('host');
-  if (origin && host && origin !== `${env.APP_PROTOCOL}://${host}`) {
-    return false;
-  }
-  return true;
-}
 
 export async function searchDiscogs(
   query: string,
