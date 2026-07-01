@@ -135,6 +135,72 @@ describe('email — unit', () => {
     });
   });
 
+  // ── sendWishlistNotificationEmail content (Slice 3, C10) ──────────────────
+
+  describe('sendWishlistNotificationEmail()', () => {
+    const baseArgs = {
+      to: 'kundin@example.com',
+      customerName: 'Lena',
+      artist: 'Miles Davis',
+      title: 'Kind of Blue',
+      tenantName: 'Q-Records',
+    };
+
+    it('subject contains artist and title', async () => {
+      const { sendWishlistNotificationEmail } = await import('@/lib/email/index');
+      const mockAdapter = { send: vi.fn().mockResolvedValue(undefined) };
+      await sendWishlistNotificationEmail(mockAdapter, baseArgs);
+      const msg = (mockAdapter.send.mock.calls[0] as [{ subject: string }])[0];
+      expect(msg.subject).toContain('Miles Davis');
+      expect(msg.subject).toContain('Kind of Blue');
+    });
+
+    it('text + html contain customerName, the artist–title line and tenantName', async () => {
+      const { sendWishlistNotificationEmail } = await import('@/lib/email/index');
+      const captured: { html: string; text: string }[] = [];
+      const mockAdapter = {
+        send: vi.fn(async (msg: { html: string; text: string }) => {
+          captured.push({ html: msg.html, text: msg.text });
+        }),
+      };
+      await sendWishlistNotificationEmail(mockAdapter, baseArgs);
+      for (const part of [captured[0].text, captured[0].html]) {
+        expect(part).toContain('Lena');
+        expect(part).toContain('Miles Davis');
+        expect(part).toContain('Kind of Blue');
+        expect(part).toContain('Q-Records');
+      }
+    });
+
+    it('sends to the customer address exactly once', async () => {
+      const { sendWishlistNotificationEmail } = await import('@/lib/email/index');
+      const mockAdapter = { send: vi.fn().mockResolvedValue(undefined) };
+      await sendWishlistNotificationEmail(mockAdapter, baseArgs);
+      expect(mockAdapter.send).toHaveBeenCalledOnce();
+      expect(mockAdapter.send).toHaveBeenCalledWith(
+        expect.objectContaining({ to: 'kundin@example.com' }),
+      );
+    });
+
+    it('renders the permalink line only when permalinkUrl is provided', async () => {
+      const { sendWishlistNotificationEmail } = await import('@/lib/email/index');
+      const withUrl = { send: vi.fn().mockResolvedValue(undefined) };
+      await sendWishlistNotificationEmail(withUrl, {
+        ...baseArgs,
+        permalinkUrl: 'https://demo.localhost/r/abc',
+      });
+      const withMsg = (withUrl.send.mock.calls[0] as [{ html: string; text: string }])[0];
+      expect(withMsg.text).toContain('https://demo.localhost/r/abc');
+      expect(withMsg.html).toContain('https://demo.localhost/r/abc');
+
+      const without = { send: vi.fn().mockResolvedValue(undefined) };
+      await sendWishlistNotificationEmail(without, baseArgs);
+      const withoutMsg = (without.send.mock.calls[0] as [{ html: string; text: string }])[0];
+      expect(withoutMsg.text).not.toContain('Zum Schaufenster');
+      expect(withoutMsg.html).not.toContain('Zum Schaufenster');
+    });
+  });
+
   // ── Cycle B: Mailpit driver (SMTP via nodemailer mock) ────────────────────
 
   describe('createMailpitEmailAdapter()', () => {
