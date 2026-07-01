@@ -2,6 +2,7 @@ import 'server-only';
 import PgBoss from 'pg-boss';
 import { env } from '@/env';
 import { QUEUE } from '@/worker/index';
+import type { WishlistMatchPayload } from '@/worker/jobs/wishlistMatch';
 
 /**
  * Lazy module-scoped PgBoss singleton on `env.PGBOSS_DATABASE_URL`.
@@ -20,6 +21,7 @@ async function getBoss(): Promise<PgBoss> {
       });
       await boss.start();
       await boss.createQueue(QUEUE.discogsListingCreate);
+      await boss.createQueue(QUEUE.wishlistMatch);
       return boss;
     })();
   }
@@ -32,6 +34,14 @@ export async function enqueueDiscogsListing(payload: {
 }): Promise<void> {
   const boss = await getBoss();
   await boss.send(QUEUE.discogsListingCreate, payload, {
+    retryLimit: 5,
+    retryBackoff: true,
+  });
+}
+
+export async function enqueueWishlistMatch(payload: WishlistMatchPayload): Promise<void> {
+  const boss = await getBoss();
+  await boss.send(QUEUE.wishlistMatch, payload, {
     retryLimit: 5,
     retryBackoff: true,
   });

@@ -47,6 +47,11 @@ describe('QUEUE constants', () => {
     expect(QUEUE.discogsListingCreate).toBe('tenant.discogs.listing.create');
   });
 
+  it('wishlistMatch equals the canonical queue name (env-less import)', async () => {
+    const { QUEUE } = await import('@/worker/index');
+    expect(QUEUE.wishlistMatch).toBe('tenant.wishlist.match');
+  });
+
   it('QUEUE is structurally readonly (as const)', async () => {
     const { QUEUE } = await import('@/worker/index');
     // TypeScript enforces this at compile time; at runtime the value must be a string

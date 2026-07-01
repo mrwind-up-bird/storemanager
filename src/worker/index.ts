@@ -8,6 +8,9 @@ import type { AnalyticsSummaryPayload } from './jobs/analyticsSummary';
 // the real handler sharing ONE payload type WITHOUT pulling the job module's
 // runtime @/db → @/env chain at module load, so `import { QUEUE }` stays env-less.
 import type { DiscogsListingPayload } from './jobs/discogsListing';
+// Type-only import (erased at compile time) — keeps the queue registration and the real
+// handler sharing ONE payload type without pulling the job module's @/db → @/env chain.
+import type { WishlistMatchPayload } from './jobs/wishlistMatch';
 
 /**
  * Canonical queue name registry.
@@ -20,6 +23,7 @@ import type { DiscogsListingPayload } from './jobs/discogsListing';
 export const QUEUE = {
   analyticsSummaryRefresh: 'system.analytics_summary.refresh',
   discogsListingCreate: 'tenant.discogs.listing.create',
+  wishlistMatch: 'tenant.wishlist.match',
 } as const;
 
 /**
@@ -45,6 +49,7 @@ export async function startWorker(): Promise<void> {
   const { env } = await import('@/env');
   const { handleAnalyticsSummaryRefresh } = await import('./jobs/analyticsSummary');
   const { handleDiscogsListingCreate } = await import('./jobs/discogsListing');
+  const { handleWishlistMatch } = await import('./jobs/wishlistMatch');
 
   const boss = new PgBoss(env.PGBOSS_DATABASE_URL);
 
@@ -85,6 +90,20 @@ export async function startWorker(): Promise<void> {
     },
   );
   console.log(`[worker] Handler registered for queue: ${QUEUE.discogsListingCreate}`);
+
+  // Per-tenant wishlist match job (Slice 3): match arrived copies against open wishlists.
+  await boss.createQueue(QUEUE.wishlistMatch);
+  console.log(`[worker] Queue created/verified: ${QUEUE.wishlistMatch}`);
+
+  await boss.work<WishlistMatchPayload>(
+    QUEUE.wishlistMatch,
+    async (jobs: PgBoss.Job<WishlistMatchPayload>[]) => {
+      for (const job of jobs) {
+        await handleWishlistMatch(job);
+      }
+    },
+  );
+  console.log(`[worker] Handler registered for queue: ${QUEUE.wishlistMatch}`);
 
   const shutdown = async (signal: string): Promise<void> => {
     console.log(`[worker] Received ${signal}. Stopping pg-boss...`);
