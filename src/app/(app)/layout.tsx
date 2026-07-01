@@ -77,8 +77,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </div>
 
-        {/* Nav — client component (needs usePathname for active state) */}
-        <SidebarNav />
+        {/* Nav — client component (needs usePathname for active state).
+            Pass the session role so Kasse + Wunschlisten are staff-gated (kunde never sees them). */}
+        <SidebarNav role={user.role} />
 
         {/* User card */}
         <div

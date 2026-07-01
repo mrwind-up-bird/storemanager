@@ -77,3 +77,58 @@ export async function sendCredentialsEmail(
 
   await adapter.send({ to, subject, html, text });
 }
+
+export async function sendWishlistNotificationEmail(
+  adapter: EmailAdapter,
+  args: {
+    to: string;
+    customerName: string;
+    artist: string;
+    title: string;
+    tenantName: string;
+    permalinkUrl?: string;
+  },
+): Promise<void> {
+  const { to, customerName, artist, title, tenantName, permalinkUrl } = args;
+
+  const subject = `Dein Wunsch ist da: ${artist} – ${title}`;
+
+  const text = [
+    `Hallo ${customerName},`,
+    '',
+    `gute Nachrichten! Ein Titel von deiner Wunschliste ist bei ${tenantName} eingetroffen:`,
+    '',
+    `${artist} – ${title}`,
+    '',
+    'Komm gern vorbei oder melde dich, wenn du ihn reservieren möchtest.',
+    ...(permalinkUrl ? [`Zum Schaufenster: ${permalinkUrl}`] : []),
+    '',
+    'Viele Grüße',
+    tenantName,
+  ].join('\n');
+
+  const permalinkHtml = permalinkUrl
+    ? `<p style="margin-bottom:16px">
+    <a href="${permalinkUrl}" style="color:#c84b31">Zum Schaufenster: ${permalinkUrl}</a>
+  </p>`
+    : '';
+
+  const html = `<!DOCTYPE html>
+<html lang="de">
+<head><meta charset="utf-8" /><title>${subject}</title></head>
+<body style="font-family:sans-serif;color:#111;max-width:480px;margin:0 auto;padding:24px">
+  <h1 style="font-size:1.25rem;margin-bottom:8px">Hallo ${customerName},</h1>
+  <p style="margin-bottom:16px">
+    gute Nachrichten! Ein Titel von deiner Wunschliste ist bei ${tenantName} eingetroffen:
+  </p>
+  <p style="font-weight:bold;font-size:1.1rem;margin-bottom:16px">${artist} – ${title}</p>
+  <p style="margin-bottom:16px">
+    Komm gern vorbei oder melde dich, wenn du ihn reservieren möchtest.
+  </p>
+  ${permalinkHtml}
+  <p style="font-size:0.875rem;color:#555">Viele Grüße<br />${tenantName}</p>
+</body>
+</html>`;
+
+  await adapter.send({ to, subject, html, text });
+}

@@ -2,7 +2,11 @@ import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { setupTestDatabase, seedTenant } from './helpers/db';
 
 const enqueueSpy = vi.fn(async () => undefined);
-vi.mock('@/lib/jobs', () => ({ enqueueDiscogsListing: enqueueSpy }));
+const enqueueMatchSpy = vi.fn(async () => undefined);
+vi.mock('@/lib/jobs', () => ({
+  enqueueDiscogsListing: enqueueSpy,
+  enqueueWishlistMatch: enqueueMatchSpy,
+}));
 
 let actions: typeof import('@/app/(app)/ankauf/actions');
 let mod: typeof import('@/lib/discogs-connection');
@@ -23,6 +27,7 @@ const release = {
 
 beforeAll(async () => {
   const db = await setupTestDatabase();
+
   teardown = db.teardown;
   process.env.DATABASE_URL = db.appUrl;
   process.env.DATABASE_OWNER_URL = db.ownerUrl;
@@ -47,7 +52,7 @@ beforeAll(async () => {
   tenantA = (await seedTenant({ slug: 'demo', name: 'Demo' })).tenantId;
   mod = await import('@/lib/discogs-connection');
   actions = await import('@/app/(app)/ankauf/actions');
-});
+}, 60_000);
 afterAll(async () => {
   if (teardown) await teardown();
 });
@@ -84,6 +89,29 @@ describe('ankauf actions', () => {
     expect(r.ok).toBe(true);
     expect(enqueueSpy).toHaveBeenCalledTimes(1);
   });
+  it('ankaufRecord enqueues a wishlist match on every successful ankauf (independent of listing)', async () => {
+    enqueueMatchSpy.mockClear();
+    enqueueSpy.mockClear(); // reset discogs spy so "not.toHaveBeenCalled" is scoped to this test only
+    const r = await actions.ankaufRecord({
+      release,
+      purchasePrice: '4.00',
+      targetPrice: '19.00',
+      conditionRecord: 4,
+      conditionCover: 4,
+      listOnDiscogs: false, // wishlist enqueue must fire even when NOT listing on Discogs
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(enqueueMatchSpy).toHaveBeenCalledWith({
+        tenantId: tenantA,
+        purchaseId: r.purchaseId,
+        recordId: r.recordId,
+      });
+    }
+    // Not listing → the discogs enqueue must NOT have run for this call.
+    expect(enqueueSpy).not.toHaveBeenCalled();
+  });
+
   it('ankaufRecord returns ok+listingSkipped when enqueue fails, purchase still committed', async () => {
     enqueueSpy.mockRejectedValueOnce(new Error('queue down'));
     const r = await actions.ankaufRecord({

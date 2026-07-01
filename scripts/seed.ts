@@ -139,6 +139,27 @@ export const DEMO_PERMALINKS: PermalinkSpec[] = [
   { slug: 'neu',  filter: {} },
 ];
 
+// ── Slice 3: POS quick items + a matching open wishlist (demo tenant) ────────
+// Non-inventory catalogue buttons for the Kasse screen.
+export const DEMO_QUICK_ITEMS: { name: string; price: string }[] = [
+  { name: 'Kaffee',        price: '2.50' },
+  { name: 'Plattentasche', price: '1.00' },
+];
+
+// ≥1 OPEN wishlist whose `artist` matches a DEMO_RECORDS entry ('Miles Davis' → Kind of Blue /
+// Bitches Brew / Sketches of Spain), so a matching Ankauf in the E2E flow (T14) produces a
+// pending wishlist_matches row.
+export const DEMO_WISHLISTS: {
+  customerName: string;
+  customerEmail: string;
+  artist: string;
+  label?: string | null;
+  title?: string | null;
+  country?: string | null;
+}[] = [
+  { customerName: 'Klaus Wunsch', customerEmail: 'klaus.wunsch@example.test', artist: 'Miles Davis' },
+];
+
 // ---------------------------------------------------------------------------
 // Datasets — vinylcave tenant (rock/electronic catalogue)
 // ---------------------------------------------------------------------------
@@ -454,6 +475,143 @@ export async function seedTenantInventory(
   }
 }
 
+/**
+ * Idempotent quick-item insert. Skip if (tenantId, name) already exists.
+ * Seeded items are active (default) so they render as Kasse buttons.
+ */
+export async function ensureQuickItem(
+  ownerPool: Pool,
+  input: { tenantId: number; name: string; price: string },
+): Promise<void> {
+  const db = drizzle(ownerPool, { schema });
+
+  const existing = await db
+    .select({ id: schema.quickItems.id })
+    .from(schema.quickItems)
+    .where(and(eq(schema.quickItems.tenantId, input.tenantId), eq(schema.quickItems.name, input.name)))
+    .limit(1);
+
+  if (existing.length > 0) {
+    return; // already seeded
+  }
+
+  await db.insert(schema.quickItems).values({
+    tenantId: input.tenantId,
+    name: input.name,
+    price: input.price,
+  });
+
+  console.log(`[seed]   Quick item "${input.name}" (€${input.price}) created.`);
+}
+
+/**
+ * Idempotent wishlist insert. Skip if (tenantId, customerEmail, artist) already exists.
+ * Inserts with the default status 'open'. createdByUserId must be a real users.id of the tenant.
+ */
+export async function ensureWishlist(
+  ownerPool: Pool,
+  input: {
+    tenantId: number;
+    createdByUserId: number;
+    customerName: string;
+    customerEmail: string;
+    artist: string;
+    label?: string | null;
+    title?: string | null;
+    country?: string | null;
+  },
+): Promise<void> {
+  const db = drizzle(ownerPool, { schema });
+
+  const existing = await db
+    .select({ id: schema.wishlists.id })
+    .from(schema.wishlists)
+    .where(
+      and(
+        eq(schema.wishlists.tenantId, input.tenantId),
+        eq(schema.wishlists.customerEmail, input.customerEmail),
+        eq(schema.wishlists.artist, input.artist),
+      ),
+    )
+    .limit(1);
+
+  if (existing.length > 0) {
+    // Reset to 'open' so repeated E2E runs can re-exercise the full match→notify
+    // flow. Also purge any stale 'pending' matches from aborted prior runs so the
+    // next Ankauf gets a clean match slot.
+    await db
+      .update(schema.wishlists)
+      .set({ status: 'open' })
+      .where(eq(schema.wishlists.id, existing[0]!.id));
+    await db
+      .delete(schema.wishlistMatches)
+      .where(
+        and(
+          eq(schema.wishlistMatches.wishlistId, existing[0]!.id),
+          eq(schema.wishlistMatches.status, 'pending'),
+        ),
+      );
+    return;
+  }
+
+  await db.insert(schema.wishlists).values({
+    tenantId: input.tenantId,
+    createdByUserId: input.createdByUserId,
+    customerName: input.customerName,
+    customerEmail: input.customerEmail,
+    artist: input.artist,
+    label: input.label ?? null,
+    title: input.title ?? null,
+    country: input.country ?? null,
+  });
+
+  console.log(`[seed]   Wishlist for "${input.customerName}" (artist=${input.artist}) created.`);
+}
+
+/**
+ * Resolves the tenant's admin user id (wishlists.createdByUserId is NOT NULL → needs a real user).
+ */
+async function tenantAdminUserId(tenantId: number, ownerPool: Pool): Promise<number> {
+  const db = drizzle(ownerPool, { schema });
+  const rows = await db
+    .select({ id: schema.users.id })
+    .from(schema.users)
+    .where(and(eq(schema.users.tenantId, tenantId), eq(schema.users.role, 'admin')))
+    .limit(1);
+  if (!rows[0]) {
+    throw new Error(`[seed] no admin user found for tenant ${tenantId} (cannot set wishlists.createdByUserId)`);
+  }
+  return rows[0].id;
+}
+
+/**
+ * Seeds quick items + wishlists for a tenant. Wishlists are attributed to the tenant's admin user.
+ * Exported so integration tests can call it directly with a testcontainer ownerPool.
+ */
+export async function seedTenantSales(
+  ownerPool: Pool,
+  tenantId: number,
+  quickItems: { name: string; price: string }[],
+  wishlists: {
+    customerName: string;
+    customerEmail: string;
+    artist: string;
+    label?: string | null;
+    title?: string | null;
+    country?: string | null;
+  }[],
+): Promise<void> {
+  for (const qi of quickItems) {
+    await ensureQuickItem(ownerPool, { tenantId, name: qi.name, price: qi.price });
+  }
+  if (wishlists.length > 0) {
+    const createdByUserId = await tenantAdminUserId(tenantId, ownerPool);
+    for (const wl of wishlists) {
+      await ensureWishlist(ownerPool, { tenantId, createdByUserId, ...wl });
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // CLI helpers (unchanged from Slice 0 except loginUrlFor / printCredentials)
 // ---------------------------------------------------------------------------
@@ -532,6 +690,10 @@ async function main(): Promise<void> {
       token: DEMO_DISCOGS_FAKE_TOKEN,
       tokenSecret: DEMO_DISCOGS_FAKE_SECRET,
     });
+
+    // POS quick items + a matching open wishlist — DEMO tenant ONLY (drives the Slice-3 E2E flow).
+    console.log(`[seed] Seeding quick items + wishlists for "${DEMO_TENANT.slug}"...`);
+    await seedTenantSales(ownerPool, demoId, DEMO_QUICK_ITEMS, DEMO_WISHLISTS);
 
     // ── vinylcave tenant ───────────────────────────────────────────────────
     const { tenantId: vinylId, usedPassword: vinylPw } = await ensureTenant(VINYLCAVE_TENANT, ownerPool);

@@ -1,7 +1,7 @@
 import 'server-only';
 import { appPool } from '@/db/client';
 
-/** Physical names of tenant-scoped tables (must match Task 4 schema + Task 5 RLS migration). */
+/** Physical names of tenant-scoped tables (must match the schema + RLS migrations). */
 const TENANT_SCOPED_TABLES = [
   'users',
   'user_detail',
@@ -10,6 +10,11 @@ const TENANT_SCOPED_TABLES = [
   'purchases',
   'permalinks',
   'discogs_connections',
+  'quick_items',
+  'transactions',
+  'transaction_items',
+  'wishlists',
+  'wishlist_matches',
 ] as const;
 
 /**

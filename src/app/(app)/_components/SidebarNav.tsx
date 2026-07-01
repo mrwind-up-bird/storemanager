@@ -6,25 +6,39 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   Package,
+  ShoppingCart,
   Heart,
   Store,
   BarChart3,
+  type LucideIcon,
 } from 'lucide-react';
+import type { Role } from '@/db/schema';
 
-const NAV_ITEMS = [
-  { href: '/',             label: 'Übersicht',    Icon: LayoutDashboard },
-  { href: '/inventar',     label: 'Lagerbestand', Icon: Package          },
-  { href: '/wunschlisten', label: 'Wunschlisten', Icon: Heart            },
-  { href: '/schaufenster', label: 'Schaufenster', Icon: Store            },
-  { href: '/analytik',     label: 'Analytik',     Icon: BarChart3        },
-] as const;
+type NavItem = {
+  href: string;
+  label: string;
+  Icon: LucideIcon;
+  /** Visible only to staff (role ∈ {mitarbeiter, admin, superadmin}); hidden from `kunde`. */
+  staffOnly?: boolean;
+};
 
-export function SidebarNav() {
+const NAV_ITEMS: NavItem[] = [
+  { href: '/',             label: 'Übersicht',    Icon: LayoutDashboard                    },
+  { href: '/inventar',     label: 'Lagerbestand', Icon: Package                            },
+  { href: '/kasse',        label: 'Kasse',        Icon: ShoppingCart, staffOnly: true      },
+  { href: '/wunschlisten', label: 'Wunschlisten', Icon: Heart,        staffOnly: true      },
+  { href: '/schaufenster', label: 'Schaufenster', Icon: Store                              },
+  { href: '/analytik',     label: 'Analytik',     Icon: BarChart3                          },
+];
+
+export function SidebarNav({ role }: { role: Role }) {
   const pathname = usePathname();
+  const isStaff = role !== 'kunde';
+  const items = NAV_ITEMS.filter((item) => !item.staffOnly || isStaff);
 
   return (
     <nav aria-label="Hauptnavigation" style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-      {NAV_ITEMS.map(({ href, label, Icon }) => {
+      {items.map(({ href, label, Icon }) => {
         // Exact match for dashboard, prefix match for others
         const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
         return (

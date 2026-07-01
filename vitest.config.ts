@@ -28,6 +28,21 @@ export default defineConfig({
       },
     },
     // Don't set globals:true — tests import from 'vitest' explicitly (strict TS friendly)
+
+    // Cap fork concurrency so the ~18 Testcontainers-based integration suites don't all spin up
+    // Postgres containers simultaneously (Docker saturates and beforeAll hooks time out).
+    // maxForks:4 keeps at most 4 containers running at once while still parallelising unit tests.
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        maxForks: 4,
+        minForks: 1,
+      },
+    },
+    // Raise timeouts for container start + migration under concurrent load.
+    // 120 s covers the worst-case cold-pull; unit tests are unaffected (they finish in ms).
+    hookTimeout: 120_000,
+    testTimeout: 60_000,
   },
   resolve: {
     alias: {
