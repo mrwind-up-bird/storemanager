@@ -536,7 +536,22 @@ export async function ensureWishlist(
     .limit(1);
 
   if (existing.length > 0) {
-    return; // already seeded
+    // Reset to 'open' so repeated E2E runs can re-exercise the full match→notify
+    // flow. Also purge any stale 'pending' matches from aborted prior runs so the
+    // next Ankauf gets a clean match slot.
+    await db
+      .update(schema.wishlists)
+      .set({ status: 'open' })
+      .where(eq(schema.wishlists.id, existing[0]!.id));
+    await db
+      .delete(schema.wishlistMatches)
+      .where(
+        and(
+          eq(schema.wishlistMatches.wishlistId, existing[0]!.id),
+          eq(schema.wishlistMatches.status, 'pending'),
+        ),
+      );
+    return;
   }
 
   await db.insert(schema.wishlists).values({
