@@ -11,7 +11,7 @@ import { getDiscogsAdapter } from '@/lib/discogs';
 import { DiscogsAuthError } from '@/lib/discogs/types';
 import type { DiscogsSearchResult, DiscogsPriceSuggestion } from '@/lib/discogs/types';
 import { performAnkauf, type AnkaufInput } from '@/lib/ankauf';
-import { enqueueDiscogsListing } from '@/lib/jobs';
+import { enqueueDiscogsListing, enqueueWishlistMatch } from '@/lib/jobs';
 
 export type SearchResultDTO = DiscogsSearchResult;
 
@@ -119,6 +119,14 @@ export async function ankaufRecord(
 
   revalidatePath('/inventar');
   revalidatePath('/');
+
+  // Slice 3: match this arrived copy against open wishlists. Post-commit, soft-fail —
+  // the purchase is already committed, so an enqueue error must NOT roll it back.
+  try {
+    await enqueueWishlistMatch({ tenantId: user.tenantId, purchaseId, recordId });
+  } catch (err) {
+    console.error('[ankauf] wishlist-match enqueue failed after purchase committed', err);
+  }
 
   if (parsed.data.listOnDiscogs) {
     try {
