@@ -124,6 +124,17 @@ describe('kasse actions', () => {
     expect(r).toMatchObject({ ok: false, reason: 'validation' });
   });
 
+  it('createSale: gutschein payment without voucherCode → reason validation', async () => {
+    const pid = await insertCopy();
+    const r = await actions.createSale({
+      lines: [{ kind: 'inventory', purchaseId: pid }],
+      payment: 'gutschein',
+      discount: null,
+      // omitting voucherCode — the voucher-iff-gutschein refine must fire
+    });
+    expect(r).toMatchObject({ ok: false, reason: 'validation' });
+  });
+
   it('createSale: inventory copy → ok, status verkauft, transaction + item rows written', async () => {
     const pid = await insertCopy({ vk: '20.00' });
     const r = await actions.createSale({

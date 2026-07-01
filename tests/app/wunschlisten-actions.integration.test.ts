@@ -15,6 +15,7 @@ let teardown: (() => Promise<void>) | undefined;
 let tenantA = 0;
 let adminUserId = 0;
 let sessionRole: 'admin' | 'kunde' = 'admin';
+let badOrigin = false;
 
 async function insertMatch(status: 'pending' | 'notified' | 'dismissed'): Promise<number> {
   return withOwner(async (tx) => {
@@ -85,7 +86,8 @@ beforeAll(async () => {
     }),
   }));
   vi.doMock('next/headers', () => ({
-    headers: async () => new Headers(),
+    headers: async () =>
+      new Headers(badOrigin ? { origin: 'http://evil.example', host: 'localhost:3000' } : {}),
     cookies: async () => ({ get: () => undefined, set: () => undefined, delete: () => undefined }),
   }));
   vi.doMock('next/navigation', () => ({
@@ -113,6 +115,7 @@ afterAll(async () => {
 
 afterEach(() => {
   sessionRole = 'admin';
+  badOrigin = false;
   notifySpy.mockClear();
 });
 
@@ -122,6 +125,16 @@ describe('wunschlisten actions', () => {
     await expect(
       actions.createWishlist({ customerName: 'Max', customerEmail: 'max@example.com', artist: 'Miles Davis' }),
     ).rejects.toThrow('FORBIDDEN');
+  });
+
+  it('createWishlist: invalid origin → reason error', async () => {
+    badOrigin = true;
+    const r = await actions.createWishlist({
+      customerName: 'Max',
+      customerEmail: 'max@example.com',
+      artist: 'Miles Davis',
+    });
+    expect(r).toMatchObject({ ok: false, reason: 'error' });
   });
 
   it('createWishlist: invalid email → reason validation', async () => {
