@@ -18,8 +18,6 @@ let tenantId: number;
 let adminUserId: number;
 let recordId: number;
 let purchaseId: number;
-let wishlistId: number;
-let matchId: number;
 
 const ctx = () => ({ tenantId, userId: null });
 
@@ -36,6 +34,7 @@ beforeAll(async () => {
 
   ({ tenantId, adminUserId } = await seedTenant({ slug: 'wn', name: 'Wunsch Records' }));
 
+  // Shared record + purchase; each test seeds its own wishlist + match so tests are order-independent.
   await withTenant(ctx(), async (tx) => {
     const [rec] = await tx
       .insert(schema.records)
@@ -53,25 +52,6 @@ beforeAll(async () => {
       .values({ tenantId, recordId, targetPrice: '22.50' })
       .returning({ id: schema.purchases.id });
     purchaseId = p.id;
-
-    const [wl] = await tx
-      .insert(schema.wishlists)
-      .values({
-        tenantId,
-        createdByUserId: adminUserId,
-        customerName: 'Lena',
-        customerEmail: 'lena@example.com',
-        artist: 'Miles Davis',
-        title: 'Kind of Blue',
-      })
-      .returning({ id: schema.wishlists.id });
-    wishlistId = wl.id;
-
-    const [m] = await tx
-      .insert(schema.wishlistMatches)
-      .values({ tenantId, wishlistId, purchaseId, recordId })
-      .returning({ id: schema.wishlistMatches.id });
-    matchId = m.id;
   });
 });
 
@@ -106,8 +86,33 @@ const readWishlist = async (id: number) =>
     )
   )[0];
 
+/** Insert a fresh wishlist + pending match for this test's exclusive use (order-independent). */
+const seedFreshMatch = async (): Promise<{ matchId: number; wishlistId: number }> =>
+  withTenant(ctx(), async (tx) => {
+    const [wl] = await tx
+      .insert(schema.wishlists)
+      .values({
+        tenantId,
+        createdByUserId: adminUserId,
+        customerName: 'Lena',
+        customerEmail: 'lena@example.com',
+        artist: 'Miles Davis',
+        title: 'Kind of Blue',
+      })
+      .returning({ id: schema.wishlists.id });
+
+    const [m] = await tx
+      .insert(schema.wishlistMatches)
+      .values({ tenantId, wishlistId: wl.id, purchaseId, recordId })
+      .returning({ id: schema.wishlistMatches.id });
+
+    return { matchId: m.id, wishlistId: wl.id };
+  });
+
 describe('handleWishlistNotify (C9.4)', () => {
   it('sends the mail once and flips match + wishlist to notified', async () => {
+    const { matchId, wishlistId } = await seedFreshMatch();
+
     await handle(fakeJob({ tenantId, matchId }));
 
     expect(sendSpy).toHaveBeenCalledTimes(1);
@@ -124,10 +129,17 @@ describe('handleWishlistNotify (C9.4)', () => {
   });
 
   it('is idempotent on re-run: a second invocation sends NO further mail', async () => {
-    // First invocation already flipped the match to 'notified' in the prior test; this run must short-circuit.
+    // Own fixture — order-independent; we flip it ourselves then assert re-run is a no-op.
+    const { matchId, wishlistId } = await seedFreshMatch();
+
+    // First run: flips match + wishlist to notified, sends once.
+    await handle(fakeJob({ tenantId, matchId }));
+    expect(sendSpy).toHaveBeenCalledTimes(1);
+    sendSpy.mockClear();
+
+    // Second run: match is already notified → short-circuit, no further mail.
     await handle(fakeJob({ tenantId, matchId }));
     expect(sendSpy).not.toHaveBeenCalled();
-    // State unchanged.
     expect((await readMatch(matchId)).status).toBe('notified');
     expect((await readWishlist(wishlistId)).status).toBe('notified');
   });
@@ -135,5 +147,19 @@ describe('handleWishlistNotify (C9.4)', () => {
   it('is a no-op (no send, no throw) when the match does not exist', async () => {
     await expect(handle(fakeJob({ tenantId, matchId: 999_999 }))).resolves.toBeUndefined();
     expect(sendSpy).not.toHaveBeenCalled();
+  });
+
+  it('rethrows a transient send error and leaves match pending (send-before-flip guarantee)', async () => {
+    const { matchId } = await seedFreshMatch();
+
+    sendSpy.mockRejectedValueOnce(new Error('SMTP timeout'));
+
+    await expect(handle(fakeJob({ tenantId, matchId }))).rejects.toThrow('SMTP timeout');
+
+    // The status flip happens only AFTER a successful send — the failed send must not have
+    // committed any half-done state.
+    const match = await readMatch(matchId);
+    expect(match.status).toBe('pending');
+    expect(match.notifiedAt).toBeNull();
   });
 });
