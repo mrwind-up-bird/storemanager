@@ -8,6 +8,7 @@ import {
   Package,
   ShoppingCart,
   Heart,
+  Library,
   Store,
   BarChart3,
   type LucideIcon,
@@ -27,6 +28,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/inventar',     label: 'Lagerbestand', Icon: Package                            },
   { href: '/kasse',        label: 'Kasse',        Icon: ShoppingCart, staffOnly: true      },
   { href: '/wunschlisten', label: 'Wunschlisten', Icon: Heart,        staffOnly: true      },
+  { href: '/ankauf/sammlungen', label: 'Sammlungen', Icon: Library,   staffOnly: true      },
   { href: '/schaufenster', label: 'Schaufenster', Icon: Store                              },
   { href: '/analytik',     label: 'Analytik',     Icon: BarChart3                          },
 ];
