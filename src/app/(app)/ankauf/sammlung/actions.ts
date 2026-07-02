@@ -12,12 +12,14 @@ export type CreateCollectionResult =
   | { ok: true; collectionId: number; count: number }
   | { ok: false; reason: 'validation' | 'error'; message?: string };
 
-// Item schema is verbatim the ankaufSchema object from '../actions' (kept local — a shared
-// export would couple the two action files' zod graphs for no benefit).
+// Item schema mirrors the ankaufSchema object from '../actions' (kept local — a shared
+// export would couple the two action files' zod graphs for no benefit), except `discogsId`
+// is nullable here: batch-Ankauf items may be sourced manually (off-Discogs), whereas the
+// single-item AnkaufModal always carries a real Discogs id.
 const decimalString = z.string().regex(/^\d+(\.\d{1,2})?$/);
 const itemSchema = z.object({
   release: z.object({
-    discogsId: z.number().int(),
+    discogsId: z.number().int().nullable(),
     title: z.string(),
     artist: z.string(),
     country: z.string().nullable(),

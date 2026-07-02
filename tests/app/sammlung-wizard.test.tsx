@@ -27,6 +27,7 @@ vi.mock('@/app/(app)/ankauf/actions', () => ({ searchDiscogs, getPriceSuggestion
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
 
 import { CollectionWizard } from '@/app/(app)/ankauf/sammlung/_components/CollectionWizard';
+import { DEFAULT_CONDITION_RECORD } from '@/lib/pricing';
 
 beforeEach(() => {
   createCollectionAction.mockClear();
@@ -94,12 +95,30 @@ describe('CollectionWizard', () => {
     render(<CollectionWizard />);
     fireEvent.change(screen.getByTestId('sammlung-seller-input'), { target: { value: 'Max Mustermann' } });
     fireEvent.click(screen.getByTestId('sammlung-add-item'));
+    // Manual entry (off-Discogs item) so the item-level payload assertion below can pin down
+    // the CRITICAL fix: manual items must submit `discogsId: null`, never a synthetic sentinel.
+    fireEvent.click(screen.getByRole('button', { name: 'Manuell erfassen' }));
+    fireEvent.change(screen.getByLabelText('Titel'), { target: { value: 'Bedroom Tapes' } });
+    fireEvent.change(screen.getByLabelText('Künstler'), { target: { value: 'DIY Artist' } });
     fireEvent.change(screen.getAllByLabelText('Einkaufspreis (EK)')[0]!, { target: { value: '5.00' } });
 
     fireEvent.click(screen.getByTestId('sammlung-submit'));
     await waitFor(() => expect(createCollectionAction).toHaveBeenCalledTimes(1));
     expect(createCollectionAction).toHaveBeenCalledWith(
-      expect.objectContaining({ sellerName: 'Max Mustermann', items: expect.any(Array) }),
+      expect.objectContaining({
+        sellerName: 'Max Mustermann',
+        items: [
+          expect.objectContaining({
+            release: expect.objectContaining({
+              discogsId: null,
+              title: 'Bedroom Tapes',
+              artist: 'DIY Artist',
+            }),
+            purchasePrice: '5.00',
+            conditionRecord: DEFAULT_CONDITION_RECORD,
+          }),
+        ],
+      }),
     );
     await waitFor(() => expect(push).toHaveBeenCalledWith('/ankauf/sammlungen'));
   });

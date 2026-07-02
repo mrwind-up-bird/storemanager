@@ -1,10 +1,11 @@
 import 'server-only';
+import { sql } from 'drizzle-orm';
 import { withTenant, type TenantCtx, type Tx } from '@/db/tenant';
 import { recordHash } from '@/db/hash';
 import { records, purchases } from '@/db/schema';
 
 export type AnkaufRelease = {
-  discogsId: number;
+  discogsId: number | null; // null for manually-entered (off-Discogs) items — never a synthetic id.
   title: string;
   artist: string;
   country: string | null;
@@ -65,9 +66,13 @@ export async function acquireOne(
     })
     .onConflictDoUpdate({
       target: [records.hash, records.tenantId],
+      // Preserve-on-null: a manual entry (discogsId/coverImage null) must never clobber a real
+      // value already on the matched record. EXCLUDED is Postgres's proposed-row alias for the
+      // conflicting insert — COALESCE keeps the existing column when the new value is null, and
+      // still refreshes it when a real (non-null) value comes in (Discogs re-acquisition).
       set: {
-        coverImage: release.coverImage,
-        discogsId: release.discogsId,
+        coverImage: sql`COALESCE(EXCLUDED.cover_image, ${records.coverImage})`,
+        discogsId: sql`COALESCE(EXCLUDED.discogs_id, ${records.discogsId})`,
         updatedAt: new Date(),
       },
     })

@@ -7,7 +7,7 @@
 // reports its current value up to CollectionWizard via `onChange` so the wizard can compute the
 // running total and assemble the createCollectionAction payload.
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SearchField } from '@/components/ui/SearchField';
 import {
   CONDITION_PILLS,
@@ -112,7 +112,6 @@ export function CollectionItemRow({ index, onChange, onRemove }: CollectionItemR
   // Manual-entry fields (only used while `manual` is true).
   const [manualTitle, setManualTitle] = useState('');
   const [manualArtist, setManualArtist] = useState('');
-  const manualDiscogsId = useRef<number | null>(null);
 
   const [conditionRecord, setConditionRecord] = useState<ConditionGrade>(DEFAULT_CONDITION_RECORD);
   const [conditionCover, setConditionCover] = useState<ConditionGrade>(DEFAULT_CONDITION_COVER);
@@ -127,8 +126,9 @@ export function CollectionItemRow({ index, onChange, onRemove }: CollectionItemR
     if (!vkDirty && suggestedVk !== null) setVk(suggestedVk.toFixed(2));
   }, [suggestedVk, vkDirty]);
 
-  // Manual entry: title/artist typed in directly become the release (synthetic negative
-  // discogsId — a real Discogs id is always positive, so this can never collide).
+  // Manual entry: title/artist typed in directly become the release. discogsId stays null
+  // (never a synthetic placeholder) — it means "no Discogs release", which the C12 label
+  // logic and the records upsert both treat as such (no QR code, no clobbering a real id).
   useEffect(() => {
     if (!manual) return;
     const title = manualTitle.trim();
@@ -137,11 +137,8 @@ export function CollectionItemRow({ index, onChange, onRemove }: CollectionItemR
       setRelease(null);
       return;
     }
-    if (manualDiscogsId.current == null) {
-      manualDiscogsId.current = -Math.floor(Math.random() * 1_000_000_000) - 1;
-    }
     setRelease({
-      discogsId: manualDiscogsId.current,
+      discogsId: null,
       title,
       artist,
       country: null,
