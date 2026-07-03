@@ -42,6 +42,7 @@ const baseRow: InventoryRow = {
   status: 'verfuegbar',
   conditionRecord: 5,
   conditionCover: 5,
+  discogsId: null,
 };
 
 beforeEach(() => {

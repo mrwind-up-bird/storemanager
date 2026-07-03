@@ -26,7 +26,7 @@ const fxInventory: InventoryRow[] = [
   {
     copyId: 101, recordId: 11, title: 'Kind of Blue', artist: 'Miles Davis', label: ['Columbia'],
     releaseYear: 1959, country: 'US', format: 'Vinyl', genre: ['Jazz'], ek: '8.00', vk: '20.00',
-    status: 'verfuegbar', conditionRecord: 5, conditionCover: 4,
+    status: 'verfuegbar', conditionRecord: 5, conditionCover: 4, discogsId: null,
   },
 ];
 const fxQuickItems: QuickItemRow[] = [{ id: 7, name: 'Kaffee', price: '2.50', active: true }];

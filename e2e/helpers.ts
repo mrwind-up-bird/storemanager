@@ -129,6 +129,17 @@ export async function mailpitMessages(
   return body.messages ?? [];
 }
 
+// ── Slice-4 additions (Task 11) ─────────────────────────────────────────────
+
+/** Number of Batch-Ankauf collections for a tenant (drives the Analytik 'Sammlungen' KPI sub). */
+export async function collectionsCount(tenantId: number): Promise<number> {
+  const rows = await dbQuery<{ n: string }>(
+    `SELECT COUNT(*) AS n FROM collections WHERE tenant_id = $1`,
+    [tenantId],
+  );
+  return Number(rows[0]!.n);
+}
+
 /** Per-tenant sales counters straight from the DB (no UI surface proves these alone). */
 export async function salesCounts(tenantId: number): Promise<{
   transactions: number;

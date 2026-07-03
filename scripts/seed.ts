@@ -13,6 +13,8 @@ import { recordHash } from '../src/db/hash';
 import { hashPassword } from '../src/lib/password';
 import { getEmailAdapter, sendCredentialsEmail } from '../src/lib/email';
 import { encryptSecret } from '../src/lib/crypto';
+import { createCollection } from '../src/lib/collections';
+import type { AnkaufInput } from '../src/lib/ankauf';
 
 // ---------------------------------------------------------------------------
 // Tenant definitions
@@ -141,10 +143,77 @@ export const DEMO_PERMALINKS: PermalinkSpec[] = [
 
 // ── Slice 3: POS quick items + a matching open wishlist (demo tenant) ────────
 // Non-inventory catalogue buttons for the Kasse screen.
-export const DEMO_QUICK_ITEMS: { name: string; price: string }[] = [
-  { name: 'Kaffee',        price: '2.50' },
-  { name: 'Plattentasche', price: '1.00' },
+// `category` (Slice 4) buckets quick items for the analytics breakdown: Kaffee/Wasser/
+// Getränk-like items → 'Getränke', everything else → 'Sonstiges'.
+export const DEMO_QUICK_ITEMS: { name: string; price: string; category: string }[] = [
+  { name: 'Kaffee',        price: '2.50', category: 'Getränke'  },
+  { name: 'Plattentasche', price: '1.00', category: 'Sonstiges' },
 ];
+
+// ── Slice 4: batch-Ankauf demo collection (staff-only Sammlungen screen) ─────
+// Seller "Nachlass Beispiel" — deliberately distinct artists/titles from DEMO_RECORDS
+// so the two datasets never collide. One item carries a real discogsId (exercises the
+// label-QR path), one is discogsId: null (exercises the no-QR fallback) — good demo
+// data for the batch label print.
+export const DEMO_COLLECTION: { sellerName: string; items: AnkaufInput[] } = {
+  sellerName: 'Nachlass Beispiel',
+  items: [
+    {
+      release: {
+        discogsId: 249531,
+        title: 'Chet Baker Sings',
+        artist: 'Chet Baker',
+        country: 'US',
+        year: 1956,
+        format: 'Vinyl',
+        genre: ['Jazz'],
+        label: ['Pacific Jazz'],
+        coverImage: null,
+      },
+      purchasePrice: '9.00',
+      targetPrice: '26.90',
+      conditionRecord: 6,
+      conditionCover: 5,
+      listOnDiscogs: false,
+    },
+    {
+      release: {
+        discogsId: null,
+        title: 'Go',
+        artist: 'Dexter Gordon',
+        country: 'US',
+        year: 1962,
+        format: 'Vinyl',
+        genre: ['Jazz'],
+        label: ['Blue Note'],
+        coverImage: null,
+      },
+      purchasePrice: '8.00',
+      targetPrice: '24.90',
+      conditionRecord: 5,
+      conditionCover: 5,
+      listOnDiscogs: false,
+    },
+    {
+      release: {
+        discogsId: 305214,
+        title: 'Getz/Gilberto',
+        artist: 'Stan Getz',
+        country: 'US',
+        year: 1964,
+        format: 'Vinyl',
+        genre: ['Jazz', 'Bossa Nova'],
+        label: ['Verve'],
+        coverImage: null,
+      },
+      purchasePrice: '11.00',
+      targetPrice: '32.90',
+      conditionRecord: 6,
+      conditionCover: 6,
+      listOnDiscogs: false,
+    },
+  ],
+};
 
 // ≥1 OPEN wishlist whose `artist` matches a DEMO_RECORDS entry ('Miles Davis' → Kind of Blue /
 // Bitches Brew / Sketches of Spain), so a matching Ankauf in the E2E flow (T14) produces a
@@ -476,12 +545,14 @@ export async function seedTenantInventory(
 }
 
 /**
- * Idempotent quick-item insert. Skip if (tenantId, name) already exists.
+ * Idempotent-STATE quick-item insert. Skip-insert if (tenantId, name) already exists, but
+ * ALWAYS (re-)apply the category (Slice 4). A row seeded before Slice 4 has category = NULL;
+ * a plain skip-if-exists guard would leave it NULL forever, so re-seeding UPDATEs it instead.
  * Seeded items are active (default) so they render as Kasse buttons.
  */
 export async function ensureQuickItem(
   ownerPool: Pool,
-  input: { tenantId: number; name: string; price: string },
+  input: { tenantId: number; name: string; price: string; category: string },
 ): Promise<void> {
   const db = drizzle(ownerPool, { schema });
 
@@ -491,17 +562,22 @@ export async function ensureQuickItem(
     .where(and(eq(schema.quickItems.tenantId, input.tenantId), eq(schema.quickItems.name, input.name)))
     .limit(1);
 
-  if (existing.length > 0) {
-    return; // already seeded
+  if (existing.length > 0 && existing[0]) {
+    await db
+      .update(schema.quickItems)
+      .set({ category: input.category })
+      .where(eq(schema.quickItems.id, existing[0].id));
+    return;
   }
 
   await db.insert(schema.quickItems).values({
     tenantId: input.tenantId,
     name: input.name,
     price: input.price,
+    category: input.category,
   });
 
-  console.log(`[seed]   Quick item "${input.name}" (€${input.price}) created.`);
+  console.log(`[seed]   Quick item "${input.name}" (€${input.price}, ${input.category}) created.`);
 }
 
 /**
@@ -591,7 +667,7 @@ async function tenantAdminUserId(tenantId: number, ownerPool: Pool): Promise<num
 export async function seedTenantSales(
   ownerPool: Pool,
   tenantId: number,
-  quickItems: { name: string; price: string }[],
+  quickItems: { name: string; price: string; category: string }[],
   wishlists: {
     customerName: string;
     customerEmail: string;
@@ -602,7 +678,7 @@ export async function seedTenantSales(
   }[],
 ): Promise<void> {
   for (const qi of quickItems) {
-    await ensureQuickItem(ownerPool, { tenantId, name: qi.name, price: qi.price });
+    await ensureQuickItem(ownerPool, { tenantId, name: qi.name, price: qi.price, category: qi.category });
   }
   if (wishlists.length > 0) {
     const createdByUserId = await tenantAdminUserId(tenantId, ownerPool);
@@ -610,6 +686,57 @@ export async function seedTenantSales(
       await ensureWishlist(ownerPool, { tenantId, createdByUserId, ...wl });
     }
   }
+}
+
+/**
+ * Idempotent (skip-if-exists) demo-collection insert (Slice 4). Unlike ensureQuickItem,
+ * collections have no state machine to backfill — skip-if-exists is the correct guard here.
+ * Goes through createCollection (the real service: ONE tx, insert collection + acquireOne per
+ * item) so the Sammlungen screen + Ankäufe/Sammlungen KPI + batch label print all get
+ * representative data. createCollection does NOT enqueue jobs by design, so seeding has no job
+ * side effects.
+ */
+export async function ensureDemoCollection(
+  ownerPool: Pool,
+  tenantId: number,
+  adminUserId: number,
+  input: { sellerName: string; items: AnkaufInput[] },
+): Promise<void> {
+  const db = drizzle(ownerPool, { schema });
+
+  const existing = await db
+    .select({ id: schema.collections.id })
+    .from(schema.collections)
+    .where(and(eq(schema.collections.tenantId, tenantId), eq(schema.collections.sellerName, input.sellerName)))
+    .limit(1);
+
+  if (existing.length > 0) {
+    console.log(`[seed]   Collection "${input.sellerName}" already exists, skipping.`);
+    return;
+  }
+
+  const { collectionId, purchaseIds } = await createCollection(
+    { tenantId, userId: adminUserId },
+    { sellerName: input.sellerName, items: input.items },
+  );
+
+  console.log(
+    `[seed]   Collection "${input.sellerName}" (id=${collectionId}) created with ${purchaseIds.length} items.`,
+  );
+}
+
+/**
+ * Seeds ONE demo collection for a tenant, attributed to the tenant's admin user (mirrors
+ * seedTenantSales' wishlist attribution). Exported so integration tests can call it directly
+ * with a testcontainer ownerPool.
+ */
+export async function seedTenantCollections(
+  ownerPool: Pool,
+  tenantId: number,
+  collection: { sellerName: string; items: AnkaufInput[] },
+): Promise<void> {
+  const adminUserId = await tenantAdminUserId(tenantId, ownerPool);
+  await ensureDemoCollection(ownerPool, tenantId, adminUserId, collection);
 }
 
 // ---------------------------------------------------------------------------
@@ -694,6 +821,11 @@ async function main(): Promise<void> {
     // POS quick items + a matching open wishlist — DEMO tenant ONLY (drives the Slice-3 E2E flow).
     console.log(`[seed] Seeding quick items + wishlists for "${DEMO_TENANT.slug}"...`);
     await seedTenantSales(ownerPool, demoId, DEMO_QUICK_ITEMS, DEMO_WISHLISTS);
+
+    // ONE demo collection (batch Ankauf) — DEMO tenant ONLY (drives the Slice-4 Sammlungen
+    // screen + Ankäufe/Sammlungen KPI + batch label print).
+    console.log(`[seed] Seeding demo collection for "${DEMO_TENANT.slug}"...`);
+    await seedTenantCollections(ownerPool, demoId, DEMO_COLLECTION);
 
     // ── vinylcave tenant ───────────────────────────────────────────────────
     const { tenantId: vinylId, usedPassword: vinylPw } = await ensureTenant(VINYLCAVE_TENANT, ownerPool);

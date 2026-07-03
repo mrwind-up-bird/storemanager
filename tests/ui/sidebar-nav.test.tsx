@@ -14,22 +14,25 @@ import { SidebarNav } from '@/app/(app)/_components/SidebarNav';
 afterEach(cleanup);
 
 describe('SidebarNav role gating', () => {
-  it('shows Kasse and Wunschlisten for staff (mitarbeiter)', () => {
+  it('shows Kasse, Wunschlisten and Sammlungen for staff (mitarbeiter)', () => {
     render(<SidebarNav role="mitarbeiter" />);
     expect(screen.getByRole('link', { name: 'Kasse' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Wunschlisten' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Sammlungen' })).toBeInTheDocument();
   });
 
-  it('shows Kasse and Wunschlisten for admin', () => {
+  it('shows Kasse, Wunschlisten and Sammlungen for admin', () => {
     render(<SidebarNav role="admin" />);
     expect(screen.getByRole('link', { name: 'Kasse' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Wunschlisten' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Sammlungen' })).toBeInTheDocument();
   });
 
-  it('hides Kasse and Wunschlisten for a kunde', () => {
+  it('hides Kasse, Wunschlisten and Sammlungen for a kunde', () => {
     render(<SidebarNav role="kunde" />);
     expect(screen.queryByRole('link', { name: 'Kasse' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Wunschlisten' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Sammlungen' })).toBeNull();
   });
 
   it('always shows the non-gated items regardless of role', () => {
@@ -43,5 +46,10 @@ describe('SidebarNav role gating', () => {
   it('links Kasse to /kasse', () => {
     render(<SidebarNav role="mitarbeiter" />);
     expect(screen.getByRole('link', { name: 'Kasse' })).toHaveAttribute('href', '/kasse');
+  });
+
+  it('links Sammlungen to /ankauf/sammlungen', () => {
+    render(<SidebarNav role="mitarbeiter" />);
+    expect(screen.getByRole('link', { name: 'Sammlungen' })).toHaveAttribute('href', '/ankauf/sammlungen');
   });
 });

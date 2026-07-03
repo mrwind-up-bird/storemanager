@@ -6,8 +6,13 @@ import type { InventoryRow } from '@/lib/inventory';
 import type { Condition } from '@/components/ui/ConditionPill';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ConditionPill } from '@/components/ui/ConditionPill';
+import { Checkbox } from '@/components/ui';
 import { SellModal } from './SellModal';
+import { LabelPrintModal } from './LabelPrintModal';
 import { reserve, cancelReservation } from '@/app/(app)/kasse/actions';
+import { toCents } from '@/lib/money';
+import { DEFAULT_CONDITION_RECORD } from '@/lib/pricing';
+import type { LabelItem } from '@/lib/labels';
 
 export interface InventoryListProps {
   rows: InventoryRow[];
@@ -29,6 +34,35 @@ export function InventoryList({ rows, total }: InventoryListProps) {
   const [sellRow, setSellRow] = useState<InventoryRow | null>(null);
   // Per-row inline error messages keyed by copyId (purchaseId). Cleared on next attempt.
   const [rowErrors, setRowErrors] = useState<Map<number, string>>(new Map());
+  // Rows picked for label printing (copyId set) + the print modal's open state.
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [printOpen, setPrintOpen] = useState(false);
+
+  const toggleSelected = (copyId: number, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(copyId);
+      else next.delete(copyId);
+      return next;
+    });
+  };
+
+  // Derived from the CURRENT rows, not from selectedIds alone — selectedIds can outlive a
+  // status-tab switch (server re-renders this same component instance with a new, possibly
+  // disjoint rows array), so intersecting with rows here keeps the displayed count, the print
+  // button's enabled state, and labelItems permanently in sync with each other.
+  const selectedRows = rows.filter((row) => selectedIds.has(row.copyId));
+
+  // A missing/null conditionRecord falls back to the shop default grade so LabelItem's non-null
+  // conditionRecord contract still holds.
+  const labelItems: LabelItem[] = selectedRows.map((row) => ({
+    artist: row.artist,
+    title: row.title,
+    format: row.format,
+    conditionRecord: row.conditionRecord ?? DEFAULT_CONDITION_RECORD,
+    priceCents: row.vk != null ? toCents(row.vk) : null,
+    discogsId: row.discogsId,
+  }));
 
   // Reserve / cancel await the T9 server action result so conflicts (e.g. a copy concurrently
   // sold while the staff member hovered the button) are surfaced rather than swallowed.
@@ -62,10 +96,57 @@ export function InventoryList({ rows, total }: InventoryListProps) {
         overflow: 'hidden',
       }}
     >
+      {/* Etiketten-Toolbar — visible whenever ≥1 row is selected for label printing */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          gap: 12,
+          padding: '10px 18px',
+          borderBottom: '1px solid var(--border)',
+          background: 'var(--surface-2)',
+        }}
+      >
+        <span style={{ fontSize: 12.5, color: 'var(--text-3)' }}>
+          {selectedRows.length} ausgewählt
+        </span>
+        <button
+          type="button"
+          data-testid="label-print-open"
+          onClick={() => setPrintOpen(true)}
+          disabled={selectedRows.length === 0}
+          style={{
+            minHeight: 36,
+            padding: '0 16px',
+            border: '1.5px solid var(--border-strong)',
+            borderRadius: 'var(--r-pill)',
+            background: selectedRows.length === 0 ? 'var(--surface-3)' : 'var(--surface)',
+            color: selectedRows.length === 0 ? 'var(--text-3)' : 'var(--text)',
+            fontFamily: 'var(--font-body)',
+            fontWeight: 700,
+            fontSize: '12.5px',
+            cursor: selectedRows.length === 0 ? 'not-allowed' : 'pointer',
+          }}
+        >
+          Etiketten drucken
+        </button>
+      </div>
+
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 720 }}>
           <thead>
             <tr style={{ textAlign: 'left', color: 'var(--text-3)', background: 'var(--surface-2)' }}>
+              <th scope="col" style={{ ...HEAD_CELL, padding: '12px 0 12px 18px', width: 1 }}>
+                <span
+                  style={{
+                    position: 'absolute', width: 1, height: 1, padding: 0,
+                    margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', border: 0,
+                  }}
+                >
+                  Auswahl
+                </span>
+              </th>
               <th scope="col" style={{ ...HEAD_CELL, padding: '12px 18px' }}>
                 Artikel
               </th>
@@ -100,6 +181,15 @@ export function InventoryList({ rows, total }: InventoryListProps) {
                     opacity: row.status === 'verkauft' ? 0.62 : undefined,
                   }}
                 >
+                  {/* Auswahl für Etikettendruck */}
+                  <td style={{ padding: '13px 0 13px 18px' }}>
+                    <Checkbox
+                      checked={selectedIds.has(row.copyId)}
+                      onChange={(checked) => toggleSelected(row.copyId, checked)}
+                      ariaLabel={`„${row.title}" für Etikettendruck auswählen`}
+                    />
+                  </td>
+
                   {/* Artikel: 36×36 cover thumb + title + artist */}
                   <td style={{ padding: '13px 18px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -300,6 +390,8 @@ export function InventoryList({ rows, total }: InventoryListProps) {
           onClose={() => setSellRow(null)}
         />
       )}
+
+      <LabelPrintModal items={labelItems} open={printOpen} onClose={() => setPrintOpen(false)} />
     </div>
   );
 }

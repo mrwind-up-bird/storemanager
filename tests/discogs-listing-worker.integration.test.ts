@@ -108,10 +108,14 @@ describe('handleDiscogsListingCreate', () => {
   });
 
   it('marks failed when the record has no discogsId', async () => {
+    // Distinct identity: release() shares artist/title/country/year/label with the earlier
+    // tests, so its recordHash collides and the upsert would attach this purchase to the
+    // EXISTING record — whose discogsId 43 survives a null re-acquisition (preserve-on-null
+    // COALESCE upsert). This test needs a record that genuinely has no discogsId.
     const { purchaseId } = await performAnkauf(
       { tenantId: tenantA, userId: null },
       {
-        release: release(null),
+        release: { ...release(null), title: 'Unlisted Bootleg', artist: 'No Discogs Artist' },
         purchasePrice: '3',
         targetPrice: '22.50',
         conditionRecord: 5,

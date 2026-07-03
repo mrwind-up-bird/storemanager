@@ -28,6 +28,7 @@ async function insertRecord(
     releaseYear: number;
     country: string;
     hash: string;
+    discogsId?: number;
   },
 ): Promise<number> {
   return withOwner(async (tx) => {
@@ -85,6 +86,7 @@ beforeAll(async () => {
   const a1 = await insertRecord(tenantA, {
     title: 'Kind of Blue', artist: 'Miles Davis', label: ['Columbia'],
     format: 'Vinyl', genre: ['Jazz'], releaseYear: 1959, country: 'US', hash: 'a1',
+    discogsId: 4784, // a1 carries a discogsId; a2/a3 deliberately don't (asserts NULL passthrough)
   });
   const a2 = await insertRecord(tenantA, {
     title: 'Discovery', artist: 'Daft Punk', label: ['Virgin'],
@@ -184,6 +186,14 @@ describe('listInventory — search + filters', () => {
     expect(a1c1?.ek).toBe('10.00');
     expect(a1c1?.vk).toBe('30.00');
     expect(a1c1?.conditionRecord).toBe(7);
+  });
+
+  it('discogsId is projected from records — present for a1, null for records without one', async () => {
+    const rows = await listInventory({ tenantId: tenantA, userId: null }, {});
+    const kindOfBlue = rows.find((r) => r.title === 'Kind of Blue' && r.status === 'verfuegbar');
+    expect(kindOfBlue?.discogsId).toBe(4784);
+    const discovery = rows.find((r) => r.title === 'Discovery');
+    expect(discovery?.discogsId).toBeNull();
   });
 });
 

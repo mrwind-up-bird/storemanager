@@ -73,7 +73,7 @@ v1 bekam Tenant-Isolation „gratis" über einen gepatchten `pg.Pool.connect()`-
 | 1 Inventar+Dashboard+Schaufenster | records/purchases/conditions + Seed, Lagerbestand (Liste/Kacheln/Filter/Status), Dashboard-KPIs, öffentliches Schaufenster (permalink) | **Implementiert + reviewed (E2E 38/38)** |
 | 2 Discogs+Ankauf | Discogs Such-API (OAuth, Rate-Limit), Discogs-Suche-Screen, Ankauf-Modal, Hash-Dedup, Marktdaten-Cache, vereinfachtes Pricing | **Implementiert + reviewed (367 unit/integration + 44 E2E)** |
 | 3 Verkauf/POS+Wunschlisten | POS-Kasse + Einzel-Verkauf-Modal + transactions, Zahlarten (bar/karte/paypal/gutschein), Reservierung, Wunschlisten-CRUD (Künstler/Label/Titel/Land), Ankauf-Match-Job + mitarbeiter-bestätigte E-Mail-Benachrichtigung, Benachrichtigen-Modal | **Implementiert + reviewed (508 unit/integration + 5 E2E)** |
-| 4 Analytik+Batch+Etiketten | Analytik-Screen (Woche/Monat/Quartal, Charts, Top), collection batch-Ankauf + Etikettendruck (jsPDF), CSV-Export | geplant |
+| 4 Analytik+Batch+Etiketten | Analytik-Screen (Woche/Monat/Quartal, Charts, Top), collection batch-Ankauf + Etikettendruck (jsPDF), CSV-Export | **Implementiert + reviewed (589 unit/integration + 54 E2E)** |
 | 5 Mobile+Scanner (PWA) | Mobile-Screens, Bottom-Tab, Bottom-Sheets, Barcode/Cover-Scanner (html5-qrcode/Kamera), PWA | geplant |
 | 6 Onboarding+Superadmin+Billing | First-Login-Wizard, API-Key-Config (Discogs/LLM), Superadmin (Tenant-Provisioning, plans), Stripe-Abrechnung, Feature-Gating je Tier | geplant |
 | 7 KI-Suche+GDPR/ELSTER+Social+POS | LLM-NL-Suche, DSGVO/ELSTER-Export, Social-Publishing, POS-Integrationen (SumUp/Square) | geplant |

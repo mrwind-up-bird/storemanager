@@ -32,11 +32,29 @@ vi.mock('@/app/(app)/kasse/actions', () => ({
 // InventoryList calls useRouter().refresh() on action failure.
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: mockRefresh }) }));
 
+// InventoryList's "Etiketten drucken" flow renders LabelPrintModal, which loads jsPDF/qrcode via
+// dynamic import() inside its submit handler — mock both the same way label-print-modal.test.tsx
+// does, so the I1 (discogsId flow-through) test can assert on the mocked QRCode call.
+const mockDoc = vi.hoisted(() => ({
+  text: vi.fn(),
+  setFontSize: vi.fn(),
+  setFont: vi.fn(),
+  addImage: vi.fn(),
+  addPage: vi.fn(),
+  save: vi.fn(),
+}));
+vi.mock('jspdf', () => ({ jsPDF: vi.fn(() => mockDoc) }));
+vi.mock('qrcode', () => ({
+  default: { toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,x') },
+}));
+
 // Components under test — imported AFTER env, no async DB imports here
 import { InventoryList } from '@/app/(app)/inventar/_components/InventoryList';
 import { InventoryTiles } from '@/app/(app)/inventar/_components/InventoryTiles';
 import { ViewToggle } from '@/app/(app)/inventar/_components/ViewToggle';
 import type { InventoryRow } from '@/lib/inventory';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+import QRCode from 'qrcode';
 
 afterEach(cleanup);
 beforeEach(() => {
@@ -45,6 +63,8 @@ beforeEach(() => {
   mockRefresh.mockReset();
   reserve.mockResolvedValue({ ok: true });
   cancelReservation.mockResolvedValue({ ok: true });
+  Object.values(mockDoc).forEach((fn) => fn.mockClear());
+  (QRCode.toDataURL as ReturnType<typeof vi.fn>).mockClear();
 });
 
 const ROWS: InventoryRow[] = [
@@ -63,6 +83,7 @@ const ROWS: InventoryRow[] = [
     status: 'verfuegbar',
     conditionRecord: 5,
     conditionCover: 5,
+    discogsId: 249232,
   },
   {
     copyId: 2,
@@ -79,6 +100,7 @@ const ROWS: InventoryRow[] = [
     status: 'verkauft',
     conditionRecord: 4,
     conditionCover: 3,
+    discogsId: null,
   },
 ];
 
@@ -175,6 +197,69 @@ describe('InventoryList', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
     // router.refresh() was triggered so the stale row gets an up-to-date status.
     expect(mockRefresh).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── Row-selection checkbox has an accessible name but no visible duplicate text (finding F2) ───
+
+describe('InventoryList — row-selection checkbox accessible name', () => {
+  it('exposes the accessible name via getByLabel without rendering it as visible text', () => {
+    render(<InventoryList rows={ROWS} total={ROWS.length} />);
+    // The accessible name must still resolve (existing consumers rely on getByLabel/getByRole).
+    expect(
+      screen.getByLabelText(`„${ROWS[0].title}" für Etikettendruck auswählen`),
+    ).toBeInTheDocument();
+    // But it must NOT appear as a visible sentence in the row (it used to duplicate the Artikel
+    // column and blow out the selection column — see InventoryList.tsx / Checkbox.tsx).
+    expect(screen.queryByText(`„${ROWS[0].title}" für Etikettendruck auswählen`)).not.toBeInTheDocument();
+  });
+});
+
+// ── Label print item mapping (review finding I1: discogsId flow-through) ───────
+
+describe('InventoryList — label print item mapping', () => {
+  it('carries the selected row discogsId into the printed label, QR only for the row that has one', async () => {
+    const user = userEvent.setup();
+    render(<InventoryList rows={ROWS} total={ROWS.length} />);
+
+    // Select both rows — ROWS[0] has a discogsId, ROWS[1] does not (see fixture above).
+    await user.click(screen.getByRole('checkbox', { name: `„${ROWS[0].title}" für Etikettendruck auswählen` }));
+    await user.click(screen.getByRole('checkbox', { name: `„${ROWS[1].title}" für Etikettendruck auswählen` }));
+
+    await user.click(screen.getByTestId('label-print-open'));
+    await user.click(screen.getByTestId('label-print-submit'));
+
+    await waitFor(() => expect(mockDoc.save).toHaveBeenCalledTimes(1));
+
+    // Non-vacuous: exactly one of the two selected rows has a discogsId — QR must be fetched
+    // exactly once, and for the correct release id (proves it's not hardcoded null).
+    expect(QRCode.toDataURL).toHaveBeenCalledTimes(1);
+    expect(QRCode.toDataURL).toHaveBeenCalledWith(`https://www.discogs.com/release/${ROWS[0].discogsId}`);
+  });
+});
+
+// ── Selection survives a disjoint rows update (review finding I2) ──────────────
+
+describe('InventoryList — selection state after a rows prop change', () => {
+  it('drops the displayed count and disables the print button once selected ids are no longer in rows', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<InventoryList rows={ROWS} total={ROWS.length} />);
+
+    await user.click(screen.getByRole('checkbox', { name: `„${ROWS[0].title}" für Etikettendruck auswählen` }));
+    await user.click(screen.getByRole('checkbox', { name: `„${ROWS[1].title}" für Etikettendruck auswählen` }));
+
+    expect(screen.getByText('2 ausgewählt')).toBeInTheDocument();
+    expect(screen.getByTestId('label-print-open')).toBeEnabled();
+
+    // Same component instance (rerender, not remount) receives a disjoint rows array — this is
+    // what happens when the server re-renders after a status-tab switch (searchParams change).
+    const otherRows: InventoryRow[] = [
+      { ...ROWS[0], copyId: 99, title: 'A Completely Different Record' },
+    ];
+    rerender(<InventoryList rows={otherRows} total={otherRows.length} />);
+
+    expect(screen.getByText('0 ausgewählt')).toBeInTheDocument();
+    expect(screen.getByTestId('label-print-open')).toBeDisabled();
   });
 });
 
