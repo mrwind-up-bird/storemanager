@@ -80,18 +80,18 @@ KPI-Karten und Panels (Wunschlisten-Treffer, letzte Verkäufe) existieren bereit
 
 ### 5.2 Suche (`/ankauf`)
 - Der bestehende deaktivierte Scanner-Button in `src/app/(app)/ankauf/_components/SearchForm.tsx` wird aktiviert → öffnet ScannerSheet im EAN-Modus. Ein erkannter/manuell eingegebener EAN feuert die Barcode-Suche (§8) und rendert die Treffer in der **bestehenden** Ergebnisliste.
-- Ergebnis-Cards mobil im Handoff-Layout (Cover links, Titel/Künstler, Preis-Median, Aktions-Buttons; Z. 131–161). Desktop-Darstellung unverändert.
+- Ergebnis-Cards: das bestehende `ResultCard`-Design ist bereits handoff-treu und das Grid (`auto-fill minmax`) stapelt bei 390px automatisch einspaltig — **kein Umbau** (Plan-Entscheidung: das Handoff-Detail „Cover links neben Text" entfällt bewusst, YAGNI). Desktop-Darstellung unverändert.
 
 ### 5.3 Bestand (`/inventar`)
 - Filter-Chips (StatusTabs/FilterBar) mobil horizontal scrollbar mit Edge-Bleed: `overflow-x: auto; margin: 0 -16px; padding: 0 16px`, Scrollbar versteckt (Handoff Z. 171–176).
-- Listenzeilen erhalten eine kompakte Mobile-Variante (Titel/Künstler, Zustand-Pill, Format, VK-Preis, Button **„Verkauf"** → Verkauf-Sheet mit diesem Artikel). Umsetzung als CSS-/Conditional-Variante in `InventoryList.tsx` — keine zweite Datenbeschaffung.
+- Listenzeilen erhalten eine kompakte Mobile-Karten-Variante (Titel/Künstler, Zustand-Pill, Format, VK-Preis, Button **„Verkaufen"** — identischer Text wie der bestehende Desktop-Zeilen-Button — → SellModal mit diesem Artikel). Umsetzung als CSS-Variante in `InventoryList.tsx` — keine zweite Datenbeschaffung.
 - Der Scanner-Platzhalter in `FilterBar.tsx` wird aktiviert → ScannerSheet im **Etiketten-Modus** (§7).
 
 ### 5.4 Wunsch (`/wunschlisten`)
-Bestehende Funktionalität, mobil gestapelt; Status-Pills und Aktions-Buttons (Benachrichtigen/Ankauf) wie im Handoff (Z. 206–228). Keine neuen Konzepte (das Handoff-Segment „Meine · Alle" wird NICHT übernommen — es gibt im Datenmodell keine per-User-Wunschlisten; dokumentierte, bewusste Abweichung).
+Bestehende Funktionalität; das vorhandene Stack-Layout (Flex-Spalten) stapelt mobil bereits sauber — **keine geplante Code-Änderung**, Sichtprüfung im E2E-Task. Status-Pills und Aktions-Buttons (Benachrichtigen/Ankauf) existieren bereits handoff-gemäß (Z. 206–228). Keine neuen Konzepte (das Handoff-Segment „Meine · Alle" wird NICHT übernommen — es gibt im Datenmodell keine per-User-Wunschlisten; dokumentierte, bewusste Abweichung).
 
 ### 5.5 Analytik (`/analytik`)
-Die hartkodierten Grids `1.55fr 1fr` und `1fr 1fr` (`src/app/(app)/analytik/page.tsx`) stapeln mobil auf eine Spalte; KPI-Karten im 2er-Grid (Handoff Z. 240–242). Reine Präsentation, keine Query-Änderungen.
+Die hartkodierten Grids `1.55fr 1fr` und `1fr 1fr` (`src/app/(app)/analytik/page.tsx`) stapeln mobil auf eine Spalte (`qr-analytik-grid`). Die KPI-Karten nutzen bereits ein auto-fit-Grid und stapeln mobil selbständig — das Handoff-2er-Grid (Z. 240–242) wird **nicht** erzwungen (Plan-Entscheidung, YAGNI). Reine Präsentation, keine Query-Änderungen.
 
 ## 6. Bottom-Sheets (Verkauf/Ankauf)
 
@@ -99,15 +99,13 @@ Beide nutzen das bestehende Primitive `Sheet` (`src/components/ui/Sheet.tsx`) mi
 
 ### 6.1 Verkauf-Sheet (`src/app/(app)/_components/VerkaufSheet.tsx`, Client)
 
-Titel: **„Verkauf abschließen"** (Handoff Z. 342–350). Zwei Eintrittszustände:
-- **Mit Artikel** (aus Bestand-Zeile oder Etiketten-Scan): Artikel-Preview (Cover-Placeholder, Titel/Künstler, Zustand), Preis-Input (vorbelegt mit `targetPrice`, `inputmode="decimal"`, validiert mit `isValidMoneyString`), Zahlarten-Grid 2×2 mit exakt **Bar / Karte / PayPal / Gutschein** (mappt auf das bestehende Zahlart-Enum), Summenzeile, CTA **„Verkaufen"**.
-- **Ohne Artikel** („Schnellverkauf", via €-FAB/Quick-Action): Artikel-Suchfeld über verfügbare Artikel (Wiederverwendung der Suchlogik aus `kasse/_components/InventorySearch.tsx`) + Button **„Etikett scannen"** (→ ScannerSheet Etiketten-Modus). Nach Artikelwahl → Zustand „mit Artikel".
+Titel: **„Schnellverkauf"**. Das Sheet ist der **Artikel-Wähler**, nicht der Abschluss: Button **„Etikett scannen"** (→ ScannerSheet Etiketten-Modus) + Artikel-Suchfeld über verfügbare Artikel (Server-Action `searchAvailableCopies`, §8.2 — das Dashboard hat keine vorgeladenen Bestandszeilen). Nach Artikelwahl (per Suche, Scan-Einzeltreffer oder Auswahl-Liste bei mehreren) öffnet das **bestehende `SellModal`** (Slice 3) und führt den Abschluss: read-only-Preis (Server ist Preisautorität), Zahlarten Bar/Karte/PayPal/Gutschein, CTA „Verkaufen", `createSale` mit 1-Zeilen-Cart `{ kind: 'inventory', purchaseId }`.
 
-Submit ruft die **bestehende** Action `createSale` (`src/app/(app)/kasse/actions.ts`) mit einem 1-Zeilen-Cart `{ kind: 'inventory', purchaseId }` auf — identisch zum Desktop-`SellModal`. Keine neue Verkaufs-Logik.
+*(Plan-Abweichung vom ursprünglichen Spec-Entwurf, der Preis-Input + Zahlarten IM Sheet vorsah — der Abschluss läuft stattdessen über das bestehende SellModal: null Logik-Duplikation, und ein clientseitiger Preis-Input hätte der Slice-3-Entscheidung „Server ist alleinige Preisautorität" widersprochen. Mobil erscheint das SellModal ohnehin als Bottom-Sheet (§6.2-Klassen), das Handoff-Bild bleibt gewahrt.)*
 
-### 6.2 Ankauf-Sheet (`src/app/(app)/ankauf/_components/AnkaufSheet.tsx`, Client)
+### 6.2 Ankauf mobil — Sheet-Präsentation des bestehenden AnkaufModal
 
-Mobile Präsentation des bestehenden Ankauf-Flows (Handoff Z. 354–365): EK-Input + VK-Input (VK vorbelegt aus `getPriceSuggestion`, akzentuiert), Info-Zeile „Discogs-Marktdaten (VG+): € …" wenn verfügbar, Zustands-Chips im Handoff-Stil — **zwei Reihen** mit Labels **„Platte"** und **„Cover"** (je M / NM / VG+ / VG / G+ / G, Default VG+; bewusste Abweichung vom Handoff, das nur eine Reihe zeigt — unser Datenmodell führt beide Zustände, Slice-2-Semantik bleibt erhalten). CTA **„Zum Bestand hinzufügen"** ruft die bestehende Action `ankaufRecord` auf. Desktop-Ankauf-Modal bleibt unverändert.
+Das bestehende `AnkaufModal` (Slice 2) enthält bereits den kompletten Flow inklusive **beider** Zustands-Reihen (Platte + Cover) und ruft `ankaufRecord` auf. Statt einer neuen Komponente wird es mobil als Bottom-Sheet **präsentiert**: Backdrop und Dialog-Container erhalten CSS-Klassen (`qr-modal-backdrop`/`qr-modal-card`), die nur unterhalb 768px greifen (unten angedockt, volle Breite, obere Eckenradien, max-height 88vh). Desktop rendert byte-gleich; null Logik-Duplikation. *(Plan-Abweichung vom ursprünglichen Spec-Entwurf, der ein separates `AnkaufSheet` vorsah — beim Plan-Schreiben stellte sich heraus, dass das Modal die Handoff-Felder bereits vollständig führt.)*
 
 ## 7. Scanner (`src/components/scanner/ScannerSheet.tsx`, Client)
 
@@ -115,7 +113,7 @@ Ein Bottom-Sheet mit Kamera-Viewfinder, zwei Modi über Prop `mode: 'ean' | 'lab
 
 - **Technik:** `navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })` in ein `<video>`-Element; Dekodierung mit dem `barcode-detector`-Ponyfill (zxing-wasm; nutzt native `BarcodeDetector`-API wo vorhanden), **dynamic import** erst beim Öffnen des Sheets. Formate: `ean_13`, `ean_8`, `upc_a`, `upc_e`, `qr_code`. Erkennungs-Loop via `requestAnimationFrame`-Intervall (~4 Scans/s reichen); Stream wird bei Sheet-Close **immer** gestoppt (`track.stop()`), auch bei Fehlerpfaden.
 - **Modus `ean`:** erster Treffer eines EAN/UPC-Formats → `onDetect(barcode)` an den Aufrufer (Suche-Screen), Sheet schließt, Barcode-Suche läuft (§8).
-- **Modus `label`:** erster QR-Treffer → `parseDiscogsReleaseUrl(text)` (§7.1); bei `null` bleibt der Scanner aktiv und zeigt dezent „Kein Q-Records-Etikett erkannt". Bei gültiger Release-ID → `findAvailableCopiesByRelease` (§8): 0 Treffer → Meldung **„Kein verfügbares Exemplar zu diesem Release im Bestand."**; 1 Treffer → direkt Verkauf-Sheet mit Artikel; >1 → Auswahl-Liste (Titel, Zustand, VK) im selben Sheet, Auswahl → Verkauf-Sheet.
+- **Modus `label`:** erster QR-Treffer → `parseDiscogsReleaseUrl(text)` (§7.1); bei `null` bleibt der Scanner aktiv und zeigt dezent „Kein Q-Records-Etikett erkannt". Bei gültiger Release-ID → `findAvailableCopiesByRelease` (§8): 0 Treffer → Meldung **„Kein verfügbares Exemplar zu diesem Release im Bestand."**; 1 Treffer → direkt SellModal mit Artikel; >1 → Auswahl-Liste (Titel, Zustand, VK), Auswahl → SellModal. *(Arbeitsteilung: das ScannerSheet liefert NUR die geparste Release-ID; Lookup, 0-Treffer-Meldung und Auswahl-Liste liegen beim Aufrufer — FilterBar bzw. VerkaufSheet.)*
 - **Fallback (immer sichtbar unter dem Viewfinder bzw. statt ihm):** manuelles Eingabefeld. `mode='ean'`: Label **„EAN/UPC manuell eingeben"**, numerisch, 8–14 Ziffern. `mode='label'`: kein manueller Pfad (QR-URLs tippt niemand) — stattdessen Hinweis auf die Artikel-Suche im Verkauf-Sheet.
 - **Fehlerpfade (deutsche Texte exakt):**
   - Berechtigung verweigert: **„Kamera-Zugriff verweigert — bitte in den Browser-Einstellungen erlauben."**
@@ -143,16 +141,19 @@ In `src/app/(app)/ankauf/actions.ts`:
 ```ts
 export async function searchDiscogsByBarcode(barcode: string): Promise<SearchResponse>
 ```
-Guards wie `searchDiscogs` (requireSession, kunde-forbidden, zod: `z.string().trim().regex(/^\d{8,14}$/)`), Delegation an den Adapter. Lesend → kein CSRF-Check nötig (Konvention wie `searchDiscogs`).
+Guards: requireSession → kunde-forbidden (bewusst **strenger** als das bestehende `searchDiscogs`, das nur über die Connection gated) → zod `z.string().trim().regex(/^\d{8,14}$/)` → Delegation an den Adapter. Lesend → kein CSRF-Check nötig (Konvention wie `searchDiscogs`).
 
-In `src/app/(app)/kasse/actions.ts`:
+In `src/app/(app)/kasse/actions.ts` (beide staff-only via kunde→forbidden, lesend):
 ```ts
-export async function findAvailableCopiesByRelease(releaseId: number): Promise<{
-  copies: Array<{ purchaseId: number; title: string; artist: string;
-                  targetPrice: string | null; conditionRecord: number; conditionCover: number }>;
-}>
+export async function findAvailableCopiesByRelease(releaseId: number): Promise<
+  { ok: true; copies: CopyHit[] } | { ok: false; reason: 'validation' | 'error' }
+>
+export async function searchAvailableCopies(query: string): Promise<
+  { ok: true; copies: CopyHit[] } | { ok: false; reason: 'validation' | 'error' }
+>
+// CopyHit = { purchaseId; title; artist; targetPrice; conditionRecord; conditionCover }
 ```
-Guards wie oben (zod: positive int), Delegation an neue lib-Funktion `findAvailableCopiesByRelease(ctx, releaseId)` in `src/lib/inventory.ts`: `withTenant`-Query auf purchases⋈records mit `records.discogsId = releaseId AND purchases.status = 'verfuegbar'`. Liefert **keine** EK-Preise (purchasePrice bleibt server-intern, Zahlen sparsam halten).
+`findAvailableCopiesByRelease` (zod: positive int) delegiert an die gleichnamige lib-Funktion in `src/lib/inventory.ts`: `withTenant`-Query auf purchases⋈records mit `records.discogsId = releaseId AND purchases.status = 'verfuegbar'`. `searchAvailableCopies` (zod: string 1..80, max. 8 Treffer) delegiert an das bestehende `listInventory` mit `{ q, status: 'verfuegbar' }` — der Schnellverkauf (§6.1) braucht eine Server-Suche, weil das Dashboard keine vorgeladenen Bestandszeilen hat. Beide liefern **keine** EK-Preise (purchasePrice bleibt server-intern, Zahlen sparsam halten).
 
 ## 9. PWA
 
@@ -168,9 +169,8 @@ Da jede Tenant-Subdomain eine eigene Origin ist, ist das Manifest automatisch te
 
 ### 9.2 Viewport & Meta (`src/app/layout.tsx`)
 
-- `export const viewport: Viewport = { width: 'device-width', initialScale: 1 }` — heute fehlt Viewport-Meta komplett; das ist Voraussetzung für alles Mobile.
-- `generateViewport()`-Variante mit `themeColor` = Tenant-`primaryColor`.
-- `metadata.appleWebApp = { capable: true, statusBarStyle: 'default', title: tenant.name }`; `apple-touch-icon` (180², `/icons/apple-touch-icon.png`).
+- `export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#FF5A5F' }` — heute fehlt Viewport-Meta komplett; das ist Voraussetzung für alles Mobile. `themeColor` bewusst **statisch**: der Export läuft auch auf tenant-losen Infrastruktur-Routen (kein DB-Zugriff dort); die tenant-genaue Farbe liefert das Manifest (§9.1).
+- `metadata.appleWebApp = { capable: true, statusBarStyle: 'default' }` (KEIN `title: tenant.name` — das Root-Layout-Metadata ist tenant-los, gleiche Begründung wie beim statischen `themeColor`); `apple-touch-icon` (180², `/icons/apple-touch-icon.png`).
 
 ### 9.3 Service Worker (`public/sw.js`, handgeschrieben — kein next-pwa)
 
@@ -206,7 +206,7 @@ Neue Spec `e2e/mobile-pwa.spec.ts` mit `test.use({ viewport: { width: 390, heigh
 1. **Shell:** mobil sind Tab-Bar (5 Tabs, `aria-current` auf aktivem) und Mobile-Header sichtbar, Sidebar nicht; Navigation über Tabs wechselt Screens.
 2. **Desktop-Guard (Positiv-Kontrolle):** mit Desktop-Viewport im selben Spec-File: Sidebar sichtbar, Tab-Bar nicht.
 3. **Scanner-Fallback-Flow:** Suche → Scanner-Button → Sheet zeigt Fallback-Eingabe (headless: keine Kamera → Fehlertext „Keine Kamera verfügbar…") → Test-EAN des Fake-Treibers eintippen → 2 Treffer erscheinen → Ankauf-Sheet → Artikel landet im Bestand (DB-Assert `purchases`-Count +1).
-4. **Verkauf mobil:** Bestand → Zeilen-Button „Verkauf" → Sheet → Zahlart „Bar" → „Verkaufen" → DB-Assert: purchase `verkauft`, transaction angelegt.
+4. **Verkauf mobil:** Bestand → Mobile-Karte, Button „Verkaufen" → SellModal (Bottom-Sheet) → Zahlart „Bar" → „Verkaufen" → DB-Assert: purchase `verkauft`, transaction angelegt.
 5. **PWA:** `GET /manifest.webmanifest` liefert `name` mit Tenant-Name und `theme_color` = Seed-primaryColor (beide Tenants unterschiedlich → Isolation nachgewiesen); `/offline` rendert „Du bist offline"; `sw.js` wird mit Status 200 ausgeliefert.
 
 Hinweis: der echte Kamera-Dekodier-Pfad wird bewusst NICHT E2E-getestet (headless keine Kamera; Fake-Video-Dekodierung flaky). Der Dekodier-Wrapper bleibt dünn; die Logik dahinter (Parser, Suche, Lookup) ist vollständig unit-/integration-/E2E-abgedeckt.
@@ -216,6 +216,7 @@ Hinweis: der echte Kamera-Dekodier-Pfad wird bewusst NICHT E2E-getestet (headles
 | Paket | Zweck | Bedingung |
 |---|---|---|
 | `barcode-detector` (3.x) | EAN/UPC/QR-Dekodierung (zxing-wasm, nutzt native API wo vorhanden) | nur dynamic import im ScannerSheet |
+| `sharp` (devDependency) | einmalige App-Icon-Generierung (`scripts/generate-icons.mjs`); PNGs werden eingecheckt | nie zur Laufzeit |
 
 Bewusst NICHT: `html5-qrcode` (unmaintained, eigene nicht-anpassbare UI — Abweichung von der Roadmap-Skizze, im Brainstorming abgenommen), `next-pwa` (SW ist 40 Zeilen Handarbeit), keine Icon-Generierungs-Lib zur Laufzeit.
 
@@ -240,7 +241,7 @@ Bewusst NICHT: `html5-qrcode` (unmaintained, eigene nicht-anpassbare UI — Abwe
 - `src/app/(app)/_components/BottomTabBar.tsx` — mobile Tab-Navigation
 - `src/app/(app)/_components/MobileHeader.tsx` — mobiler Header + €-FAB
 - `src/app/(app)/_components/VerkaufSheet.tsx` — Verkauf-Bottom-Sheet (beide Zustände)
-- `src/app/(app)/ankauf/_components/AnkaufSheet.tsx` — Ankauf-Bottom-Sheet
+- `src/app/(app)/_components/QuickActions.tsx` — Start-Screen Quick-Actions (mobil)
 - `src/components/scanner/ScannerSheet.tsx` — Kamera-Viewfinder + Fallback
 - `src/lib/discogs/parse.ts` — `parseDiscogsReleaseUrl`
 - `src/app/manifest.ts`, `public/sw.js`, `src/components/pwa/SwRegistration.tsx`, `src/app/offline/page.tsx`
@@ -256,6 +257,6 @@ Bewusst NICHT: `html5-qrcode` (unmaintained, eigene nicht-anpassbare UI — Abwe
 - `src/app/(app)/kasse/actions.ts` — `findAvailableCopiesByRelease`
 - `src/lib/inventory.ts` — lib-Funktion für Exemplar-Lookup
 - `src/app/(app)/ankauf/_components/SearchForm.tsx`, `src/app/(app)/inventar/_components/FilterBar.tsx` — Scanner-Buttons aktivieren
-- `src/app/(app)/inventar/_components/InventoryList.tsx` — mobile Zeilen-Variante + „Verkauf"-Button
+- `src/app/(app)/inventar/_components/InventoryList.tsx` — mobile Karten-Variante + „Verkaufen"-Button
 - `src/app/(app)/analytik/page.tsx` — Grid-Stapelung mobil
 - `src/app/(app)/page.tsx` — Quick-Actions-Reihe mobil
