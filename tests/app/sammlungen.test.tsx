@@ -13,7 +13,7 @@ import { render, screen, cleanup, within } from '@testing-library/react';
 import { CollectionsList } from '@/app/(app)/ankauf/sammlungen/_components/CollectionsList';
 import { CollectionDetailView } from '@/app/(app)/ankauf/sammlungen/_components/CollectionDetailView';
 import type { CollectionSummary, CollectionDetail } from '@/lib/collections';
-import { fromCents } from '@/lib/money';
+import { formatEuroCents } from '@/lib/format';
 import { conditionLabel } from '@/lib/pricing';
 
 afterEach(cleanup);
@@ -86,7 +86,7 @@ describe('CollectionsList', () => {
     const first = rows[0];
     expect(within(first).getByText('Herbert Grönemeyer')).toBeVisible();
     expect(within(first).getByText('3')).toBeVisible();
-    expect(within(first).getByText(`€ ${fromCents(4550)}`)).toBeVisible();
+    expect(within(first).getByText(formatEuroCents(4550))).toBeVisible();
     // formatted date (de-DE) — exact string the component is expected to produce
     expect(within(first).getByText(collections[0].acquiredAt.toLocaleDateString('de-DE'))).toBeVisible();
   });
@@ -119,8 +119,8 @@ describe('CollectionDetailView', () => {
     // item rows: conditionLabel(5) === 'VG+', conditionLabel(6) === 'NM' — exact grade labels
     expect(within(detail).getByText(conditionLabel(5))).toBeVisible();
     expect(within(detail).getByText(conditionLabel(6))).toBeVisible();
-    expect(within(detail).getByText(`€ ${fromCents(2000)}`)).toBeVisible();
-    expect(within(detail).getByText(`€ ${fromCents(1550)}`)).toBeVisible();
+    expect(within(detail).getByText(formatEuroCents(2000))).toBeVisible();
+    expect(within(detail).getByText(formatEuroCents(1550))).toBeVisible();
 
     const printBtn = screen.getByTestId('sammlung-print-labels');
     expect(printBtn).toBeInTheDocument();

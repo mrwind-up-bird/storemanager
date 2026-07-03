@@ -75,7 +75,7 @@ describe('CollectionWizard', () => {
     fireEvent.change(ekInputs[0]!, { target: { value: '5.00' } });
     fireEvent.change(ekInputs[1]!, { target: { value: '7.50' } });
 
-    expect(screen.getByTestId('sammlung-items').parentElement!.textContent).toContain('12.50');
+    expect(screen.getByTestId('sammlung-items').parentElement!.textContent).toContain('12,50');
   });
 
   it('removing an item drops it from the running total', () => {
@@ -88,7 +88,7 @@ describe('CollectionWizard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Artikel 1 entfernen' }));
     expect(screen.getAllByLabelText('Einkaufspreis (EK)')).toHaveLength(1);
-    expect(screen.getByTestId('sammlung-items').parentElement!.textContent).toContain('7.50');
+    expect(screen.getByTestId('sammlung-items').parentElement!.textContent).toContain('7,50');
   });
 
   it('submits the assembled payload and routes to /ankauf/sammlungen on success', async () => {

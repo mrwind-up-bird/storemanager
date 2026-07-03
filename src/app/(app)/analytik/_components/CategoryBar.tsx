@@ -1,7 +1,7 @@
 // src/app/(app)/analytik/_components/CategoryBar.tsx
 import { Card } from '@/components/ui';
 import type { CategorySlice } from '@/lib/analytics';
-import { formatEuroWhole } from './format';
+import { formatEuroWhole } from '@/lib/format';
 
 export interface CategoryBarProps {
   slices: CategorySlice[];

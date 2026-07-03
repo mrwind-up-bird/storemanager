@@ -8,7 +8,8 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { fromCents, sumLineCents, toCents } from '@/lib/money';
+import { sumLineCents, toCents } from '@/lib/money';
+import { formatEuroCents } from '@/lib/format';
 import { createCollectionAction } from '../actions';
 import { CollectionItemRow, type CollectionRowValue } from './CollectionItemRow';
 
@@ -220,7 +221,7 @@ export function CollectionWizard() {
             }}
           >
             <span style={{ color: 'var(--text-2)' }}>Gesamt (EK):</span>
-            <strong>€ {fromCents(totalCents)}</strong>
+            <strong>{formatEuroCents(totalCents)}</strong>
           </div>
         )}
       </section>

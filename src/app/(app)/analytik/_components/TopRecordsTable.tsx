@@ -2,7 +2,7 @@
 import type { CSSProperties } from 'react';
 import { Card } from '@/components/ui';
 import type { TopRecord } from '@/lib/analytics';
-import { formatEuroWhole } from './format';
+import { formatEuroWhole } from '@/lib/format';
 
 export interface TopRecordsTableProps {
   rows: TopRecord[];

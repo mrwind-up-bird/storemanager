@@ -4,6 +4,7 @@ import { withTenant, type Tx, type TenantCtx } from '@/db/tenant';
 import { tenants } from '@/db/schema';
 import { toCents, fromCents } from '@/lib/money';
 import { periodRange, type AnalyticsPeriod } from '@/lib/analytics-period';
+import { formatEuroWhole } from '@/lib/format';
 
 // `AnalyticsPeriod` is DEFINED in `@/lib/analytics-period` (avoids a cycle) — re-export it here so
 // C6's public surface (everything importable from `@/lib/analytics`) is satisfied without a duplicate.
@@ -39,17 +40,8 @@ export interface AnalyticsData {
 }
 
 // ── Display formatting helpers (money crosses to a JS number ONLY here, at the display edge) ───
-
-const EUR_WHOLE = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 });
-
-/** '€ 8.940' — whole-euro headline KPI value. Splits `fromCents`' exact decimal string instead of
- *  dividing by 100 as a float, per C1 ("fromCents only at the display edge"), then rounds to the
- *  nearest whole euro from the fractional digits. */
-function formatEuro(cents: number): string {
-  const [whole, frac] = fromCents(cents).split('.');
-  const rounded = Number(frac) >= 50 ? Number(whole) + 1 : Number(whole);
-  return `€ ${EUR_WHOLE.format(rounded)}`;
-}
+// Whole-euro KPI formatting (`formatEuroWhole`) lives in `@/lib/format` now — shared with the
+// Analytik presentational components instead of duplicated here.
 
 /** '€ 28,70' — 2-decimal display value. Splits `fromCents`' exact decimal string instead of
  *  dividing by 100 as a float, per C1 ("fromCents only at the display edge"). */
@@ -346,7 +338,7 @@ export async function getAnalytics(ctx: TenantCtx, period: AnalyticsPeriod): Pro
 
     const umsatz: Kpi = {
       label: 'Umsatz',
-      value: formatEuro(cur.umsatzCents),
+      value: formatEuroWhole(cur.umsatzCents),
       sub: compareLabel,
       ...deltaPct(cur.umsatzCents, prev.umsatzCents),
     };

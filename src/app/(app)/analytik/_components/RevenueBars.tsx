@@ -1,7 +1,7 @@
 // src/app/(app)/analytik/_components/RevenueBars.tsx
 import { Card } from '@/components/ui';
 import type { AnalyticsData } from '@/lib/analytics';
-import { formatEuroWhole } from './format';
+import { formatEuroWhole } from '@/lib/format';
 
 export interface RevenueBarsProps {
   data: AnalyticsData['umsatzverlauf'];
