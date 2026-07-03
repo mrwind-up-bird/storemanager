@@ -6,23 +6,31 @@
  *
  * Prerequisites: docker compose up -d --build (db → migrate → seed → web).
  *
- * The demo seed has exactly 11 'verfuegbar' copies (DEMO_PURCHASES) → the
- * "Artikel im Lager" KPI must read 11. That real-count check is load-bearing.
+ * The "Artikel im Lager" KPI must equal the LIVE count of 'verfuegbar' copies in
+ * the DB. That real-count check is load-bearing — asserted against a tenant-scoped
+ * query instead of a hardcoded seed constant, because the seeded baseline moves
+ * (Slice 4's demo collection adds copies) and earlier specs in the serial run
+ * legitimately create more (batch-Ankauf).
  */
 import { test, expect } from '@playwright/test';
-import { DEMO_URL, DEMO_EMAIL, DEMO_PASSWORD, login } from './helpers';
-
-/** Seeded available-copy count for the demo tenant (DEMO_PURCHASES, status verfuegbar). */
-const DEMO_AVAILABLE = 11;
+import { DEMO_URL, DEMO_EMAIL, DEMO_PASSWORD, login, dbQuery, demoTenantId } from './helpers';
 
 test.describe('Dashboard / Übersicht (/)', () => {
   test.beforeEach(async ({ page }) => {
     await login(page, DEMO_URL, DEMO_EMAIL, DEMO_PASSWORD);
   });
 
-  test('shows the REAL "Artikel im Lager" KPI equal to the seeded available count', async ({
+  test('shows the REAL "Artikel im Lager" KPI equal to the live available count', async ({
     page,
   }) => {
+    const tenantId = await demoTenantId();
+    const rows = await dbQuery<{ n: string }>(
+      `SELECT COUNT(*) AS n FROM purchases WHERE tenant_id = $1 AND status = 'verfuegbar'`,
+      [tenantId],
+    );
+    const expected = Number(rows[0]!.n);
+    expect(expected).toBeGreaterThan(0); // seed guarantees stock — a 0 here means a broken stack
+
     await page.goto(`${DEMO_URL}/`);
     await page.waitForLoadState('domcontentloaded');
 
@@ -33,7 +41,7 @@ test.describe('Dashboard / Übersicht (/)', () => {
     await expect(countEl).toBeVisible();
     const raw = (await countEl.innerText()).trim();
     const n = parseInt(raw.replace(/[^\d]/g, ''), 10);
-    expect(n).toBe(DEMO_AVAILABLE);
+    expect(n).toBe(expected);
   });
 
   test('format-split labels (Vinyl / CD) visible inside the inventory KPI area', async ({
