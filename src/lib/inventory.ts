@@ -29,6 +29,7 @@ export type InventoryRow = {
   status: InventoryStatus;
   conditionRecord: number | null;
   conditionCover: number | null;
+  discogsId: number | null;
 };
 
 export type InventoryAggregates = {
@@ -85,6 +86,7 @@ export async function listInventory(
         status: purchases.status,
         conditionRecord: purchases.conditionRecord,
         conditionCover: purchases.conditionCover,
+        discogsId: records.discogsId,
       })
       .from(purchases)
       .innerJoin(records, eq(records.id, purchases.recordId))

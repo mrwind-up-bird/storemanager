@@ -47,19 +47,22 @@ export function InventoryList({ rows, total }: InventoryListProps) {
     });
   };
 
-  // InventoryRow has no discogsId (not part of the listInventory projection) — inventory-sourced
-  // labels never carry a QR; a missing/null conditionRecord falls back to the shop default grade
-  // so LabelItem's non-null conditionRecord contract still holds.
-  const labelItems: LabelItem[] = rows
-    .filter((row) => selectedIds.has(row.copyId))
-    .map((row) => ({
-      artist: row.artist,
-      title: row.title,
-      format: row.format,
-      conditionRecord: row.conditionRecord ?? DEFAULT_CONDITION_RECORD,
-      priceCents: row.vk != null ? toCents(row.vk) : null,
-      discogsId: null,
-    }));
+  // Derived from the CURRENT rows, not from selectedIds alone — selectedIds can outlive a
+  // status-tab switch (server re-renders this same component instance with a new, possibly
+  // disjoint rows array), so intersecting with rows here keeps the displayed count, the print
+  // button's enabled state, and labelItems permanently in sync with each other.
+  const selectedRows = rows.filter((row) => selectedIds.has(row.copyId));
+
+  // A missing/null conditionRecord falls back to the shop default grade so LabelItem's non-null
+  // conditionRecord contract still holds.
+  const labelItems: LabelItem[] = selectedRows.map((row) => ({
+    artist: row.artist,
+    title: row.title,
+    format: row.format,
+    conditionRecord: row.conditionRecord ?? DEFAULT_CONDITION_RECORD,
+    priceCents: row.vk != null ? toCents(row.vk) : null,
+    discogsId: row.discogsId,
+  }));
 
   // Reserve / cancel await the T9 server action result so conflicts (e.g. a copy concurrently
   // sold while the staff member hovered the button) are surfaced rather than swallowed.
@@ -106,24 +109,24 @@ export function InventoryList({ rows, total }: InventoryListProps) {
         }}
       >
         <span style={{ fontSize: 12.5, color: 'var(--text-3)' }}>
-          {selectedIds.size} ausgewählt
+          {selectedRows.length} ausgewählt
         </span>
         <button
           type="button"
           data-testid="label-print-open"
           onClick={() => setPrintOpen(true)}
-          disabled={selectedIds.size === 0}
+          disabled={selectedRows.length === 0}
           style={{
             minHeight: 36,
             padding: '0 16px',
             border: '1.5px solid var(--border-strong)',
             borderRadius: 'var(--r-pill)',
-            background: selectedIds.size === 0 ? 'var(--surface-3)' : 'var(--surface)',
-            color: selectedIds.size === 0 ? 'var(--text-3)' : 'var(--text)',
+            background: selectedRows.length === 0 ? 'var(--surface-3)' : 'var(--surface)',
+            color: selectedRows.length === 0 ? 'var(--text-3)' : 'var(--text)',
             fontFamily: 'var(--font-body)',
             fontWeight: 700,
             fontSize: '12.5px',
-            cursor: selectedIds.size === 0 ? 'not-allowed' : 'pointer',
+            cursor: selectedRows.length === 0 ? 'not-allowed' : 'pointer',
           }}
         >
           Etiketten drucken
