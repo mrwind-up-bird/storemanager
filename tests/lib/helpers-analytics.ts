@@ -141,6 +141,60 @@ export async function seedAnalyticsFixture(): Promise<AnalyticsFixtureCtx> {
       unitPrice: '3.50',
       quantity: 2,
     });
+
+    // A second sold Vinyl record with the SAME sales count (quantity 1) as Abbey Road but a
+    // LOWER revenue ('9.00' vs '25.00') that nonetheless text-sorts ABOVE '25.00' ('9' > '2'
+    // lexicographically) — pins the F3 sales-tie tiebreak fix: `topRecordsQuery` must rank by
+    // the numeric revenue expression, not the `revenue`/`::text` alias, once sales tie.
+    const [kobRecord] = await tx
+      .insert(schema.records)
+      .values({
+        tenantId,
+        title: 'Kind of Blue',
+        artist: 'Miles Davis',
+        label: ['Columbia'],
+        format: 'Vinyl',
+        genre: ['Jazz'],
+        hash: `analytics-kob-${n}`,
+      })
+      .returning({ id: schema.records.id });
+
+    const [kobPurchase] = await tx
+      .insert(schema.purchases)
+      .values({
+        tenantId,
+        recordId: kobRecord!.id,
+        purchasePrice: '4.00',
+        targetPrice: '9.00',
+        soldPrice: '9.00',
+        soldDate: new Date(),
+        paymentMethod: 'bar',
+        status: 'verkauft',
+        conditionRecord: 5,
+        conditionCover: 4,
+      })
+      .returning({ id: schema.purchases.id });
+
+    const [tx3] = await tx
+      .insert(schema.transactions)
+      .values({
+        tenantId,
+        soldByUserId: adminUserId,
+        paymentMethod: 'bar',
+        subtotal: '9.00',
+        discount: '0.00',
+        total: '9.00',
+        createdAt: berlinHourToday(13), // also inside 'Vormittag · 11–14 Uhr'
+      })
+      .returning({ id: schema.transactions.id });
+    await tx.insert(schema.transactionItems).values({
+      tenantId,
+      transactionId: tx3!.id,
+      purchaseId: kobPurchase!.id,
+      label: 'Kind of Blue',
+      unitPrice: '9.00',
+      quantity: 1,
+    });
   });
 
   return ctx;

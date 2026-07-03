@@ -200,6 +200,21 @@ describe('InventoryList', () => {
   });
 });
 
+// ── Row-selection checkbox has an accessible name but no visible duplicate text (finding F2) ───
+
+describe('InventoryList — row-selection checkbox accessible name', () => {
+  it('exposes the accessible name via getByLabel without rendering it as visible text', () => {
+    render(<InventoryList rows={ROWS} total={ROWS.length} />);
+    // The accessible name must still resolve (existing consumers rely on getByLabel/getByRole).
+    expect(
+      screen.getByLabelText(`„${ROWS[0].title}" für Etikettendruck auswählen`),
+    ).toBeInTheDocument();
+    // But it must NOT appear as a visible sentence in the row (it used to duplicate the Artikel
+    // column and blow out the selection column — see InventoryList.tsx / Checkbox.tsx).
+    expect(screen.queryByText(`„${ROWS[0].title}" für Etikettendruck auswählen`)).not.toBeInTheDocument();
+  });
+});
+
 // ── Label print item mapping (review finding I1: discogsId flow-through) ───────
 
 describe('InventoryList — label print item mapping', () => {

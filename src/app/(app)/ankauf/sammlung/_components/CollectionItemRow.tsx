@@ -18,6 +18,7 @@ import {
   suggestSalePrice,
 } from '@/lib/pricing';
 import type { ConditionGrade } from '@/lib/pricing';
+import { isValidMoneyString } from '@/lib/money';
 import { searchDiscogs, getPriceSuggestion } from '../../actions';
 import type { DiscogsSearchResult, DiscogsPriceSuggestion } from '@/lib/discogs/types';
 import type { AnkaufRelease } from '@/lib/ankauf';
@@ -29,6 +30,10 @@ export interface CollectionRowValue {
   conditionRecord: ConditionGrade;
   conditionCover: ConditionGrade;
   listOnDiscogs: boolean;
+  // True iff this row would pass the server's per-item schema (release picked/filled-in, EK and
+  // VK both valid decimal strings) — CollectionWizard gates the whole-batch submit on this so an
+  // invalid row never reaches createCollectionAction (finding F1).
+  valid: boolean;
 }
 
 export interface CollectionItemRowProps {
@@ -119,6 +124,17 @@ export function CollectionItemRow({ index, onChange, onRemove }: CollectionItemR
   const [vk, setVk] = useState('');
   const [vkDirty, setVkDirty] = useState(false);
   const [listOnDiscogs, setListOnDiscogs] = useState(false);
+  // "Touched" flags so a freshly-added, still-empty row doesn't show red borders/messages before
+  // the user has interacted with a field — only surface the inline indication once they have.
+  const [ekTouched, setEkTouched] = useState(false);
+  const [vkTouched, setVkTouched] = useState(false);
+  const [manualTouched, setManualTouched] = useState(false);
+
+  const ekValid = isValidMoneyString(ek);
+  const vkValid = isValidMoneyString(vk);
+  // Mirrors the server's per-item schema exactly: a release (Discogs-picked or manual
+  // title+artist) plus two valid decimal-string prices — see CollectionRowValue.valid.
+  const rowValid = release !== null && ekValid && vkValid;
 
   // VK prefill: exact Discogs price-suggestion for the current grade, else median × factor.
   const suggestedVk = suggestSalePrice({ suggestion, median, conditionRecord });
@@ -150,18 +166,22 @@ export function CollectionItemRow({ index, onChange, onRemove }: CollectionItemR
     });
   }, [manual, manualTitle, manualArtist]);
 
-  // Report the row's current value up to the wizard whenever anything relevant changes.
+  // Report the row's current value up to the wizard whenever anything relevant changes. Prices
+  // are trimmed here — the wizard's running total and the createCollectionAction payload both
+  // read straight from this reported value, so trimming once at the source (finding F1) covers
+  // both instead of relying on every consumer to remember to do it.
   useEffect(() => {
     onChange({
       release,
-      purchasePrice: ek,
-      targetPrice: vk,
+      purchasePrice: ek.trim(),
+      targetPrice: vk.trim(),
       conditionRecord,
       conditionCover,
       listOnDiscogs,
+      valid: rowValid,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- onChange is a fresh closure per render; only value fields should retrigger
-  }, [release, ek, vk, conditionRecord, conditionCover, listOnDiscogs]);
+  }, [release, ek, vk, conditionRecord, conditionCover, listOnDiscogs, rowValid]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -250,19 +270,38 @@ export function CollectionItemRow({ index, onChange, onRemove }: CollectionItemR
           <label style={labelStyle}>
             Titel
             <input
-              style={fieldStyle}
+              style={{
+                ...fieldStyle,
+                borderColor: manualTouched && !manualTitle.trim() ? 'var(--bad)' : undefined,
+              }}
               value={manualTitle}
-              onChange={(e) => setManualTitle(e.target.value)}
+              onChange={(e) => {
+                setManualTitle(e.target.value);
+                setManualTouched(true);
+              }}
+              aria-invalid={manualTouched && !manualTitle.trim()}
             />
           </label>
           <label style={labelStyle}>
             Künstler
             <input
-              style={fieldStyle}
+              style={{
+                ...fieldStyle,
+                borderColor: manualTouched && !manualArtist.trim() ? 'var(--bad)' : undefined,
+              }}
               value={manualArtist}
-              onChange={(e) => setManualArtist(e.target.value)}
+              onChange={(e) => {
+                setManualArtist(e.target.value);
+                setManualTouched(true);
+              }}
+              aria-invalid={manualTouched && !manualArtist.trim()}
             />
           </label>
+          {manualTouched && (!manualTitle.trim() || !manualArtist.trim()) && (
+            <p role="alert" style={{ margin: 0, fontSize: 12, color: 'var(--bad)', gridColumn: '1 / -1' }}>
+              Titel und Künstler sind erforderlich.
+            </p>
+          )}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -364,23 +403,37 @@ export function CollectionItemRow({ index, onChange, onRemove }: CollectionItemR
         <label style={labelStyle}>
           Einkaufspreis (EK)
           <input
-            style={fieldStyle}
+            style={{ ...fieldStyle, borderColor: ekTouched && !ekValid ? 'var(--bad)' : undefined }}
             inputMode="decimal"
             value={ek}
             onChange={(e) => setEk(e.target.value)}
+            onBlur={() => setEkTouched(true)}
+            aria-invalid={ekTouched && !ekValid}
           />
+          {ekTouched && !ekValid && (
+            <span role="alert" style={{ fontSize: 12, color: 'var(--bad)' }}>
+              Ungültiger Preis (z. B. 12.50).
+            </span>
+          )}
         </label>
         <label style={labelStyle}>
           Verkaufspreis (VK)
           <input
-            style={fieldStyle}
+            style={{ ...fieldStyle, borderColor: vkTouched && !vkValid ? 'var(--bad)' : undefined }}
             inputMode="decimal"
             value={vk}
             onChange={(e) => {
               setVkDirty(true);
               setVk(e.target.value);
             }}
+            onBlur={() => setVkTouched(true)}
+            aria-invalid={vkTouched && !vkValid}
           />
+          {vkTouched && !vkValid && (
+            <span role="alert" style={{ fontSize: 12, color: 'var(--bad)' }}>
+              Ungültiger Preis (z. B. 12.50).
+            </span>
+          )}
         </label>
       </div>
 

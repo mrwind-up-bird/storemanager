@@ -79,7 +79,8 @@ export function LabelPrintModal({ items, open, onClose }: LabelPrintModalProps) 
 
       doc.save('etiketten.pdf');
       onClose();
-    } catch {
+    } catch (err) {
+      console.error('[label-print] PDF generation failed', err);
       setError('Etiketten konnten nicht erzeugt werden. Bitte erneut versuchen.');
     } finally {
       setIsPending(false);

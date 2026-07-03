@@ -186,7 +186,7 @@ export function InventoryList({ rows, total }: InventoryListProps) {
                     <Checkbox
                       checked={selectedIds.has(row.copyId)}
                       onChange={(checked) => toggleSelected(row.copyId, checked)}
-                      label={`„${row.title}" für Etikettendruck auswählen`}
+                      ariaLabel={`„${row.title}" für Etikettendruck auswählen`}
                     />
                   </td>
 

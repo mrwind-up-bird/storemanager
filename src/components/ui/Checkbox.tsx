@@ -5,11 +5,17 @@ export interface CheckboxProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
   label?: string;
+  /** Accessible name WITHOUT rendering visible text — for uses where the visible row/card
+   *  context already makes the label's content obvious (e.g. a per-row selection checkbox next
+   *  to a title the row already displays) and a repeated visible sentence would just be noise.
+   *  Additive/backwards-compatible: existing `label` usages are unaffected. If both are given,
+   *  `ariaLabel` wins for the accessible name (visible `label` text still renders). */
+  ariaLabel?: string;
   disabled?: boolean;
   id?: string;
 }
 
-export function Checkbox({ checked, onChange, label, disabled = false, id: propId }: CheckboxProps) {
+export function Checkbox({ checked, onChange, label, ariaLabel, disabled = false, id: propId }: CheckboxProps) {
   const autoId = useId();
   const id = propId ?? autoId;
   return (
@@ -28,6 +34,7 @@ export function Checkbox({ checked, onChange, label, disabled = false, id: propI
         checked={checked}
         disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
+        aria-label={ariaLabel}
         style={{
           position: 'absolute', width: 1, height: 1, padding: 0,
           margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', border: 0,

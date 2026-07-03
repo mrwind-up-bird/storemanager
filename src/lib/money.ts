@@ -1,3 +1,15 @@
+/** The numeric(10,2) decimal-string rule ('12.34', '12', '12.3') — shared by client-side form
+ *  validation and server `zod` schemas so both sides accept/reject exactly the same inputs
+ *  (see Slice 4 F1: a client check that's laxer than the server's used to let invalid batches
+ *  through, and vice versa). Whitespace is the caller's job to trim first (`isValidMoneyString`
+ *  does that; server schemas should `.trim()` before `.regex()`). */
+export const MONEY_STRING_RE = /^\d+(\.\d{1,2})?$/;
+
+/** True if `value`, once trimmed, satisfies `MONEY_STRING_RE` — i.e. `toCents` would accept it. */
+export function isValidMoneyString(value: string): boolean {
+  return MONEY_STRING_RE.test(value.trim());
+}
+
 /** Parse a numeric(10,2) decimal string ('12.34', '12', '12.3') to integer cents. Throws on malformed input. */
 export function toCents(value: string): number {
   const m = /^(-?)(\d+)(?:\.(\d{1,2}))?$/.exec(value.trim());

@@ -168,9 +168,11 @@ test.describe('Slice 4 — Analytik + Batch-Ankauf + Etiketten', () => {
     await login(page, DEMO_URL, DEMO_EMAIL, DEMO_PASSWORD);
     await page.goto(`${DEMO_URL}/inventar`);
 
-    // Select one row for printing via its accessible checkbox label (no registry testid).
-    // The Checkbox primitive hides the input behind its visual span — click the label.
-    await page.locator('label', { hasText: 'für Etikettendruck auswählen' }).first().click();
+    // Select one row for printing via its accessible name (no registry testid). Finding F2:
+    // the row checkbox now carries its name via aria-label instead of visible label text, so a
+    // `label` element with that text no longer exists to click — target the (visually-hidden,
+    // clip-rect) input directly via its accessible name and `force` past the visibility check.
+    await page.getByLabel(/für Etikettendruck auswählen/).first().check({ force: true });
     await expect(page.getByLabel(/für Etikettendruck auswählen/).first()).toBeChecked();
     const openBtn = page.getByTestId('label-print-open');
     await expect(openBtn).toBeEnabled();

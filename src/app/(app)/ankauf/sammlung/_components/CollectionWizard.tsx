@@ -83,7 +83,10 @@ export function CollectionWizard() {
     rows.map((r) => ({ unitCents: safeToCents(itemValues.current.get(r.id)?.purchasePrice ?? ''), quantity: 1 })),
   );
 
-  const canSubmit = sellerName.trim().length > 0 && rows.length > 0 && !isPending;
+  // A row that hasn't reported in yet (no onChange fired) is treated as invalid, not exempt —
+  // an empty/undefined map entry must never let the batch through (finding F1).
+  const allItemsValid = rows.every((r) => itemValues.current.get(r.id)?.valid === true);
+  const canSubmit = sellerName.trim().length > 0 && rows.length > 0 && allItemsValid && !isPending;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;

@@ -36,6 +36,17 @@ describe('getAnalytics(week)', () => {
     expect(a.kategorie.reduce((s, c) => s + c.valueCents, 0)).toBeGreaterThan(0);
   });
 
+  it('Kategorie is ordered by revenue DESC numerically, not lexicographically (F3)', async () => {
+    const a = await getAnalytics(ctx, 'week');
+    // Fixture: Vinyl revenue = 25.00 + 9.00 = 34.00, Sonstiges (Kaffee) = 7.00. Under the old
+    // `ORDER BY v DESC` (the `::text` alias), '7.00' sorts before '34.00' lexicographically
+    // ('7' > '3') — the bigger category must rank first once ordered numerically.
+    expect(a.kategorie[0]!.label).toBe('Vinyl');
+    const vinyl = a.kategorie.find((c) => c.label === 'Vinyl')!;
+    const sonstiges = a.kategorie.find((c) => c.label === 'Sonstiges');
+    if (sonstiges) expect(vinyl.valueCents).toBeGreaterThan(sonstiges.valueCents);
+  });
+
   it('Rohmarge is 0..100 and Ankäufe sub names the Sammlungen count', async () => {
     const a = await getAnalytics(ctx, 'week');
     expect(a.kpis.rohmarge.value).toMatch(/%$/);
@@ -56,6 +67,19 @@ describe('getAnalytics(week)', () => {
     }
     expect(a.umsatzverlauf.totalCents).toBeGreaterThan(0);
     expect(a.umsatzverlauf.bars.some((b) => b.valueCents > 0)).toBe(true); // the seeded week's bar
+  });
+
+  it('Top-Records: a sales tie is broken by revenue numerically, not by the ::text alias (F3)', async () => {
+    const a = await getAnalytics(ctx, 'week');
+    const abbeyIdx = a.topRecords.findIndex((r) => r.title === 'Abbey Road');
+    const kobIdx = a.topRecords.findIndex((r) => r.title === 'Kind of Blue');
+    expect(abbeyIdx).toBeGreaterThanOrEqual(0);
+    expect(kobIdx).toBeGreaterThanOrEqual(0);
+    // Both sold exactly one copy -> tie on `sales`; the fixture's revenues ('9.00' vs '25.00')
+    // text-sort the WRONG way ('9' > '2'), so this only passes once the tiebreak is numeric.
+    expect(a.topRecords[abbeyIdx]!.sales).toBe(a.topRecords[kobIdx]!.sales);
+    expect(a.topRecords[abbeyIdx]!.revenueCents).toBeGreaterThan(a.topRecords[kobIdx]!.revenueCents);
+    expect(abbeyIdx).toBeLessThan(kobIdx);
   });
 
   it('Umsatzverlauf for quarter is 3 monthly buckets covering the seeded month', async () => {

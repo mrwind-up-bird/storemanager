@@ -46,7 +46,7 @@ describe('CollectionWizard', () => {
     expect(screen.getByTestId('sammlung-submit')).toBeInTheDocument();
   });
 
-  it('sammlung-submit is disabled until sellerName AND at least one item are present', () => {
+  it('sammlung-submit is disabled until sellerName, an item, AND that item is fully valid', () => {
     render(<CollectionWizard />);
     expect(screen.getByTestId('sammlung-submit')).toBeDisabled();
 
@@ -54,8 +54,17 @@ describe('CollectionWizard', () => {
     fireEvent.change(screen.getByTestId('sammlung-seller-input'), { target: { value: 'Max Mustermann' } });
     expect(screen.getByTestId('sammlung-submit')).toBeDisabled();
 
-    // Seller + one item -> enabled.
+    // Seller + one item, but the item has no release and no EK/VK yet -> still disabled
+    // (finding F1: a per-item-invalid batch must never reach the server).
     fireEvent.click(screen.getByTestId('sammlung-add-item'));
+    expect(screen.getByTestId('sammlung-submit')).toBeDisabled();
+
+    // Fill the item completely (manual entry, since it has no Discogs-suggested VK) -> enabled.
+    fireEvent.click(screen.getByRole('button', { name: 'Manuell erfassen' }));
+    fireEvent.change(screen.getByLabelText('Titel'), { target: { value: 'Bedroom Tapes' } });
+    fireEvent.change(screen.getByLabelText('Künstler'), { target: { value: 'DIY Artist' } });
+    fireEvent.change(screen.getByLabelText('Einkaufspreis (EK)'), { target: { value: '5.00' } });
+    fireEvent.change(screen.getByLabelText('Verkaufspreis (VK)'), { target: { value: '20.00' } });
     expect(screen.getByTestId('sammlung-submit')).toBeEnabled();
   });
 
@@ -63,6 +72,31 @@ describe('CollectionWizard', () => {
     render(<CollectionWizard />);
     fireEvent.click(screen.getByTestId('sammlung-add-item'));
     expect(screen.getByTestId('sammlung-submit')).toBeDisabled();
+  });
+
+  it('a manual item missing VK keeps submit disabled and never calls the action', () => {
+    render(<CollectionWizard />);
+    fireEvent.change(screen.getByTestId('sammlung-seller-input'), { target: { value: 'Max Mustermann' } });
+    fireEvent.click(screen.getByTestId('sammlung-add-item'));
+    fireEvent.click(screen.getByRole('button', { name: 'Manuell erfassen' }));
+    fireEvent.change(screen.getByLabelText('Titel'), { target: { value: 'Bedroom Tapes' } });
+    fireEvent.change(screen.getByLabelText('Künstler'), { target: { value: 'DIY Artist' } });
+    fireEvent.change(screen.getByLabelText('Einkaufspreis (EK)'), { target: { value: '5.00' } });
+    // VK left empty on purpose.
+    expect(screen.getByTestId('sammlung-submit')).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId('sammlung-submit'));
+    expect(createCollectionAction).not.toHaveBeenCalled();
+  });
+
+  it('an invalid EK value shows an inline, row-level indication', () => {
+    render(<CollectionWizard />);
+    fireEvent.click(screen.getByTestId('sammlung-add-item'));
+    const ekInput = screen.getByLabelText('Einkaufspreis (EK)');
+    fireEvent.change(ekInput, { target: { value: '12,50' } }); // comma, not the dot-decimal rule
+    fireEvent.blur(ekInput);
+    expect(screen.getByRole('alert')).toHaveTextContent(/ungültig/i);
+    expect(ekInput).toHaveAttribute('aria-invalid', 'true');
   });
 
   it('adding two items shows a running EK total', () => {
@@ -91,7 +125,7 @@ describe('CollectionWizard', () => {
     expect(screen.getByTestId('sammlung-items').parentElement!.textContent).toContain('7,50');
   });
 
-  it('submits the assembled payload and routes to /ankauf/sammlungen on success', async () => {
+  it('submits the assembled payload with TRIMMED prices and routes to /ankauf/sammlungen on success', async () => {
     render(<CollectionWizard />);
     fireEvent.change(screen.getByTestId('sammlung-seller-input'), { target: { value: 'Max Mustermann' } });
     fireEvent.click(screen.getByTestId('sammlung-add-item'));
@@ -100,8 +134,11 @@ describe('CollectionWizard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Manuell erfassen' }));
     fireEvent.change(screen.getByLabelText('Titel'), { target: { value: 'Bedroom Tapes' } });
     fireEvent.change(screen.getByLabelText('Künstler'), { target: { value: 'DIY Artist' } });
-    fireEvent.change(screen.getAllByLabelText('Einkaufspreis (EK)')[0]!, { target: { value: '5.00' } });
+    // Padded with whitespace (finding F1): must be trimmed before it reaches the action.
+    fireEvent.change(screen.getByLabelText('Einkaufspreis (EK)'), { target: { value: ' 5.00 ' } });
+    fireEvent.change(screen.getByLabelText('Verkaufspreis (VK)'), { target: { value: ' 20.00 ' } });
 
+    expect(screen.getByTestId('sammlung-submit')).toBeEnabled();
     fireEvent.click(screen.getByTestId('sammlung-submit'));
     await waitFor(() => expect(createCollectionAction).toHaveBeenCalledTimes(1));
     expect(createCollectionAction).toHaveBeenCalledWith(
@@ -115,6 +152,7 @@ describe('CollectionWizard', () => {
               artist: 'DIY Artist',
             }),
             purchasePrice: '5.00',
+            targetPrice: '20.00',
             conditionRecord: DEFAULT_CONDITION_RECORD,
           }),
         ],
@@ -132,6 +170,11 @@ describe('CollectionWizard', () => {
     render(<CollectionWizard />);
     fireEvent.change(screen.getByTestId('sammlung-seller-input'), { target: { value: 'Max Mustermann' } });
     fireEvent.click(screen.getByTestId('sammlung-add-item'));
+    fireEvent.click(screen.getByRole('button', { name: 'Manuell erfassen' }));
+    fireEvent.change(screen.getByLabelText('Titel'), { target: { value: 'Bedroom Tapes' } });
+    fireEvent.change(screen.getByLabelText('Künstler'), { target: { value: 'DIY Artist' } });
+    fireEvent.change(screen.getByLabelText('Einkaufspreis (EK)'), { target: { value: '5.00' } });
+    fireEvent.change(screen.getByLabelText('Verkaufspreis (VK)'), { target: { value: '20.00' } });
     fireEvent.click(screen.getByTestId('sammlung-submit'));
     expect(await screen.findByText('Bitte für jeden Artikel eine Auswahl treffen.')).toBeInTheDocument();
     expect(push).not.toHaveBeenCalled();

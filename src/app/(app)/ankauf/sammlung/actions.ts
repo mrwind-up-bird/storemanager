@@ -7,6 +7,7 @@ import { requireSession } from '@/auth/session';
 import { isValidOrigin } from '@/lib/csrf';
 import { createCollection } from '@/lib/collections';
 import { enqueueDiscogsListing, enqueueWishlistMatch } from '@/lib/jobs';
+import { MONEY_STRING_RE } from '@/lib/money';
 
 export type CreateCollectionResult =
   | { ok: true; collectionId: number; count: number }
@@ -16,7 +17,10 @@ export type CreateCollectionResult =
 // export would couple the two action files' zod graphs for no benefit), except `discogsId`
 // is nullable here: batch-Ankauf items may be sourced manually (off-Discogs), whereas the
 // single-item AnkaufModal always carries a real Discogs id.
-const decimalString = z.string().regex(/^\d+(\.\d{1,2})?$/);
+// `.trim()` before `.regex()` so a stray leading/trailing space (a client input can produce one
+// even after the wizard's own trim-on-submit) doesn't reject what `toCents`/the client would
+// otherwise accept — the client and server must agree on exactly the same decimal-string rule.
+const decimalString = z.string().trim().regex(MONEY_STRING_RE);
 const itemSchema = z.object({
   release: z.object({
     discogsId: z.number().int().nullable(),
@@ -58,7 +62,14 @@ export async function createCollectionAction(input: unknown): Promise<CreateColl
 
   const parsed = createCollectionSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, reason: 'validation', message: parsed.error.message };
+    // Never surface the raw (English) zod issue list to German-speaking staff — the client
+    // already gates the submit button on per-item validity, so reaching here means either a
+    // client bug or a hand-crafted request; either way this message is generic on purpose.
+    return {
+      ok: false,
+      reason: 'validation',
+      message: 'Ungültige Eingaben — bitte Preise und Pflichtfelder aller Artikel prüfen.',
+    };
   }
 
   const ctx = { tenantId: user.tenantId, userId: user.id };
@@ -67,7 +78,8 @@ export async function createCollectionAction(input: unknown): Promise<CreateColl
   let recordIds: number[];
   try {
     ({ collectionId, purchaseIds, recordIds } = await createCollection(ctx, parsed.data));
-  } catch {
+  } catch (err) {
+    console.error('[sammlung] createCollection failed', err);
     return { ok: false, reason: 'error' };
   }
 

@@ -241,7 +241,7 @@ async function categoryRevenue(tx: Tx, start: Date, end: Date): Promise<Category
     LEFT JOIN quick_items qi ON qi.id = ti.quick_item_id
     WHERE t.created_at >= ${start} AND t.created_at < ${end}
     GROUP BY cat
-    ORDER BY v DESC
+    ORDER BY SUM(ti.unit_price * ti.quantity) DESC
   `);
   return (result.rows as { cat: string; v: string }[]).map((row) => ({
     label: row.cat,
@@ -304,7 +304,7 @@ async function topRecordsQuery(tx: Tx, start: Date, end: Date): Promise<TopRecor
     JOIN records r ON r.id = p.record_id
     WHERE t.created_at >= ${start} AND t.created_at < ${end} AND ti.purchase_id IS NOT NULL
     GROUP BY r.id
-    ORDER BY sales DESC, revenue DESC
+    ORDER BY sales DESC, SUM(ti.unit_price * ti.quantity) DESC
     LIMIT 5
   `);
   return (
