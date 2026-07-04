@@ -71,6 +71,7 @@ export function SellModal({ purchaseId, title, artist, targetPrice, onClose }: S
   return createPortal(
     <div
       onClick={onClose}
+      className="qr-modal-backdrop"
       style={{
         position: 'fixed',
         inset: 0,
@@ -88,6 +89,7 @@ export function SellModal({ purchaseId, title, artist, targetPrice, onClose }: S
         aria-modal="true"
         aria-label="Exemplar verkaufen"
         data-testid="sell-modal"
+        className="qr-modal-card"
         onClick={(e) => e.stopPropagation()}
         style={{
           width: 'min(460px, 100%)',

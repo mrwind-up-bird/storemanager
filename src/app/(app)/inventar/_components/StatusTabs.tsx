@@ -48,7 +48,7 @@ export function StatusTabs({ byStatus, total }: StatusTabsProps) {
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+    <div className="qr-chips-scroll" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
       {TABS.map((tab) => {
         const active = current === tab.value;
         return (

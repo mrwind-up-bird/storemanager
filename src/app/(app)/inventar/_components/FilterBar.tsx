@@ -2,8 +2,12 @@
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useCallback, useState, useEffect } from 'react';
+import { ScanLine } from 'lucide-react';
 import { SearchField } from '@/components/ui/SearchField';
 import { Select } from '@/components/ui/Select';
+import { ScannerSheet } from '@/components/scanner/ScannerSheet';
+import { SellModal } from './SellModal';
+import { findAvailableCopiesByRelease, type CopyHit } from '@/app/(app)/kasse/actions';
 
 const FORMAT_OPTIONS = [
   { value: '', label: 'Alle Formate' },
@@ -73,6 +77,32 @@ export function FilterBar({ genreOptions, resultCount, valueAvailable }: FilterB
     router.push(pathname);
   }, [router, pathname]);
 
+  // Etiketten-Scan (Slice 5): QR auf dem Preisetikett → Release-ID → verfügbare Exemplare
+  const [labelScanOpen, setLabelScanOpen] = useState(false);
+  const [scanCopies, setScanCopies] = useState<CopyHit[] | null>(null);
+  const [scanMessage, setScanMessage] = useState<string | null>(null);
+  const [sellCopy, setSellCopy] = useState<CopyHit | null>(null);
+
+  const handleRelease = async (releaseId: number) => {
+    setLabelScanOpen(false);
+    setScanMessage(null);
+    setScanCopies(null);
+    const res = await findAvailableCopiesByRelease(releaseId);
+    if (!res.ok) {
+      setScanMessage('Fehler beim Nachschlagen. Bitte erneut versuchen.');
+      return;
+    }
+    if (res.copies.length === 0) {
+      setScanMessage('Kein verfügbares Exemplar zu diesem Release im Bestand.');
+      return;
+    }
+    if (res.copies.length === 1) {
+      setSellCopy(res.copies[0]!);
+      return;
+    }
+    setScanCopies(res.copies);
+  };
+
   const genreSelectOptions = [
     { value: '', label: 'Alle Genres' },
     ...genreOptions.map((g) => ({ value: g, label: g })),
@@ -100,11 +130,12 @@ export function FilterBar({ genreOptions, resultCount, valueAvailable }: FilterB
             placeholder="Im Sortiment suchen — Titel, Artist, Label, Katalog-Nr…"
           />
         </div>
-        {/* Barcode scanner — disabled placeholder (Slice 5) */}
+        {/* Etiketten-Scan (Slice 5): QR auf dem Preisetikett → Exemplar → SellModal */}
         <button
           type="button"
-          aria-label="Barcode scannen"
-          disabled
+          aria-label="Etikett scannen"
+          onClick={() => setLabelScanOpen(true)}
+          className="focus-ring-button"
           style={{
             flexShrink: 0,
             width: 'var(--tap)',
@@ -112,14 +143,13 @@ export function FilterBar({ genreOptions, resultCount, valueAvailable }: FilterB
             border: 'none',
             borderRadius: 'var(--r-md)',
             background: 'var(--surface-3)',
-            color: 'var(--text-3)',
-            fontSize: 21,
+            color: 'var(--text-2)',
             display: 'grid',
             placeItems: 'center',
-            cursor: 'not-allowed',
+            cursor: 'pointer',
           }}
         >
-          ▥
+          <ScanLine size={20} aria-hidden="true" />
         </button>
       </div>
 
@@ -198,6 +228,52 @@ export function FilterBar({ genreOptions, resultCount, valueAvailable }: FilterB
           </span>
         </div>
       </div>
+      {scanMessage !== null && (
+        <p
+          role="alert"
+          style={{
+            margin: 0, padding: '10px 14px', borderRadius: 'var(--r-md)',
+            background: 'var(--warn-soft)', color: 'var(--warn)',
+            border: '1px solid color-mix(in srgb, var(--warn) 30%, transparent)', fontSize: 13.5,
+          }}
+        >
+          {scanMessage}
+        </p>
+      )}
+      {scanCopies !== null && (
+        <div data-testid="labelscan-picker" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span style={{ fontWeight: 600, fontSize: 13 }}>Mehrere Exemplare — welches verkaufen?</span>
+          {scanCopies.map((c) => (
+            <button
+              key={c.purchaseId}
+              type="button"
+              onClick={() => { setScanCopies(null); setSellCopy(c); }}
+              style={{
+                width: '100%', textAlign: 'left', padding: '8px 10px',
+                border: '1px solid var(--border)', borderRadius: 'var(--r-md)',
+                background: 'var(--surface)', cursor: 'pointer',
+              }}
+            >
+              {c.artist} – {c.title} · {c.targetPrice ?? '—'} €
+            </button>
+          ))}
+        </div>
+      )}
+      {sellCopy !== null && (
+        <SellModal
+          purchaseId={sellCopy.purchaseId}
+          title={sellCopy.title}
+          artist={sellCopy.artist}
+          targetPrice={sellCopy.targetPrice}
+          onClose={() => setSellCopy(null)}
+        />
+      )}
+      <ScannerSheet
+        open={labelScanOpen}
+        onClose={() => setLabelScanOpen(false)}
+        mode="label"
+        onDetectRelease={(id) => { void handleRelease(id); }}
+      />
     </div>
   );
 }

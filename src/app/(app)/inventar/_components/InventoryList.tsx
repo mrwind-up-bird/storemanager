@@ -133,7 +133,65 @@ export function InventoryList({ rows, total }: InventoryListProps) {
         </button>
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
+      {/* Mobile Karten-Liste (Slice 5) — Desktop-Tabelle unverändert daneben (qr-desktop-only) */}
+      <div className="qr-mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {rows.map((row) => {
+          const sellable = row.status === 'verfuegbar' || row.status === 'reserviert';
+          return (
+            <div
+              key={row.copyId}
+              data-testid="inventory-mobile-card"
+              style={{
+                border: '1px solid var(--border)', borderRadius: 'var(--r-lg)',
+                background: 'var(--surface)', boxShadow: 'var(--shadow-1)',
+                padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8,
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                <span style={{ minWidth: 0 }}>
+                  <strong style={{ fontWeight: 700 }}>{row.title}</strong>
+                  <br />
+                  <span style={{ color: 'var(--text-2)', fontSize: 13 }}>{row.artist}</span>
+                </span>
+                <StatusBadge status={row.status} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                {row.conditionRecord !== null && (
+                  <ConditionPill condition={row.conditionRecord as Condition} />
+                )}
+                {row.format && (
+                  <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{row.format}</span>
+                )}
+                <span
+                  style={{
+                    marginLeft: 'auto', fontFamily: 'var(--font-mono)',
+                    fontWeight: 700, fontSize: 14,
+                  }}
+                >
+                  {row.vk ?? '—'}
+                </span>
+                <button
+                  type="button"
+                  disabled={!sellable}
+                  onClick={() => sellable && setSellRow(row)}
+                  style={{
+                    minHeight: 34, padding: '0 14px', border: 'none',
+                    borderRadius: 'var(--r-pill)',
+                    background: sellable ? 'var(--accent)' : 'var(--surface-3)',
+                    color: sellable ? 'var(--on-accent)' : 'var(--text-3)',
+                    fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '12.5px',
+                    cursor: sellable ? 'pointer' : 'not-allowed',
+                  }}
+                >
+                  {row.status === 'verkauft' ? 'Verkauft' : 'Verkaufen'}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="qr-desktop-only" style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 720 }}>
           <thead>
             <tr style={{ textAlign: 'left', color: 'var(--text-3)', background: 'var(--surface-2)' }}>
