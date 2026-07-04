@@ -128,6 +128,32 @@ export async function ankaufRecord(
   return { ok: true, recordId, purchaseId };
 }
 
+const barcodeSchema = z.string().trim().regex(/^\d{8,14}$/);
+
+/** EAN/UPC → Discogs-Treffer (C6). Lesend — Konvention wie searchDiscogs (kein CSRF-Check). */
+export async function searchDiscogsByBarcode(
+  barcode: string,
+): Promise<
+  | { ok: true; results: SearchResultDTO[] }
+  | { ok: false; reason: 'not_connected' | 'auth' | 'validation' | 'error' }
+> {
+  const user = await requireSession();
+  if (user.role === 'kunde') forbidden(); // Spec §8.2: staff-only (strenger als searchDiscogs)
+  const conn = await getConnection({ tenantId: user.tenantId, userId: user.id });
+  if (!conn) return { ok: false, reason: 'not_connected' };
+
+  const parsed = barcodeSchema.safeParse(barcode);
+  if (!parsed.success) return { ok: false, reason: 'validation' };
+
+  try {
+    const results = await getDiscogsAdapter().searchByBarcode(conn.auth, parsed.data);
+    return { ok: true, results };
+  } catch (e) {
+    if (e instanceof DiscogsAuthError) return { ok: false, reason: 'auth' };
+    return { ok: false, reason: 'error' };
+  }
+}
+
 export async function disconnectDiscogs(): Promise<void> {
   const user = await requireSession();
   if (!(user.role === 'admin' || user.isSuperadmin)) forbidden();

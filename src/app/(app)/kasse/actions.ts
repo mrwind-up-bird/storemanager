@@ -17,6 +17,13 @@ import {
   updateQuickItem as updateQuickItemSvc,
   deactivateQuickItem as deactivateQuickItemSvc,
 } from '@/lib/quickItems';
+import {
+  findAvailableCopiesByRelease as findCopiesSvc,
+  listInventory,
+  type CopyHit,
+} from '@/lib/inventory';
+
+export type { CopyHit };
 
 const decimalString = z.string().regex(/^\d+(\.\d{1,2})?$/);
 
@@ -214,6 +221,53 @@ export async function deactivateQuickItem(
     await deactivateQuickItemSvc(ctx, parsed.data.id);
     revalidatePath('/kasse');
     return { ok: true };
+  } catch {
+    return { ok: false, reason: 'error' };
+  }
+}
+
+const releaseIdSchema = z.number().int().positive();
+
+/** Etiketten-QR → verfügbare Exemplare dieses Releases (C6). Lesend, staff-only. */
+export async function findAvailableCopiesByRelease(
+  releaseId: number,
+): Promise<{ ok: true; copies: CopyHit[] } | { ok: false; reason: 'validation' | 'error' }> {
+  const user = await requireSession();
+  if (user.role === 'kunde') forbidden();
+  const parsed = releaseIdSchema.safeParse(releaseId);
+  if (!parsed.success) return { ok: false, reason: 'validation' };
+  try {
+    const copies = await findCopiesSvc({ tenantId: user.tenantId, userId: user.id }, parsed.data);
+    return { ok: true, copies };
+  } catch {
+    return { ok: false, reason: 'error' };
+  }
+}
+
+const copyQuerySchema = z.string().trim().min(1).max(80);
+
+/** Textsuche über verfügbare Exemplare für den Schnellverkauf (C6/C9). Max. 8 Treffer. */
+export async function searchAvailableCopies(
+  query: string,
+): Promise<{ ok: true; copies: CopyHit[] } | { ok: false; reason: 'validation' | 'error' }> {
+  const user = await requireSession();
+  if (user.role === 'kunde') forbidden();
+  const parsed = copyQuerySchema.safeParse(query);
+  if (!parsed.success) return { ok: false, reason: 'validation' };
+  try {
+    const rows = await listInventory(
+      { tenantId: user.tenantId, userId: user.id },
+      { q: parsed.data, status: 'verfuegbar' },
+    );
+    const copies: CopyHit[] = rows.slice(0, 8).map((r) => ({
+      purchaseId: r.copyId,
+      title: r.title,
+      artist: r.artist,
+      targetPrice: r.vk,
+      conditionRecord: r.conditionRecord,
+      conditionCover: r.conditionCover,
+    }));
+    return { ok: true, copies };
   } catch {
     return { ok: false, reason: 'error' };
   }
