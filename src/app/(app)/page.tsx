@@ -4,6 +4,7 @@ import { inventoryAggregates } from '@/lib/inventory';
 import { KpiCard } from './_components/dashboard/KpiCard';
 import { InventoryKpi } from './_components/dashboard/InventoryKpi';
 import { EmptyPanel } from './_components/dashboard/EmptyPanel';
+import { QuickActions } from './_components/QuickActions';
 
 /**
  * Dashboard (Übersicht) — `/`
@@ -23,6 +24,8 @@ export default async function DashboardPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1200px' }}>
+
+      {user.role !== 'kunde' && <QuickActions />}
 
       {/* ── KPI Row — 4 cards ── */}
       <div

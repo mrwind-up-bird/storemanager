@@ -63,13 +63,13 @@ export default async function AnalytikPage({
       <AnalyticsKpis kpis={data.kpis} />
 
       {/* Verbatim grid-template-columns 1.55fr 1fr, gap 20px — Q-Records App.dc.html line 451 (.qr-dash-cols) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.55fr 1fr', gap: 20, alignItems: 'start' }}>
+      <div className="qr-analytik-grid" style={{ display: 'grid', gridTemplateColumns: '1.55fr 1fr', gap: 20, alignItems: 'start' }}>
         <RevenueBars data={data.umsatzverlauf} />
         <CategoryBar slices={data.kategorie} />
       </div>
 
       {/* Verbatim grid-template-columns 1fr 1fr, gap 20px — Q-Records App.dc.html line 491 (.qr-dash-cols) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start' }}>
+      <div className="qr-analytik-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start' }}>
         <WeekdayBars data={data.wochentag} />
         <TimeBuckets data={data.tageszeit} />
       </div>
