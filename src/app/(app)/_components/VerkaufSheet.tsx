@@ -30,6 +30,7 @@ export function VerkaufSheet({ open, onClose }: { open: boolean; onClose: () => 
   useEffect(() => {
     const q = query.trim();
     if (q.length < 2) {
+      opIdRef.current += 1; // invalidiert eine noch laufende Suchantwort, bevor sie `hits` stale wiederherstellen kann
       setHits([]);
       return;
     }
@@ -42,6 +43,18 @@ export function VerkaufSheet({ open, onClose }: { open: boolean; onClose: () => 
     }, 300);
     return () => clearTimeout(tid);
   }, [query]);
+
+  // Reopen-Reset: Sheet öffnet immer mit sauberem State (keine Reste aus einer vorigen
+  // Sitzung); der opId-Bump invalidiert dabei auch alles, was zum Schließzeitpunkt noch in-flight war.
+  useEffect(() => {
+    if (!open) return;
+    opIdRef.current += 1;
+    setQuery('');
+    setHits([]);
+    setMessage(null);
+    setSellCopy(null);
+    setScanOpen(false);
+  }, [open]);
 
   const handleRelease = async (releaseId: number) => {
     const opId = ++opIdRef.current;

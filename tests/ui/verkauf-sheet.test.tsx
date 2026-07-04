@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 const searchMock = vi.fn();
@@ -59,5 +59,19 @@ describe('VerkaufSheet (C9)', () => {
     await user.click(screen.getByRole('button', { name: 'Etikett scannen' }));
     await user.click(await screen.findByRole('button', { name: 'stub-scan' }));
     expect(await screen.findByTestId('sell-modal-stub')).toHaveTextContent('9');
+  });
+
+  it('Erneutes Öffnen setzt Suchfeld und Treffer zurück', async () => {
+    const user = userEvent.setup();
+    searchMock.mockResolvedValue({ ok: true, copies: [copy(7), copy(8)] });
+    const { rerender } = render(<VerkaufSheet open onClose={() => {}} />);
+    await user.type(screen.getByLabelText('Artikel suchen'), 'kind');
+    await screen.findAllByRole('button', { name: /Miles Davis – Kind of Blue/ });
+    rerender(<VerkaufSheet open={false} onClose={() => {}} />);
+    rerender(<VerkaufSheet open onClose={() => {}} />);
+    await waitFor(() => {
+      expect(screen.getByLabelText('Artikel suchen')).toHaveValue('');
+    });
+    expect(screen.queryByRole('button', { name: /Miles Davis – Kind of Blue/ })).toBeNull();
   });
 });
