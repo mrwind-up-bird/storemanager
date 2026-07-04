@@ -31,6 +31,12 @@ export function ScannerSheet({ open, onClose, mode, onDetectEan, onDetectRelease
   const [manualValue, setManualValue] = useState('');
   const [manualError, setManualError] = useState<string | null>(null);
 
+  // Latest-ref pattern: Inline-Callbacks des Parents sollen den Kamera-Effekt nicht neu starten.
+  const onDetectEanRef = useRef(onDetectEan);
+  onDetectEanRef.current = onDetectEan;
+  const onDetectReleaseRef = useRef(onDetectRelease);
+  onDetectReleaseRef.current = onDetectRelease;
+
   const stopStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
@@ -40,6 +46,8 @@ export function ScannerSheet({ open, onClose, mode, onDetectEan, onDetectRelease
     if (!open) return;
     setCameraError(null);
     setScanHint(null);
+    setManualValue('');
+    setManualError(null);
     let cancelled = false;
     let intervalId: ReturnType<typeof setInterval> | undefined;
 
@@ -72,40 +80,48 @@ export function ScannerSheet({ open, onClose, mode, onDetectEan, onDetectRelease
         await video.play().catch(() => undefined);
       }
 
-      const { BarcodeDetector } = await import('barcode-detector/ponyfill');
-      if (cancelled) return; // Sheet ggf. während des (schweren) dynamic imports geschlossen worden
-      const detector = new BarcodeDetector({ formats: [...EAN_FORMATS, 'qr_code'] });
-      intervalId = setInterval(() => {
-        void (async () => {
-          const v = videoRef.current;
-          if (!v || v.readyState < 2) return;
-          let codes: Awaited<ReturnType<typeof detector.detect>>;
-          try {
-            codes = await detector.detect(v);
-          } catch {
-            return;
-          }
-          for (const code of codes) {
-            if (mode === 'ean' && (EAN_FORMATS as readonly string[]).includes(code.format)) {
-              const value = code.rawValue.trim();
-              if (EAN_RE.test(value)) {
-                stopStream();
-                onDetectEan?.(value);
-                return;
+      try {
+        const { BarcodeDetector } = await import('barcode-detector/ponyfill');
+        if (cancelled) return; // Sheet ggf. während des (schweren) dynamic imports geschlossen worden
+        const detector = new BarcodeDetector({ formats: [...EAN_FORMATS, 'qr_code'] });
+        intervalId = setInterval(() => {
+          void (async () => {
+            const v = videoRef.current;
+            if (!v || v.readyState < 2) return;
+            let codes: Awaited<ReturnType<typeof detector.detect>>;
+            try {
+              codes = await detector.detect(v);
+            } catch {
+              return;
+            }
+            for (const code of codes) {
+              if (mode === 'ean' && (EAN_FORMATS as readonly string[]).includes(code.format)) {
+                const value = code.rawValue.trim();
+                if (EAN_RE.test(value)) {
+                  stopStream();
+                  if (intervalId) clearInterval(intervalId);
+                  onDetectEanRef.current?.(value);
+                  return;
+                }
+              }
+              if (mode === 'label' && code.format === 'qr_code') {
+                const releaseId = parseDiscogsReleaseUrl(code.rawValue);
+                if (releaseId !== null) {
+                  stopStream();
+                  if (intervalId) clearInterval(intervalId);
+                  onDetectReleaseRef.current?.(releaseId);
+                  return;
+                }
+                setScanHint('Kein Q-Records-Etikett erkannt.');
               }
             }
-            if (mode === 'label' && code.format === 'qr_code') {
-              const releaseId = parseDiscogsReleaseUrl(code.rawValue);
-              if (releaseId !== null) {
-                stopStream();
-                onDetectRelease?.(releaseId);
-                return;
-              }
-              setScanHint('Kein Q-Records-Etikett erkannt.');
-            }
-          }
-        })();
-      }, 250);
+          })();
+        }, 250);
+      } catch {
+        stopStream();
+        setCameraError('Keine Kamera verfügbar — Code unten manuell eingeben.');
+        return;
+      }
     })();
 
     return () => {
@@ -113,7 +129,7 @@ export function ScannerSheet({ open, onClose, mode, onDetectEan, onDetectRelease
       if (intervalId) clearInterval(intervalId);
       stopStream();
     };
-  }, [open, mode, onDetectEan, onDetectRelease, stopStream]);
+  }, [open, mode, stopStream]);
 
   const handleManualSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
