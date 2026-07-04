@@ -155,7 +155,7 @@ describe('InventoryList row wiring (§5.2/§5.3/§5.6)', () => {
 
   it('verfuegbar row: Verkaufen enabled, Reservieren shown, ♡ links to the prefilled wishlist form', () => {
     render(<InventoryList rows={rows} total={rows.length} />);
-    const row = screen.getByText('Violator').closest('tr')!;
+    const row = within(screen.getByRole('table')).getByText('Violator').closest('tr')!;
     const u = within(row as HTMLElement);
     expect(u.getByRole('button', { name: /^Verkaufen$/i })).toBeEnabled();
     expect(u.getByTestId('reserve-action')).toBeInTheDocument();
@@ -169,7 +169,7 @@ describe('InventoryList row wiring (§5.2/§5.3/§5.6)', () => {
 
   it('reserviert row: Verkaufen enabled, "Reservierung aufheben" shown instead of Reservieren', () => {
     render(<InventoryList rows={rows} total={rows.length} />);
-    const row = screen.getByText('Music for the Masses').closest('tr')!;
+    const row = within(screen.getByRole('table')).getByText('Music for the Masses').closest('tr')!;
     const u = within(row as HTMLElement);
     expect(u.getByRole('button', { name: /^Verkaufen$/i })).toBeEnabled();
     expect(u.getByTestId('reserve-cancel-action')).toBeInTheDocument();
@@ -178,7 +178,7 @@ describe('InventoryList row wiring (§5.2/§5.3/§5.6)', () => {
 
   it('verkauft row: action button disabled (Verkauft), no reserve actions', () => {
     render(<InventoryList rows={rows} total={rows.length} />);
-    const row = screen.getByText('Remain in Light').closest('tr')!;
+    const row = within(screen.getByRole('table')).getByText('Remain in Light').closest('tr')!;
     const u = within(row as HTMLElement);
     expect(u.getByRole('button', { name: /Verkauft/i })).toBeDisabled();
     expect(u.queryByTestId('reserve-action')).not.toBeInTheDocument();
@@ -187,21 +187,21 @@ describe('InventoryList row wiring (§5.2/§5.3/§5.6)', () => {
 
   it('clicking Reservieren calls reserve with the row purchaseId', async () => {
     render(<InventoryList rows={rows} total={rows.length} />);
-    const row = screen.getByText('Violator').closest('tr')!;
+    const row = within(screen.getByRole('table')).getByText('Violator').closest('tr')!;
     fireEvent.click(within(row as HTMLElement).getByTestId('reserve-action'));
     await waitFor(() => expect(reserve).toHaveBeenCalledWith({ purchaseId: 7 }));
   });
 
   it('clicking "Reservierung aufheben" calls cancelReservation with the row purchaseId', async () => {
     render(<InventoryList rows={rows} total={rows.length} />);
-    const row = screen.getByText('Music for the Masses').closest('tr')!;
+    const row = within(screen.getByRole('table')).getByText('Music for the Masses').closest('tr')!;
     fireEvent.click(within(row as HTMLElement).getByTestId('reserve-cancel-action'));
     await waitFor(() => expect(cancelReservation).toHaveBeenCalledWith({ purchaseId: 8 }));
   });
 
   it('clicking Verkaufen opens the SellModal for that row with its targetPrice', () => {
     render(<InventoryList rows={rows} total={rows.length} />);
-    const row = screen.getByText('Violator').closest('tr')!;
+    const row = within(screen.getByRole('table')).getByText('Violator').closest('tr')!;
     fireEvent.click(within(row as HTMLElement).getByRole('button', { name: /^Verkaufen$/i }));
     expect(screen.getByTestId('sell-modal')).toBeInTheDocument();
     expect((screen.getByTestId('sell-price-input') as HTMLInputElement).value).toBe('28.00');

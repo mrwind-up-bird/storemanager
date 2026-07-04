@@ -37,9 +37,13 @@ test.describe.configure({ mode: 'serial' });
 
 /** Open the first enabled "Verkaufen" row action on the inventory page (no registry testid for the
  *  trigger — it is selected by accessible name, per C12).
- *  Note: :enabled filters out 'verliehen' rows which render a disabled "Verkaufen" button. */
+ *  Note: :enabled filters out 'verliehen' rows which render a disabled "Verkaufen" button.
+ *  Note: :visible is required since Slice 5 — InventoryList renders BOTH the mobile card list
+ *  (.qr-mobile-only, hidden at this desktop viewport) and the desktop table with the identical
+ *  "Verkaufen" button text; without :visible, .first() picks the hidden mobile-card button (DOM
+ *  order: mobile block precedes the desktop table) and the click never becomes actionable. */
 async function firstSellButton(page: Page) {
-  return page.locator('button:enabled').filter({ hasText: /^Verkaufen$/i }).first();
+  return page.locator('button:enabled:visible').filter({ hasText: /^Verkaufen$/i }).first();
 }
 
 test.describe('Slice 3 — Verkauf/POS + Wunschlisten', () => {
