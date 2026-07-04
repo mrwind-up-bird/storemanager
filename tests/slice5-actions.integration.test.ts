@@ -73,6 +73,12 @@ beforeAll(async () => {
   await withTenant(ctxA, (tx) =>
     tx.update(purchases).set({ status: 'verkauft' }).where(eq(purchases.id, soldId)),
   );
+
+  // Cross-Tenant-Kollisionsfall: Tenant B bekommt EIN eigenes verfuegbares Exemplar desselben
+  // Releases (discogsId 11111) — nur so beweist der RLS-Test unten echte Isolation statt eines
+  // vakuosen "B hat halt gar keinen passenden record" Zufallstreffers.
+  const ctxB = { tenantId: tenantB, userId: null };
+  await performAnkauf(ctxB, base);
 }, 120_000);
 
 afterAll(async () => {
@@ -94,10 +100,16 @@ describe('findAvailableCopiesByRelease (Action, C6/C7)', () => {
     }
   });
 
-  it('RLS/Isolation: Tenant B sieht 0 Exemplare', async () => {
+  it('RLS/Isolation: Cross-Tenant-Kollision auf demselben Release — jeder sieht nur sein eigenes Exemplar', async () => {
+    currentUser = asAdmin(tenantA);
+    const resA = await kasseActions.findAvailableCopiesByRelease(11111);
+    expect(resA.ok).toBe(true);
+    if (resA.ok) expect(resA.copies).toHaveLength(2); // B's Exemplar darf hier NICHT auftauchen
+
     currentUser = asAdmin(tenantB);
-    const res = await kasseActions.findAvailableCopiesByRelease(11111);
-    expect(res).toEqual({ ok: true, copies: [] });
+    const resB = await kasseActions.findAvailableCopiesByRelease(11111);
+    expect(resB.ok).toBe(true);
+    if (resB.ok) expect(resB.copies).toHaveLength(1); // nur das eigene Exemplar
   });
 
   it('validation: releaseId 0 → validation', async () => {
