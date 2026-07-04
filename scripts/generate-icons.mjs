@@ -1,5 +1,7 @@
 // One-shot App-Icon-Generierung (C11). PNGs werden EINGECHECKT — dieses Script
 // läuft nur erneut, wenn sich das Motiv ändert:  node scripts/generate-icons.mjs
+// ACHTUNG: /icons/ wird vom Service Worker (public/sw.js) cache-first ohne Content-Hash
+// ausgeliefert — nach jeder Neugenerierung MUSS CACHE in public/sw.js gebumpt werden.
 import sharp from 'sharp';
 import { mkdir } from 'node:fs/promises';
 

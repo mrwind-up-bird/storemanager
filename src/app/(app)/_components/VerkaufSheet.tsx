@@ -34,6 +34,7 @@ export function VerkaufSheet({ open, onClose }: { open: boolean; onClose: () => 
       setHits([]);
       return;
     }
+    setMessage(null);
     const tid = setTimeout(() => {
       const opId = ++opIdRef.current;
       void searchAvailableCopies(q).then((res) => {
@@ -45,9 +46,13 @@ export function VerkaufSheet({ open, onClose }: { open: boolean; onClose: () => 
   }, [query]);
 
   // Reopen-Reset: Sheet öffnet immer mit sauberem State (keine Reste aus einer vorigen
-  // Sitzung); der opId-Bump invalidiert dabei auch alles, was zum Schließzeitpunkt noch in-flight war.
+  // Sitzung). Schließen bumpt opId ebenfalls — sonst könnte eine noch laufende Scan-/
+  // Suchantwort nach dem Schließen ungefragt das SellModal öffnen.
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      opIdRef.current += 1;
+      return;
+    }
     opIdRef.current += 1;
     setQuery('');
     setHits([]);
@@ -64,10 +69,12 @@ export function VerkaufSheet({ open, onClose }: { open: boolean; onClose: () => 
     if (opIdRef.current !== opId) return;
     if (!res.ok) {
       setMessage('Fehler beim Nachschlagen. Bitte erneut versuchen.');
+      setHits([]);
       return;
     }
     if (res.copies.length === 0) {
       setMessage('Kein verfügbares Exemplar zu diesem Release im Bestand.');
+      setHits([]);
       return;
     }
     if (res.copies.length === 1) {

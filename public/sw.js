@@ -1,5 +1,7 @@
 /* q-records Service Worker (C11): cached AUSSCHLIESSLICH statische Assets + /offline.
    NIE: API-Responses, HTML mit Tenant-Daten, non-GET, fremde Origins. */
+// /icons/ ist cache-first ohne Content-Hash im Dateinamen — bei Icon-Neugenerierung
+// (scripts/generate-icons.mjs) MUSS CACHE hier gebumpt werden, sonst bleiben alte Icons hängen.
 const CACHE = 'qr-static-v1';
 const OFFLINE_URL = '/offline';
 

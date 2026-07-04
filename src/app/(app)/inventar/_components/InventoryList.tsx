@@ -436,7 +436,7 @@ export function InventoryList({ rows, total }: InventoryListProps) {
         <span>
           {rows.length} von {total}
         </span>
-        <span>↔ scrollt auf Mobile</span>
+        <span className="qr-desktop-only">↔ scrollt auf Mobile</span>
       </div>
 
       {sellRow && (

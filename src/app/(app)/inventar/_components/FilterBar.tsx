@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { ScanLine } from 'lucide-react';
 import { SearchField } from '@/components/ui/SearchField';
 import { Select } from '@/components/ui/Select';
@@ -83,11 +83,17 @@ export function FilterBar({ genreOptions, resultCount, valueAvailable }: FilterB
   const [scanMessage, setScanMessage] = useState<string | null>(null);
   const [sellCopy, setSellCopy] = useState<CopyHit | null>(null);
 
+  // Härtung gegen die Race, dass eine spätere Scan-Antwort von einer zuvor gestarteten,
+  // langsameren Antwort überschrieben wird (gleiches Muster wie VerkaufSheet).
+  const opIdRef = useRef(0);
+
   const handleRelease = async (releaseId: number) => {
+    const opId = ++opIdRef.current;
     setLabelScanOpen(false);
     setScanMessage(null);
     setScanCopies(null);
     const res = await findAvailableCopiesByRelease(releaseId);
+    if (opIdRef.current !== opId) return;
     if (!res.ok) {
       setScanMessage('Fehler beim Nachschlagen. Bitte erneut versuchen.');
       return;

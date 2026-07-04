@@ -26,7 +26,7 @@ const BASE_PRICES = [2.5, 5.0, 8.75, 12.5, 16.25, 22.5, 28.75, 33.0];
  * Deterministic fixture catalogue — at least one release whose title or artist
  * contains "Blue" (case-insensitive), satisfying C12 E2E search requirements.
  */
-export const FIXTURES: DiscogsSearchResult[] = [
+const FIXTURES: DiscogsSearchResult[] = [
   {
     discogsId: 11111,
     title: 'Kind of Blue',

@@ -11,7 +11,7 @@ export default async function SammlungPage() {
 
   return (
     <div style={{ maxWidth: 900 }}>
-      <header style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+      <header className="qr-page-header" style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
         <h1
           style={{
             fontFamily: 'var(--font-display)',
