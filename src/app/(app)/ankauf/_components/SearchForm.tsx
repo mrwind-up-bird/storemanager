@@ -139,6 +139,7 @@ export function SearchForm({ connected: _connected, username }: SearchFormProps)
             type="button"
             aria-label="Barcode scannen"
             onClick={() => setScannerOpen(true)}
+            disabled={isPending}
             className="focus-ring-button"
             style={{
               flexShrink: 0,
@@ -147,10 +148,10 @@ export function SearchForm({ connected: _connected, username }: SearchFormProps)
               border: 'none',
               borderRadius: 'var(--r-md)',
               background: 'var(--surface-3)',
-              color: 'var(--text-2)',
+              color: isPending ? 'var(--text-3)' : 'var(--text-2)',
               display: 'grid',
               placeItems: 'center',
-              cursor: 'pointer',
+              cursor: isPending ? 'not-allowed' : 'pointer',
             }}
           >
             <ScanLine size={20} aria-hidden="true" />
@@ -248,6 +249,7 @@ export function SearchForm({ connected: _connected, username }: SearchFormProps)
         mode="ean"
         onDetectEan={(ean) => {
           setScannerOpen(false);
+          if (isPending) return;
           runBarcodeSearch(ean);
         }}
       />
