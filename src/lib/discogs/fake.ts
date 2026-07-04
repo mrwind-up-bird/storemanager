@@ -26,7 +26,7 @@ const BASE_PRICES = [2.5, 5.0, 8.75, 12.5, 16.25, 22.5, 28.75, 33.0];
  * Deterministic fixture catalogue — at least one release whose title or artist
  * contains "Blue" (case-insensitive), satisfying C12 E2E search requirements.
  */
-const FIXTURES: DiscogsSearchResult[] = [
+export const FIXTURES: DiscogsSearchResult[] = [
   {
     discogsId: 11111,
     title: 'Kind of Blue',
@@ -68,6 +68,9 @@ const FIXTURES: DiscogsSearchResult[] = [
   },
 ];
 
+/** The ONE fake barcode that hits — E2E + integration tests type this EAN (C4). */
+export const FAKE_BARCODE_HIT = '4988031234567';
+
 /**
  * Returns a deterministic `byGrade` price map for the given releaseId.
  * All 8 grade strings are always present. Prices vary slightly by releaseId
@@ -107,6 +110,11 @@ export function createFakeDiscogsAdapter(): DiscogsAdapter {
       return FIXTURES.filter(
         (r) => r.title.toLowerCase().includes(q) || r.artist.toLowerCase().includes(q),
       );
+    },
+
+    async searchByBarcode(_auth: DiscogsAuth, barcode: string): Promise<DiscogsSearchResult[]> {
+      if (barcode.trim() === FAKE_BARCODE_HIT) return [FIXTURES[0]!, FIXTURES[1]!];
+      return [];
     },
 
     async priceSuggestions(_auth: DiscogsAuth, releaseId: number): Promise<DiscogsPriceSuggestion | null> {

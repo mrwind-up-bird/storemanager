@@ -180,6 +180,16 @@ export function createHttpDiscogsAdapter(): DiscogsAdapter {
       return (body.results ?? []).map(mapSearchResult);
     },
 
+    async searchByBarcode(auth: DiscogsAuth, barcode: string) {
+      const encoded = encodeURIComponent(barcode);
+      const body = (await requestJson(
+        'GET',
+        `/database/search?barcode=${encoded}&type=release&per_page=25`,
+        auth,
+      )) as { results: RawResult[] };
+      return (body.results ?? []).map(mapSearchResult);
+    },
+
     async priceSuggestions(auth: DiscogsAuth, releaseId: number) {
       try {
         const body = (await requestJson(
