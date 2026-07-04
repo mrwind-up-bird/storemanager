@@ -120,3 +120,36 @@ body {
 /* ── Theming shorthand helpers on <html> ── */
 [data-theme="light"] { background: #FAF6F1; }
 [data-theme="dark"]  { background: #120F0B; }
+
+/* ── Slice 5: Mobile Shell (C1) ──
+   ALLE Slice-5-Media-Queries leben HIER. !important ist NUR in diesem Abschnitt
+   legitim: die Komponenten stylen inline (Desktop-Pfad), die Klassen überstimmen
+   den Inline-Style ausschließlich im Mobile-Zweig. */
+@media (max-width: 767.98px) {
+  .app-sidebar { display: none !important; }
+  .app-topbar-desktop { display: none !important; }
+  .app-main { padding: 16px 16px calc(96px + env(safe-area-inset-bottom)) !important; }
+  .qr-page-header { display: none !important; }
+  .qr-desktop-only { display: none !important; }
+  .qr-chips-scroll {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    margin: 0 -16px;
+    padding: 0 16px;
+    scrollbar-width: none;
+  }
+  .qr-chips-scroll::-webkit-scrollbar { width: 0; height: 0; }
+  .qr-modal-backdrop { place-items: end center !important; padding: 0 !important; }
+  .qr-modal-card {
+    width: 100% !important;
+    border-radius: var(--r-xl) var(--r-xl) 0 0 !important;
+    max-height: 88vh;
+    overflow-y: auto;
+  }
+  .qr-analytik-grid { grid-template-columns: 1fr !important; }
+}
+@media (min-width: 768px) {
+  .app-header-mobile { display: none !important; }
+  .app-tabbar { display: none !important; }
+  .qr-mobile-only { display: none !important; }
+}

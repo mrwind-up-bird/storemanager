@@ -5,6 +5,8 @@ import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { AccentSwitch } from '@/components/theme/AccentSwitch';
 import { VinylDisc } from '@/components/ui/VinylDisc';
 import { SidebarNav } from './_components/SidebarNav';
+import { BottomTabBar } from './_components/BottomTabBar';
+import { MobileChrome } from './_components/MobileChrome';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // Enforces session↔tenant invariant; redirects to /login if no session.
@@ -25,6 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     >
       {/* ── Sidebar ── */}
       <aside
+        className="app-sidebar"
         style={{
           position: 'sticky',
           top: 0,
@@ -140,8 +143,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
       {/* ── Main content area ── */}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        <MobileChrome role={user.role} tenantName={tenant.name} />
+
         {/* Sticky topbar */}
         <header
+          className="app-topbar-desktop"
           style={{
             position: 'sticky',
             top: 0,
@@ -161,10 +167,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <ThemeToggle />
         </header>
 
-        <main style={{ flex: 1, padding: 'clamp(18px,3vw,32px)' }}>
+        <main className="app-main" style={{ flex: 1, padding: 'clamp(18px,3vw,32px)' }}>
           {children}
         </main>
       </div>
+
+      <BottomTabBar role={user.role} />
     </div>
   );
 }
