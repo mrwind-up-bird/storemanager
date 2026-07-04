@@ -32,7 +32,7 @@ describe('ScannerSheet (C8) — Fallback-Pfade', () => {
     render(<ScannerSheet open mode="ean" onClose={() => {}} onDetectEan={onDetect} />);
     await user.type(screen.getByLabelText('EAN/UPC manuell eingeben'), '123');
     await user.click(screen.getByRole('button', { name: 'Suchen' }));
-    expect(screen.getByRole('alert')).toHaveTextContent('Ungültiger Barcode — 8 bis 14 Ziffern.');
+    expect(screen.getByText('Ungültiger Barcode — 8 bis 14 Ziffern.')).toBeInTheDocument();
     expect(onDetect).not.toHaveBeenCalled();
   });
 

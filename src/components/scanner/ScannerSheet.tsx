@@ -157,6 +157,7 @@ export function ScannerSheet({ open, onClose, mode, onDetectEan, onDetectRelease
         )}
         {cameraError !== null && (
           <p
+            role="alert"
             style={{
               margin: 0, padding: '10px 14px', borderRadius: 'var(--r-md)',
               background: 'var(--warn-soft)', color: 'var(--warn)',
