@@ -34,6 +34,13 @@ const transactionsCount = async (tenantId: number) =>
       [tenantId],
     ))[0]!.n,
   );
+const verkauftCount = async (tenantId: number) =>
+  Number(
+    (await dbQuery<{ n: string }>(
+      `SELECT COUNT(*) AS n FROM purchases WHERE tenant_id = $1 AND status = 'verkauft'`,
+      [tenantId],
+    ))[0]!.n,
+  );
 
 test.describe('Slice 5 — Mobile Shell + Scanner + PWA (390×844)', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
@@ -89,6 +96,7 @@ test.describe('Slice 5 — Mobile Shell + Scanner + PWA (390×844)', () => {
   test('4. Mobiler Verkauf: Bestand-Karte → SellModal (Bottom-Sheet) → bar', async ({ page }) => {
     const tenantId = await demoTenantId();
     const txBefore = await transactionsCount(tenantId);
+    const soldBefore = await verkauftCount(tenantId);
 
     await login(page, DEMO_URL, DEMO_EMAIL, DEMO_PASSWORD);
     // Das in Szenario 3 angekaufte Exemplar ist verfügbar + hat einen VK-Preis.
@@ -104,6 +112,9 @@ test.describe('Slice 5 — Mobile Shell + Scanner + PWA (390×844)', () => {
     await expect
       .poll(() => transactionsCount(tenantId), { timeout: 15_000 })
       .toBe(txBefore + 1);
+    await expect
+      .poll(() => verkauftCount(tenantId), { timeout: 15_000 })
+      .toBe(soldBefore + 1);
   });
 
   test('5. PWA: Manifest tenant-gebrandet, /offline rendert, sw.js ausgeliefert', async ({ page, request }) => {
