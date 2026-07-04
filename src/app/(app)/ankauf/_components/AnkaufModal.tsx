@@ -103,6 +103,7 @@ export function AnkaufModal({ result, onClose }: AnkaufModalProps) {
   return createPortal(
     <div
       onClick={onClose}
+      className="qr-modal-backdrop"
       style={{
         position: 'fixed',
         inset: 0,
@@ -121,6 +122,7 @@ export function AnkaufModal({ result, onClose }: AnkaufModalProps) {
         aria-modal="true"
         aria-label="Artikel ankaufen"
         data-testid="ankauf-modal"
+        className="qr-modal-card"
         onClick={(e) => e.stopPropagation()}
         style={{
           width: 'min(560px, 100%)',

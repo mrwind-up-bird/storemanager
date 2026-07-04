@@ -36,7 +36,7 @@ export default async function AnalytikPage({
 
   return (
     <div data-testid="analytik-screen" style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 1200 }}>
-      <header style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <header className="qr-page-header" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <h1
           style={{
             fontFamily: 'var(--font-display)',
@@ -63,13 +63,13 @@ export default async function AnalytikPage({
       <AnalyticsKpis kpis={data.kpis} />
 
       {/* Verbatim grid-template-columns 1.55fr 1fr, gap 20px — Q-Records App.dc.html line 451 (.qr-dash-cols) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.55fr 1fr', gap: 20, alignItems: 'start' }}>
+      <div className="qr-analytik-grid" style={{ display: 'grid', gridTemplateColumns: '1.55fr 1fr', gap: 20, alignItems: 'start' }}>
         <RevenueBars data={data.umsatzverlauf} />
         <CategoryBar slices={data.kategorie} />
       </div>
 
       {/* Verbatim grid-template-columns 1fr 1fr, gap 20px — Q-Records App.dc.html line 491 (.qr-dash-cols) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start' }}>
+      <div className="qr-analytik-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start' }}>
         <WeekdayBars data={data.wochentag} />
         <TimeBuckets data={data.tageszeit} />
       </div>

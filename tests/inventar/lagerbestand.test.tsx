@@ -4,7 +4,7 @@
 /// <reference types="@testing-library/jest-dom/vitest" />
 
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
-import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // vi.hoisted refs so we can control return values per test.
@@ -119,30 +119,40 @@ describe('InventoryList', () => {
 
   it('shows title and artist for each row', () => {
     render(<InventoryList rows={ROWS} total={ROWS.length} />);
-    expect(screen.getByText('Violator')).toBeInTheDocument();
-    expect(screen.getByText('Depeche Mode')).toBeInTheDocument();
-    expect(screen.getByText('Remain in Light')).toBeInTheDocument();
-    expect(screen.getByText('Talking Heads')).toBeInTheDocument();
+    // Slice 5: the same title/artist also renders in the mobile-card list (qr-mobile-only,
+    // hidden only via CSS which jsdom doesn't evaluate) — scope to the desktop table.
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('Violator')).toBeInTheDocument();
+    expect(table.getByText('Depeche Mode')).toBeInTheDocument();
+    expect(table.getByText('Remain in Light')).toBeInTheDocument();
+    expect(table.getByText('Talking Heads')).toBeInTheDocument();
   });
 
   it('shows EK and VK values', () => {
     render(<InventoryList rows={ROWS} total={ROWS.length} />);
-    expect(screen.getByText('8.00')).toBeInTheDocument();
-    expect(screen.getByText('28.00')).toBeInTheDocument();
+    // VK also renders in the mobile card (EK does not) — scope to the desktop table.
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('8.00')).toBeInTheDocument();
+    expect(table.getByText('28.00')).toBeInTheDocument();
   });
 
   it('renders StatusBadge with correct label', () => {
     render(<InventoryList rows={ROWS} total={ROWS.length} />);
-    expect(screen.getByText('im Lager')).toBeInTheDocument();
-    // "Verkauft" appears twice: StatusBadge + disabled Aktion button for sold row
+    // StatusBadge also renders in the mobile card — scope to the desktop table.
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('im Lager')).toBeInTheDocument();
+    // "Verkauft" appears multiple times: StatusBadge + disabled Aktion button, in both the
+    // table and the mobile card.
     expect(screen.getAllByText('Verkauft').length).toBeGreaterThan(0);
   });
 
   it('renders ConditionPill for rows with conditionRecord', () => {
     render(<InventoryList rows={ROWS} total={ROWS.length} />);
+    // ConditionPill also renders in the mobile card — scope to the desktop table.
+    const table = within(screen.getByRole('table'));
     // conditionRecord=5 → VG+, conditionRecord=4 → VG
-    expect(screen.getByText('VG+')).toBeInTheDocument();
-    expect(screen.getByText('VG')).toBeInTheDocument();
+    expect(table.getByText('VG+')).toBeInTheDocument();
+    expect(table.getByText('VG')).toBeInTheDocument();
   });
 
   it('applies opacity .62 to verkauft rows', () => {
@@ -156,9 +166,12 @@ describe('InventoryList', () => {
 
   it('activates Verkaufen for sellable rows and disables it for verkauft', () => {
     render(<InventoryList rows={ROWS} total={ROWS.length} />);
+    // The mobile card renders its own Verkaufen/Verkauft button per row — scope to the
+    // desktop table so this asserts the table row's Aktion button specifically.
+    const table = within(screen.getByRole('table'));
     // ROWS[0] is verfuegbar → enabled; ROWS[1] is verkauft → disabled "Verkauft".
-    expect(screen.getByRole('button', { name: /^Verkaufen$/i })).toBeEnabled();
-    expect(screen.getByRole('button', { name: /Verkauft/i })).toBeDisabled();
+    expect(table.getByRole('button', { name: /^Verkaufen$/i })).toBeEnabled();
+    expect(table.getByRole('button', { name: /Verkauft/i })).toBeDisabled();
   });
 
   it('shows footer with row count', () => {

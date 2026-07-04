@@ -179,3 +179,43 @@ export function parseInventoryFilters(
 
   return out;
 }
+
+/** Minimal row for the mobile sell flows — deliberately WITHOUT purchase price (EK stays server-side). */
+export type CopyHit = {
+  purchaseId: number;
+  title: string;
+  artist: string;
+  targetPrice: string | null;
+  conditionRecord: number | null;
+  conditionCover: number | null;
+};
+
+/** All verfuegbar copies of a Discogs release (label-QR sell flow, C7).
+ *  KRITISCH: matcht über records.discogsId — NIEMALS purchases.recordId (interne ID ≠ Release-ID). */
+export async function findAvailableCopiesByRelease(
+  ctx: { tenantId: number; userId: number | null },
+  discogsReleaseId: number,
+): Promise<CopyHit[]> {
+  return withTenant({ tenantId: ctx.tenantId, userId: ctx.userId }, async (tx) =>
+    tx
+      .select({
+        purchaseId: purchases.id,
+        title: records.title,
+        artist: records.artist,
+        targetPrice: purchases.targetPrice,
+        conditionRecord: purchases.conditionRecord,
+        conditionCover: purchases.conditionCover,
+      })
+      .from(purchases)
+      .innerJoin(records, eq(records.id, purchases.recordId))
+      .where(
+        and(
+          eq(purchases.tenantId, ctx.tenantId),
+          eq(records.tenantId, ctx.tenantId),
+          eq(records.discogsId, discogsReleaseId),
+          eq(purchases.status, 'verfuegbar'),
+        ),
+      )
+      .orderBy(asc(purchases.id)),
+  );
+}

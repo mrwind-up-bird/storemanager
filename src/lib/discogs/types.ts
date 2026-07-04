@@ -31,6 +31,8 @@ export interface DiscogsAdapter {
   getAccessToken(args: { requestToken: string; requestTokenSecret: string; verifier: string }):
     Promise<{ token: string; tokenSecret: string; username: string }>;
   search(auth: DiscogsAuth, query: string): Promise<DiscogsSearchResult[]>;
+  /** Discogs /database/search by EAN/UPC barcode — same result shape as search(). */
+  searchByBarcode(auth: DiscogsAuth, barcode: string): Promise<DiscogsSearchResult[]>;
   priceSuggestions(auth: DiscogsAuth, releaseId: number): Promise<DiscogsPriceSuggestion | null>;
   createListing(auth: DiscogsAuth, input: DiscogsListingInput): Promise<{ listingId: string }>;
 }

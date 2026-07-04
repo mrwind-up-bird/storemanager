@@ -23,7 +23,7 @@ export default async function WunschlistenPage() {
       data-testid="wishlist-screen"
       style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1100 }}
     >
-      <header style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <header className="qr-page-header" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <h1
           style={{
             fontFamily: 'var(--font-display)',

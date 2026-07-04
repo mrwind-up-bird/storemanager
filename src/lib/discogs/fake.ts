@@ -68,6 +68,9 @@ const FIXTURES: DiscogsSearchResult[] = [
   },
 ];
 
+/** The ONE fake barcode that hits — E2E + integration tests type this EAN (C4). */
+export const FAKE_BARCODE_HIT = '4988031234567';
+
 /**
  * Returns a deterministic `byGrade` price map for the given releaseId.
  * All 8 grade strings are always present. Prices vary slightly by releaseId
@@ -107,6 +110,11 @@ export function createFakeDiscogsAdapter(): DiscogsAdapter {
       return FIXTURES.filter(
         (r) => r.title.toLowerCase().includes(q) || r.artist.toLowerCase().includes(q),
       );
+    },
+
+    async searchByBarcode(_auth: DiscogsAuth, barcode: string): Promise<DiscogsSearchResult[]> {
+      if (barcode.trim() === FAKE_BARCODE_HIT) return [FIXTURES[0]!, FIXTURES[1]!];
+      return [];
     },
 
     async priceSuggestions(_auth: DiscogsAuth, releaseId: number): Promise<DiscogsPriceSuggestion | null> {

@@ -1,13 +1,24 @@
 // src/app/layout.tsx
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
 import { getCurrentTenantSlug, getCurrentTenant, accentOnColor } from '@/lib/tenant';
 import { ThemeProvider, type Theme, type Accent } from '@/components/theme/ThemeProvider';
+import { SwRegistration } from '@/components/pwa/SwRegistration';
 import { displayFont, bodyFont, monoFont } from '@/lib/fonts';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
   title: { default: 'q·records storemanager', template: '%s · q·records' },
+  appleWebApp: { capable: true, statusBarStyle: 'default' },
+  icons: { apple: '/icons/apple-touch-icon.png' },
+};
+
+// Statisch (KEIN Tenant-Zugriff): generateViewport liefe auch auf tenant-losen
+// Infrastruktur-Routen — tenant-genaues theme_color liefert das Manifest (C11).
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#FF5A5F',
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -68,6 +79,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <ThemeProvider defaultTheme={initialTheme} defaultAccent={initialAccent}>
           {children}
         </ThemeProvider>
+        <SwRegistration />
       </body>
     </html>
   );
