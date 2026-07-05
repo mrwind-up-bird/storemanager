@@ -119,16 +119,16 @@ interface BillingAdapter {
   parseWebhookEvent(rawBody: string, signature: string): BillingEvent; // wirft bei ungültiger Signatur
 }
 
-type BillingEvent =
-  | { kind: 'checkout_completed'; eventId: string; tenantId: number; planSlug: string;
+type BillingEvent = // alle Varianten tragen zusätzlich `type: string` (roher Provider-Event-Typ → webhook_events.type)
+  | { kind: 'checkout_completed'; eventId: string; type: string; tenantId: number; planSlug: string;
       customerId: string; subscriptionId: string }
-  | { kind: 'subscription_updated'; eventId: string; customerId: string; subscriptionId: string;
-      status: string; planSlug: string | null; currentPeriodEnd: Date; cancelAtPeriodEnd: boolean }
-  | { kind: 'subscription_deleted'; eventId: string; customerId: string; subscriptionId: string }
-  | { kind: 'ignored'; eventId: string };
+  | { kind: 'subscription_updated'; eventId: string; type: string; customerId: string; subscriptionId: string;
+      status: string; priceId: string | null; currentPeriodEnd: Date | null; cancelAtPeriodEnd: boolean }
+  | { kind: 'subscription_deleted'; eventId: string; type: string; customerId: string; subscriptionId: string }
+  | { kind: 'ignored'; eventId: string; type: string };
 ```
 
-- **Stripe-Driver:** offizielles `stripe`-npm-Paket, Server-only. Checkout-Session `mode: 'subscription'`, `line_items` aus `plans.stripePriceId` (Server ist Preisautorität — der Client liefert nur den Plan-Slug), `metadata: { tenantId, planSlug }` + `client_reference_id = tenantId`. Portal-Session via `billingPortal.sessions.create`. Webhook-Parse via `stripe.webhooks.constructEvent` mit `STRIPE_WEBHOOK_SECRET`; gemappt werden `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, alles andere → `ignored`. `planSlug` bei `subscription_updated` wird über die Price-ID → `plans.stripePriceId` rückaufgelöst (unbekannte Price-ID → `null`, Zeile wird dann ohne Plan-Wechsel aktualisiert + Warn-Log).
+- **Stripe-Driver:** offizielles `stripe`-npm-Paket, Server-only. Checkout-Session `mode: 'subscription'`, `line_items` aus `plans.stripePriceId` (Server ist Preisautorität — der Client liefert nur den Plan-Slug), `metadata: { tenantId, planSlug }` + `client_reference_id = tenantId`. Portal-Session via `billingPortal.sessions.create`. Webhook-Parse via `stripe.webhooks.constructEvent` mit `STRIPE_WEBHOOK_SECRET`; gemappt werden `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, alles andere → `ignored`. `subscription_updated` trägt die **rohe `priceId`** — die Rückauflösung Price-ID → `plans.stripePriceId` → Plan-Slug passiert im Webhook-Apply-Handler (`src/lib/billing/apply.ts`), nicht im Driver (Driver bleiben DB-frei); unbekannte Price-ID → Zeile wird ohne Plan-Wechsel aktualisiert + Warn-Log. *(Amendment Plan-Phase 2026-07-05.)*
 - **Fake-Driver:** `createCheckoutSession` schließt den Kauf **sofort** ab (Upsert `subscriptions` + `tenants.plan` im Owner-Kontext, deterministische Fake-IDs `fake_cus_<tenantId>` / `fake_sub_<tenantId>`) und gibt direkt `successUrl` zurück — der komplette Upgrade-Flow ist damit ohne Stripe-Keys E2E-testbar. `createPortalSession` gibt `returnUrl` zurück. `parseWebhookEvent` akzeptiert JSON-Body mit Signatur `fake` (für Integrationstests des Webhook-Handlers).
 - **Env** (`src/env.ts`): `BILLING_DRIVER` (`'fake' | 'stripe'`, Default `'fake'`), `STRIPE_SECRET_KEY` und `STRIPE_WEBHOOK_SECRET` (beide optional; zod-Refinement: Pflicht, wenn `BILLING_DRIVER === 'stripe'`). `.env.example` + Compose-Doku ergänzen; keine neuen Services.
 
@@ -152,7 +152,7 @@ platform_users / platform_sessions                 -- §5
 ```
 
 - `status` speichert den Stripe-Status als Text (informativ fürs UI); **Gating-Autorität ist ausschließlich `tenants.plan`** — nur Webhook-Handler, Fake-Checkout und der manuelle Superadmin-Override schreiben dieses Feld.
-- **Boot-Assertion** (Slice 0: jede Tenant-Tabelle braucht rowsecurity+force+policy): `platform_users`, `platform_sessions`, `webhook_events` kommen explizit auf die Registry-Ausnahmeliste; `subscriptions` bekommt Policies nach dem Muster von `0001_rls.sql`.
+- **Boot-Assertion** (Slice 0: jede Tenant-Tabelle braucht rowsecurity+force+policy): `subscriptions` kommt in `TENANT_SCOPED_TABLES` und bekommt Policies nach dem Muster von `0001_rls.sql`. Eine Registry-Ausnahmeliste ist **nicht nötig**: Der Drift-Guard introspiziert nur Tabellen **mit `tenant_id`-Spalte**, und `platform_users`/`platform_sessions`/`webhook_events` haben keine. Zusätzlich (enger als ursprünglich spezifiziert): Diese drei Registry-Tabellen bekommen **keine qr_app-Grants** — Zugriff ausschließlich via `withOwner()`. *(Amendment Plan-Phase 2026-07-05.)*
 - `subscriptions`-RLS-Test wie gehabt **nicht-vakuos**: beide Tenants besitzen je eine Zeile, A sieht exakt seine, B exakt seine.
 - Free-Plan = keine `subscriptions`-Zeile. Downgrade löscht **keine Daten**: Bestände über dem Limit bleiben, nur neue Anlagen werden blockiert (§10).
 - **Migration backfillt `onboardingCompletedAt = now()` für alle bestehenden Tenants** — Bestands-Tenants sind längst konfiguriert und dürfen beim nächsten Login nicht in den Wizard laufen. Nur neu provisionierte Tenants starten mit `NULL`.
@@ -213,7 +213,7 @@ platform_users / platform_sessions                 -- §5
 - Trigger: `(app)`-Layout redirectet Admins auf `/onboarding`, solange `tenants.onboardingCompletedAt IS NULL`. „Überspringen" (global sichtbar) setzt den Timestamp ebenfalls — der Wizard erscheint nie zweimal; alle Inhalte sind unter `/einstellungen` erreichbar.
 - 4 Schritte nach Design-Handoff (Stepper „Info → Discogs → Admin → Review", Buttons „Zurück"/„Weiter"):
   1. **Info:** Shop-Name (`tenants.name`), Primärfarbe (`tenants.config.branding.primaryColor`, WCAG-Check wie Provisioning). Speichern pro Schritt (kein Big-Bang-Submit am Ende).
-  2. **Discogs:** OAuth-Token + Token-Secret (Passwort-Felder), verschlüsselt via `encryptSecret` (AAD = Tenant) in `discogsConnections`; „Verbindung testen"-Button (Identity-Call über den aktiven Discogs-Driver; Fake-Driver: immer ok). Überspringbar („Später").
+  2. **Discogs:** Verbinden über den **bestehenden OAuth-Connect-Flow** (`/api/discogs/connect?from=onboarding`, Callback kehrt via Whitelist auf `?step=2` zurück) — keine manuellen Token-/Secret-Felder; Speicherung bleibt `encryptSecret` (AAD = Tenant) via `upsertConnection`. „Verbindung testen"-Button (neue `identity()`-Methode am `DiscogsAdapter`: http = GET /oauth/identity, fake = statisch ok). Überspringbar („Später"). *(Amendment Plan-Phase 2026-07-05.)*
   3. **Team:** weitere User anlegen — E-Mail + Rolle (`mitarbeiter`|`kunde`), generiertes temporäres Passwort per Mail (mailpit), `mustChangePassword=true`, `maxUsers`-Gate. Liste bereits angelegter User. Überspringbar.
   4. **Review:** Zusammenfassung (Name, Farbe als Swatch, Discogs verbunden ja/nein, Team-Anzahl); „Los geht's" setzt `onboardingCompletedAt` → Dashboard.
 - Alle Schritt-Submits sind normale Server Actions mit voller Kette (`requireSession` → admin-only → Origin → zod → Delegation).
@@ -222,11 +222,11 @@ platform_users / platform_sessions                 -- §5
 
 Tab-Struktur aus dem Design (Tabs via `?tab=` — Deep-Links aus Upsell/Checkout möglich):
 - **Info:** Shop-Name + Primärfarbe (identische Actions wie Wizard Schritt 1).
-- **Discogs:** Verbindungsstatus (verbunden seit / nicht verbunden), Token+Secret neu setzen (überschreibt verschlüsselt; vorhandene Secrets werden **nie** angezeigt, nur „gesetzt"-Status), „Verbindung testen".
+- **Discogs:** Verbindungsstatus (verbunden als `<username>` / nicht verbunden), (Neu-)Verbinden über den OAuth-Connect-Flow (`?from=einstellungen`, überschreibt verschlüsselt; vorhandene Secrets werden **nie** angezeigt), „Verbindung testen" (`identity()`). *(Amendment Plan-Phase 2026-07-05 — OAuth-Reuse statt manueller Token-Felder.)*
 - **Team:** User-Liste (E-Mail, Rolle, angelegt am), neuen User anlegen (wie Wizard Schritt 3), „Passwort zurücksetzen" (neues temp. Passwort + Mail + `mustChangePassword=true`). Kein Löschen von Usern in diesem Slice (Follow-up; Verkaufs-/Audit-Bezüge).
 - **Abo:** §9.
 
-Zugriff: `mitarbeiter`/`kunde` → `forbidden()`. Responsive über die bestehenden Slice-5-Klassen (`qr-page-header`, Karten <768px); **kein** neuer Bottom-Tab — Einstieg über Desktop-Sidebar-Eintrag + Mobile-Header-Menü. Wizard und Einstellungen wiederverwenden dieselben Formular-Komponenten je Themenblock (ein Formular, zwei Einbettungen — kein Copy-Paste-Drift).
+Zugriff: `mitarbeiter`/`kunde` → `forbidden()`. Responsive über die bestehenden Slice-5-Klassen (`qr-page-header`, Karten <768px); **kein** neuer Bottom-Tab — Einstieg über Desktop-Sidebar-Eintrag (admin-only) + Gear-Icon-Link im Mobile-Header *(Amendment Plan-Phase 2026-07-05: der Mobile-Header hat kein Menü)*. Wizard und Einstellungen wiederverwenden dieselben Formular-Komponenten je Themenblock (ein Formular, zwei Einbettungen — kein Copy-Paste-Drift).
 
 ## 13. Sicherheit & Invarianten (bindend)
 
@@ -261,3 +261,14 @@ Zugriff: `mitarbeiter`/`kunde` → `forbidden()`. Responsive über die bestehend
 - Design-Handoff: `.design-handoff/design-system-2026-refresh/` — 4-Schritt-Wizard + Einstellungs-Tabs in `Design System 2026.dc.html`
 - Muster: Discogs-Adapter (`src/lib/discogs/`), Provisioning (`src/lib/provisioning.ts`), Crypto (`src/lib/crypto.ts`), Tenant-Kontext (`src/db/tenant.ts`), Auth (`src/auth/config.ts`)
 - v1-Referenz (nyxcore `q-records`): Superadmin-Dashboard + Plan-Gating existierten; Stripe-Billing war in v1 nie fertig — kein Vorbild, Neuentwurf hier.
+
+## 16. Amendments (Plan-Phase, 2026-07-05)
+
+Bei der Plan-Erstellung (Fact-Gathering gegen den Ist-Code) wurden vier Punkte präzisiert und oben in §7/§8/§11/§12 eingearbeitet:
+
+1. **Discogs im Wizard/Einstellungen via OAuth-Reuse** statt manueller Token-/Secret-Felder — der komplette Connect-Flow existiert seit Slice 2 (`/api/discogs/connect` + Callback); er bekommt nur ein whitelisted `?from=`-Return-Ziel. Neu: `DiscogsAdapter.identity()` für „Verbindung testen".
+2. **Keine Boot-Assertion-Ausnahmeliste** — der Drift-Guard in `src/db/assertions.ts` introspiziert ausschließlich Tabellen mit `tenant_id`-Spalte; die drei neuen Registry-Tabellen haben keine. Verschärfung: `platform_users`/`platform_sessions`/`webhook_events` ohne qr_app-Grants (nur `withOwner()`).
+3. **`BillingEvent.subscription_updated` trägt `priceId`** (roh) statt aufgelöstem `planSlug`; die Auflösung macht der Apply-Handler — Driver bleiben DB-frei. Alle Event-Varianten tragen `type` (roher Provider-Typ) für `webhook_events.type`.
+4. **Mobile-Einstieg in die Einstellungen = Gear-Icon-Link** im Mobile-Header (ein „Menü" existiert dort nicht); Plan-Matrix-Pflege per Daten-Migration `0012` (Nachfolger von `0002_seed_plans.sql`), nicht per Seed-Skript.
+
+Umsetzung: `docs/superpowers/plans/2026-07-05-qrecords-v2-slice6-onboarding-superadmin-billing.md` (+ `-CONTRACTS.md`, C1–C12).
