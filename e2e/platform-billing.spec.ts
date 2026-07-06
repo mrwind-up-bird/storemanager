@@ -7,11 +7,9 @@
  */
 import { test, expect } from '@playwright/test';
 import {
-  DEMO_URL,
   FREESHOP_URL,
   FREESHOP_EMAIL,
   FREESHOP_PASSWORD,
-  PLATFORM_URL,
   platformLogin,
   login,
 } from './helpers';
@@ -30,8 +28,15 @@ test('1. Platform-Login → Tenant anlegen → temp. Passwort sichtbar → Tenan
 
   // Regression Middleware-Passthrough (T3): geteilte Root-Assets werden auf dem Platform-Host
   // NICHT auf /platform/* rewritet — sonst 404 für Icons/Service-Worker aus dem Root-Layout.
-  expect((await page.request.get(`${PLATFORM_URL}/sw.js`)).status()).toBe(200);
-  expect((await page.request.get(`${PLATFORM_URL}/icons/apple-touch-icon.png`)).status()).toBe(200);
+  // page.request (APIRequestContext) nutzt Node-DNS und löst *.localhost NICHT auf (nur der
+  // Browser tut das via page.goto). Wie in Szenario 5: 127.0.0.1 + Host-Header statt Subdomain.
+  const platformHost = { host: 'admin.localhost:3000' };
+  expect(
+    (await page.request.get('http://127.0.0.1:3000/sw.js', { headers: platformHost })).status(),
+  ).toBe(200);
+  expect(
+    (await page.request.get('http://127.0.0.1:3000/icons/apple-touch-icon.png', { headers: platformHost })).status(),
+  ).toBe(200);
 
   await page.getByTestId('platform-tenant-create-link').click();
   await page.getByLabel('Slug').fill(NEW_SLUG);
