@@ -6,27 +6,42 @@ import { env, tenantUrl } from '@/env';
 import { decryptSecret } from '@/lib/crypto';
 import { getDiscogsAdapter } from '@/lib/discogs/index';
 import { upsertConnection } from '@/lib/discogs-connection';
-import { discogsOAuthCookieName, parseCallbackParams } from '../_shared';
+import { discogsOAuthCookieName, parseCallbackParams, resolveReturnTarget, RETURN_PATHS } from '../_shared';
 
 export async function GET(request: NextRequest): Promise<Response> {
   const user = await requireSession();
   const tenant = await getCurrentTenant();
-  const back = (q: string): NextResponse =>
-    NextResponse.redirect(`${tenantUrl(tenant.slug)}/ankauf?${q}`);
-  const { oauthToken, verifier } = parseCallbackParams(request.nextUrl.searchParams);
 
   const jar = await cookies();
   const name = discogsOAuthCookieName(env.APP_PROTOCOL);
   const raw = jar.get(name)?.value;
-  if (!raw || !oauthToken || !verifier) return back('error=connect');
+
+  // returnTo steckt im verschlüsselten State-Cookie; ohne Cookie → Default 'ankauf'.
+  let returnTo = resolveReturnTarget(null);
+  let state: { token: string; tokenSecret: string } | null = null;
+  if (raw) {
+    try {
+      const parsedState = JSON.parse(decryptSecret(raw, { tenantId: user.tenantId })) as {
+        token: string;
+        tokenSecret: string;
+        returnTo?: unknown;
+      };
+      returnTo = resolveReturnTarget(parsedState.returnTo);
+      state = { token: parsedState.token, tokenSecret: parsedState.tokenSecret };
+    } catch {
+      state = null;
+    }
+  }
+  const back = (kind: 'ok' | 'err'): NextResponse =>
+    NextResponse.redirect(`${tenantUrl(tenant.slug)}${RETURN_PATHS[returnTo][kind]}`);
+
+  const { oauthToken, verifier } = parseCallbackParams(request.nextUrl.searchParams);
+  if (!state || !oauthToken || !verifier) return back('err');
   try {
-    const { token, tokenSecret } = JSON.parse(
-      decryptSecret(raw, { tenantId: user.tenantId }),
-    ) as { token: string; tokenSecret: string };
-    if (token !== oauthToken) return back('error=connect');
+    if (state.token !== oauthToken) return back('err');
     const access = await getDiscogsAdapter().getAccessToken({
-      requestToken: token,
-      requestTokenSecret: tokenSecret,
+      requestToken: state.token,
+      requestTokenSecret: state.tokenSecret,
       verifier,
     });
     await upsertConnection(
@@ -38,8 +53,8 @@ export async function GET(request: NextRequest): Promise<Response> {
       },
     );
     jar.delete(name);
-    return back('connected=1');
+    return back('ok');
   } catch {
-    return back('error=connect');
+    return back('err');
   }
 }

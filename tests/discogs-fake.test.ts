@@ -22,4 +22,10 @@ describe('fake driver', () => {
   it('selector returns the fake under fake env', () => {
     expect(getDiscogsAdapter().constructor === Object || typeof getDiscogsAdapter().search === 'function').toBe(true);
   });
+  it('identity liefert den statischen Fake-Usernamen', async () => {
+    const adapter = createFakeDiscogsAdapter();
+    await expect(adapter.identity({ token: 't', tokenSecret: 's' })).resolves.toEqual({
+      username: 'fake-seller',
+    });
+  });
 });

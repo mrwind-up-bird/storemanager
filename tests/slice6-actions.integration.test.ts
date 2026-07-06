@@ -127,3 +127,52 @@ describe('T7 tenant settings', () => {
     expect(after.rows[0].onboarding_completed_at).not.toBeNull();
   });
 });
+
+describe('T8 team lib', () => {
+  it('createTeamUser: Staff zählt gegen maxUsers, kunde nicht, Duplikat wirft DuplicateEmailError', async () => {
+    const { provisionTenant } = await import('@/lib/provisioning');
+    const { tenantId } = await provisionTenant({
+      slug: 'team-shop', name: 'Team', adminEmail: 'boss@team.test',
+    });
+    const { createTeamUser, DuplicateEmailError } = await import('@/lib/team');
+    const { LimitExceededError, FREE_FALLBACK_ENTITLEMENTS } = await import('@/lib/gating');
+    const ctx = { tenantId, userId: null };
+    const ent = { ...FREE_FALLBACK_ENTITLEMENTS, limits: { maxRecords: 100, maxUsers: 2 } };
+
+    // Staff aktuell 1 (admin) → +1 mitarbeiter ok (==2):
+    const created = await createTeamUser(ctx, ent, { email: 'm1@team.test', role: 'mitarbeiter' });
+    expect(created.temporaryPassword).toMatch(/^[A-Z2-7]{16}$/);
+    const flag = await owner.query(`SELECT must_change_password, role FROM users WHERE id = $1`, [created.userId]);
+    expect(flag.rows[0]).toMatchObject({ must_change_password: true, role: 'mitarbeiter' });
+
+    // Staff jetzt 2 → dritter Staff wirft:
+    await expect(
+      createTeamUser(ctx, ent, { email: 'm2@team.test', role: 'mitarbeiter' }),
+    ).rejects.toBeInstanceOf(LimitExceededError);
+
+    // kunde geht trotz vollem Staff-Limit:
+    await createTeamUser(ctx, ent, { email: 'k1@team.test', role: 'kunde' });
+
+    // Duplikat (gleiche Mail, gleicher Tenant):
+    await expect(
+      createTeamUser(ctx, ent, { email: 'k1@team.test', role: 'kunde' }),
+    ).rejects.toBeInstanceOf(DuplicateEmailError);
+  });
+
+  it('resetTeamUserPassword setzt Hash neu + mustChangePassword, unbekannte Id → null', async () => {
+    const { resetTeamUserPassword } = await import('@/lib/team');
+    const u = await owner.query(`SELECT id, tenant_id, password FROM users WHERE email = 'm1@team.test'`);
+    const result = await resetTeamUserPassword(
+      { tenantId: u.rows[0].tenant_id, userId: null },
+      u.rows[0].id,
+    );
+    expect(result).toMatchObject({ email: 'm1@team.test' });
+    const after = await owner.query(`SELECT password, must_change_password FROM users WHERE id = $1`, [u.rows[0].id]);
+    expect(after.rows[0].password).not.toBe(u.rows[0].password);
+    expect(after.rows[0].must_change_password).toBe(true);
+
+    expect(
+      await resetTeamUserPassword({ tenantId: u.rows[0].tenant_id, userId: null }, 999_999),
+    ).toBeNull();
+  });
+});

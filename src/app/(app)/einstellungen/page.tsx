@@ -1,8 +1,12 @@
 import { forbidden } from 'next/navigation';
 import { requireSession } from '@/auth/session';
 import { getCurrentTenant } from '@/lib/tenant';
+import { getConnection } from '@/lib/discogs-connection';
+import { listTeamUsers } from '@/lib/team';
 import { TabNav } from './_components/TabNav';
 import { ShopInfoForm } from './_components/ShopInfoForm';
+import { DiscogsTab } from './_components/DiscogsTab';
+import { TeamTab } from './_components/TeamTab';
 
 export type SettingsTab = 'info' | 'discogs' | 'team' | 'abo';
 const SETTINGS_TABS: readonly SettingsTab[] = ['info', 'discogs', 'team', 'abo'];
@@ -43,8 +47,17 @@ export default async function EinstellungenPage({
         {tab === 'info' ? (
           <ShopInfoForm initialName={tenant.name} initialColor={tenant.branding.primaryColor} />
         ) : null}
-        {tab === 'discogs' ? <p data-testid="tab-discogs">Discogs-Tab folgt (T8).</p> : null}
-        {tab === 'team' ? <p data-testid="tab-team">Team-Tab folgt (T8).</p> : null}
+        {tab === 'discogs' ? (
+          <DiscogsTab
+            connectedUsername={
+              (await getConnection({ tenantId: tenant.id, userId: user.id }))?.discogsUsername ?? null
+            }
+            from="einstellungen"
+          />
+        ) : null}
+        {tab === 'team' ? (
+          <TeamTab users={await listTeamUsers({ tenantId: tenant.id, userId: user.id })} />
+        ) : null}
         {tab === 'abo' ? <p data-testid="tab-abo">Abo-Tab folgt (T9).</p> : null}
       </div>
     </section>
