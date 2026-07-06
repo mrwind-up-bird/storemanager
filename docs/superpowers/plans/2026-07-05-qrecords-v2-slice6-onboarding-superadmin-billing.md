@@ -2077,8 +2077,20 @@ Create `src/app/platform/(dashboard)/tenants/neu/CreateTenantForm.tsx`:
 'use client';
 
 import { useActionState } from 'react';
-import { Button, Input, Select } from '@/components/ui';
+import { Button, Input } from '@/components/ui';
 import { createTenantAction, type CreateTenantState } from '../actions';
+
+const selectStyle: React.CSSProperties = {
+  minHeight: 'var(--tap)',
+  padding: '0 14px',
+  border: '1.5px solid var(--border-strong)',
+  borderRadius: 'var(--r-md)',
+  background: 'var(--surface-2)',
+  color: 'var(--text)',
+  fontFamily: 'var(--font-body)',
+  fontSize: 15,
+  cursor: 'pointer',
+};
 
 const initialState: CreateTenantState = { ok: false, error: null, temporaryPassword: null, slug: null };
 
@@ -2139,11 +2151,11 @@ export function CreateTenantForm({ rootDomain }: { rootDomain: string }) {
       <label htmlFor="primaryColor">Primärfarbe</label>
       <Input id="primaryColor" name="primaryColor" defaultValue="#C84B31" required aria-label="Primärfarbe" />
       <label htmlFor="plan">Plan</label>
-      <Select id="plan" name="plan" defaultValue="free" aria-label="Plan">
+      <select id="plan" name="plan" defaultValue="free" aria-label="Plan" className="focus-ring-field" style={selectStyle}>
         <option value="free">Free</option>
         <option value="small">Small</option>
         <option value="big">Big</option>
-      </Select>
+      </select>
       {state.error ? <p role="alert">{state.error}</p> : null}
       <Button type="submit" loading={pending}>
         Anlegen
@@ -2153,7 +2165,7 @@ export function CreateTenantForm({ rootDomain }: { rootDomain: string }) {
 }
 ```
 
-(Prop-API von `Select` vor Verwendung in `src/components/ui/Select.tsx` prüfen — falls es Options als Props statt Children erwartet, an die vorhandene API anpassen; die Optionswerte `free|small|big` und Labels bleiben exakt diese.)
+(Bewusst natives `<select>` statt der UI-Komponente `Select`: deren Props `options`/`value`/`onChange` sind alle Pflicht (controlled-only, Children werden ignoriert) — für ein unkontrolliertes FormData-Formular wäre zusätzlicher `useState`-Ballast nötig. Das native Element übernimmt `focus-ring-field` + Feldstyles aus dem Designsystem; die Optionswerte `free|small|big` und Labels bleiben exakt diese. Gilt genauso für `PlanOverrideForm` in Step 5 und `CreateUserForm` in Task 8.)
 
 Create `src/app/platform/(dashboard)/tenants/neu/page.tsx`:
 
@@ -2181,21 +2193,33 @@ Create `src/app/platform/(dashboard)/tenants/[id]/_components/PlanOverrideForm.t
 'use client';
 
 import { useActionState } from 'react';
-import { Button, Select } from '@/components/ui';
+import { Button } from '@/components/ui';
 import { setTenantPlanAction, type PlatformActionState } from '../../actions';
 
 const initialState: PlatformActionState = { ok: false, error: null };
+
+const selectStyle: React.CSSProperties = {
+  minHeight: 'var(--tap)',
+  padding: '0 14px',
+  border: '1.5px solid var(--border-strong)',
+  borderRadius: 'var(--r-md)',
+  background: 'var(--surface-2)',
+  color: 'var(--text)',
+  fontFamily: 'var(--font-body)',
+  fontSize: 15,
+  cursor: 'pointer',
+};
 
 export function PlanOverrideForm({ tenantId, currentPlan }: { tenantId: number; currentPlan: string }) {
   const [state, action, pending] = useActionState(setTenantPlanAction, initialState);
   return (
     <form action={action} data-testid="plan-override-form" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
       <input type="hidden" name="tenantId" value={tenantId} />
-      <Select name="plan" defaultValue={currentPlan} aria-label="Plan">
+      <select name="plan" defaultValue={currentPlan} aria-label="Plan" className="focus-ring-field" style={selectStyle}>
         <option value="free">Free</option>
         <option value="small">Small</option>
         <option value="big">Big</option>
-      </Select>
+      </select>
       <Button type="submit" loading={pending}>
         Plan speichern
       </Button>
@@ -4467,10 +4491,24 @@ Create `src/app/(app)/einstellungen/_components/CreateUserForm.tsx`:
 'use client';
 
 import { useActionState } from 'react';
-import { Button, Input, Select } from '@/components/ui';
+import { Button, Input } from '@/components/ui';
 import { createTeamUserAction, type TeamActionState } from '../actions';
 
 const initialState: TeamActionState = { ok: false, error: null, info: null };
+
+// Natives <select> statt UI-Select: dessen options/value/onChange sind Pflicht (controlled-only),
+// hier reicht ein unkontrolliertes FormData-Feld (siehe Task 4, Step 4).
+const selectStyle: React.CSSProperties = {
+  minHeight: 'var(--tap)',
+  padding: '0 14px',
+  border: '1.5px solid var(--border-strong)',
+  borderRadius: 'var(--r-md)',
+  background: 'var(--surface-2)',
+  color: 'var(--text)',
+  fontFamily: 'var(--font-body)',
+  fontSize: 15,
+  cursor: 'pointer',
+};
 
 export function CreateUserForm() {
   const [state, action, pending] = useActionState(createTeamUserAction, initialState);
@@ -4483,10 +4521,10 @@ export function CreateUserForm() {
       <label htmlFor="team-email">E-Mail</label>
       <Input id="team-email" name="email" type="email" required aria-label="E-Mail" />
       <label htmlFor="team-role">Rolle</label>
-      <Select id="team-role" name="role" defaultValue="mitarbeiter" aria-label="Rolle">
+      <select id="team-role" name="role" defaultValue="mitarbeiter" aria-label="Rolle" className="focus-ring-field" style={selectStyle}>
         <option value="mitarbeiter">Mitarbeiter</option>
         <option value="kunde">Kunde</option>
-      </Select>
+      </select>
       {state.error ? <p role="alert" data-testid="create-user-error">{state.error}</p> : null}
       {state.ok && state.info ? <p data-testid="create-user-ok">{state.info}</p> : null}
       <Button type="submit" loading={pending}>
