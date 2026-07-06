@@ -23,6 +23,7 @@ export type Tenant = {
   plan: string;
   branding: TenantBranding;
   limits: Record<string, unknown>;
+  onboardingCompletedAt: Date | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -65,6 +66,7 @@ export const getCurrentTenant: () => Promise<Tenant> = cache(
         logo: config.branding?.logo ?? null,
       },
       limits: (row.limits ?? {}) as Record<string, unknown>,
+      onboardingCompletedAt: row.onboardingCompletedAt ?? null,
     };
   },
 );
