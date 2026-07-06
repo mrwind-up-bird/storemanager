@@ -10,6 +10,7 @@ import { setupTestDatabase, seedTenant } from '../helpers/db';
 let performAnkauf: (typeof import('@/lib/ankauf'))['performAnkauf'];
 let withTenant: (typeof import('@/db/tenant'))['withTenant'];
 let schema: typeof import('@/db/schema');
+let UNLIMITED_ENTITLEMENTS: (typeof import('@/lib/gating'))['UNLIMITED_ENTITLEMENTS'];
 let teardown: (() => Promise<void>) | undefined;
 let tenantA: number;
 
@@ -32,6 +33,7 @@ beforeAll(async () => {
   ({ performAnkauf } = await import('@/lib/ankauf'));
   ({ withTenant } = await import('@/db/tenant'));
   schema = await import('@/db/schema');
+  ({ UNLIMITED_ENTITLEMENTS } = await import('@/lib/gating'));
   tenantA = (await seedTenant({ slug: 'acquire-demo', name: 'Acquire Demo' })).tenantId;
 });
 afterAll(async () => {
@@ -49,8 +51,8 @@ describe('performAnkauf (regression via acquireOne)', () => {
       conditionCover: 4,
       listOnDiscogs: false,
     };
-    const first = await performAnkauf(ctx(), input);
-    const second = await performAnkauf(ctx(), input);
+    const first = await performAnkauf(ctx(), input, UNLIMITED_ENTITLEMENTS);
+    const second = await performAnkauf(ctx(), input, UNLIMITED_ENTITLEMENTS);
     expect(first.recordId).toBe(second.recordId);
     expect(first.purchaseId).not.toBe(second.purchaseId);
 
@@ -102,7 +104,7 @@ describe('acquireOne — nullable discogsId + preserve-on-null upsert', () => {
       conditionCover: 3,
       listOnDiscogs: false,
     };
-    const { recordId } = await performAnkauf(ctx(), input);
+    const { recordId } = await performAnkauf(ctx(), input, UNLIMITED_ENTITLEMENTS);
     const eq = (await import('drizzle-orm')).eq;
     const [rec] = await withTenant(ctx(), async (tx) =>
       tx.select().from(schema.records).where(eq(schema.records.id, recordId)),
@@ -137,7 +139,11 @@ describe('acquireOne — nullable discogsId + preserve-on-null upsert', () => {
     };
 
     // 1. Real discogsId + coverImage.
-    const first = await performAnkauf(ctx(), inputFor(42, 'https://i.discogs.com/cover42.jpg'));
+    const first = await performAnkauf(
+      ctx(),
+      inputFor(42, 'https://i.discogs.com/cover42.jpg'),
+      UNLIMITED_ENTITLEMENTS,
+    );
     let rec = await readRecord(first.recordId);
     expect(rec.discogsId).toBe(42);
     expect(rec.coverImage).toBe('https://i.discogs.com/cover42.jpg');
@@ -146,7 +152,7 @@ describe('acquireOne — nullable discogsId + preserve-on-null upsert', () => {
     //    clobber the real values already on the record. This is the CRITICAL fix under test —
     //    against the pre-fix always-overwrite `onConflictDoUpdate`, this fails: the record would
     //    come back with discogs_id === null and cover_image === null.
-    const second = await performAnkauf(ctx(), inputFor(null, null));
+    const second = await performAnkauf(ctx(), inputFor(null, null), UNLIMITED_ENTITLEMENTS);
     expect(second.recordId).toBe(first.recordId);
     rec = await readRecord(first.recordId);
     expect(rec.discogsId).toBe(42);
@@ -154,7 +160,11 @@ describe('acquireOne — nullable discogsId + preserve-on-null upsert', () => {
 
     // 3. Same hash, a DIFFERENT real discogsId: refresh semantics still work — the new real
     //    value wins (this is what makes re-running a Discogs Ankauf on the same release useful).
-    const third = await performAnkauf(ctx(), inputFor(43, 'https://i.discogs.com/cover43.jpg'));
+    const third = await performAnkauf(
+      ctx(),
+      inputFor(43, 'https://i.discogs.com/cover43.jpg'),
+      UNLIMITED_ENTITLEMENTS,
+    );
     expect(third.recordId).toBe(first.recordId);
     rec = await readRecord(first.recordId);
     expect(rec.discogsId).toBe(43);

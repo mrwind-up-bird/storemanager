@@ -19,6 +19,27 @@ const createCollection = vi.fn(async () => ({
 const enqueueWishlistMatch = vi.fn(async () => undefined);
 const enqueueDiscogsListing = vi.fn(async () => undefined);
 
+// Slice 6 T12: the action now loads getEntitlements(user.tenantId) before createCollection —
+// mocked out here (no DB in this fast unit test) so the discogsListing-feature-gated fixture
+// below (listOnDiscogs: true) still reaches createCollection instead of short-circuiting.
+class LimitExceededError extends Error {
+  constructor(
+    message: string,
+    public readonly current: number,
+    public readonly max: number,
+  ) {
+    super(message);
+    this.name = 'LimitExceededError';
+  }
+}
+const getEntitlements = vi.fn(async () => ({
+  plan: 'big',
+  planName: 'Big',
+  priceMonthlyCents: 4900,
+  limits: { maxRecords: null, maxUsers: null },
+  features: { analytik: true, discogsListing: true },
+}));
+
 const release = {
   discogsId: 42,
   title: 'Kind of Blue',
@@ -87,6 +108,7 @@ beforeAll(async () => {
   vi.doMock('next/cache', () => ({ revalidatePath: () => undefined }));
   vi.doMock('@/lib/collections', () => ({ createCollection }));
   vi.doMock('@/lib/jobs', () => ({ enqueueWishlistMatch, enqueueDiscogsListing }));
+  vi.doMock('@/lib/gating', () => ({ getEntitlements, LimitExceededError }));
   vi.resetModules();
   actions = await import('@/app/(app)/ankauf/sammlung/actions');
 });

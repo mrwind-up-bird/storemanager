@@ -3,6 +3,8 @@ import { forbidden } from 'next/navigation';
 import { requireSession } from '@/auth/session';
 import { getCurrentTenant } from '@/lib/tenant';
 import { getAnalytics, type AnalyticsPeriod } from '@/lib/analytics';
+import { getEntitlements } from '@/lib/gating';
+import { AnalytikUpsell } from './_components/AnalytikUpsell';
 import { PeriodToggle } from './_components/PeriodToggle';
 import { AnalyticsKpis } from './_components/AnalyticsKpis';
 import { RevenueBars } from './_components/RevenueBars';
@@ -24,6 +26,17 @@ export default async function AnalytikPage({
   if (user.role === 'kunde') forbidden();
 
   const tenant = await getCurrentTenant();
+
+  const ent = await getEntitlements(tenant.id);
+  if (!ent.features.analytik) {
+    return (
+      <AnalytikUpsell
+        planName={ent.planName}
+        isAdmin={user.role === 'admin' || user.isSuperadmin}
+      />
+    );
+  }
+
   const ctx = { tenantId: tenant.id, userId: user.id };
 
   // searchParams is a Promise in Next 15 — await before reading, then validate against the

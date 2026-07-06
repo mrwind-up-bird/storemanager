@@ -117,4 +117,36 @@ describe('gating capacity checks + freeshop reset', () => {
     const recs = await owner.query(`SELECT count(*)::int AS n FROM records WHERE tenant_id = $1`, [t.tenantId]);
     expect(recs.rows[0].n).toBe(1); // nur die Seed-Baseline
   });
+
+  it('performAnkauf/createCollection erzwingen das Limit in der Tx (Ende-zu-Ende)', async () => {
+    const t = await seedTenant({ slug: 'gate2', name: 'Gate 2' });
+    const { FREE_FALLBACK_ENTITLEMENTS, LimitExceededError } = await import('@/lib/gating');
+    const { performAnkauf } = await import('@/lib/ankauf');
+    const { createCollection } = await import('@/lib/collections');
+    const ent = { ...FREE_FALLBACK_ENTITLEMENTS, limits: { maxRecords: 2, maxUsers: 2 } };
+    const ctx = { tenantId: t.tenantId, userId: t.adminUserId };
+    const item = (title: string) => ({
+      release: { discogsId: null, title, artist: 'Gate Artist', country: null, year: null, format: 'Vinyl', genre: [], label: [], coverImage: null },
+      purchasePrice: '1.00', targetPrice: '2.00', conditionRecord: 5, conditionCover: 5, listOnDiscogs: false,
+    });
+
+    await performAnkauf(ctx, item('Erste'), ent);          // 0+1 ≤ 2
+    await performAnkauf(ctx, item('Zweite'), ent);         // 1+1 ≤ 2
+    await expect(performAnkauf(ctx, item('Dritte'), ent)).rejects.toBeInstanceOf(LimitExceededError);
+
+    // Batch: 2 vorhanden, Limit 4, Batchgröße 3 → wirft (2+3 > 4), NICHTS committed:
+    const ent4 = { ...ent, limits: { maxRecords: 4, maxUsers: 2 } };
+    await expect(
+      createCollection(ctx, { sellerName: 'Zu groß', items: [item('A'), item('B'), item('C')] }, ent4),
+    ).rejects.toBeInstanceOf(LimitExceededError);
+    const count = await owner.query(
+      `SELECT (SELECT count(*)::int FROM records WHERE tenant_id = $1) AS records,
+              (SELECT count(*)::int FROM collections WHERE tenant_id = $1) AS collections`,
+      [t.tenantId],
+    );
+    expect(count.rows[0]).toEqual({ records: 2, collections: 0 });
+
+    // Batchgröße 2 → passt exakt (2+2 == 4):
+    await createCollection(ctx, { sellerName: 'Passt', items: [item('A'), item('B')] }, ent4);
+  });
 });

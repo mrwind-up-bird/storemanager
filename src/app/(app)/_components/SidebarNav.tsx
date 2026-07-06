@@ -12,6 +12,7 @@ import {
   Store,
   BarChart3,
   Settings,
+  Lock,
   type LucideIcon,
 } from 'lucide-react';
 import type { Role } from '@/db/schema';
@@ -37,7 +38,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/einstellungen', label: 'Einstellungen', Icon: Settings, adminOnly: true },
 ];
 
-export function SidebarNav({ role }: { role: Role }) {
+export function SidebarNav({ role, lockedHrefs = [] }: { role: Role; lockedHrefs?: string[] }) {
   const pathname = usePathname();
   const isStaff = role !== 'kunde';
   const isAdmin = role === 'admin' || role === 'superadmin';
@@ -50,11 +51,13 @@ export function SidebarNav({ role }: { role: Role }) {
       {items.map(({ href, label, Icon }) => {
         // Exact match for dashboard, prefix match for others
         const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
+        const isLocked = lockedHrefs.includes(href);
         return (
           <Link
             key={href}
             href={href}
             aria-current={isActive ? 'page' : undefined}
+            aria-label={isLocked ? `${label} (gesperrt im aktuellen Plan)` : undefined}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -73,6 +76,14 @@ export function SidebarNav({ role }: { role: Role }) {
           >
             <Icon size={18} aria-hidden="true" />
             {label}
+            {isLocked ? (
+              <Lock
+                size={13}
+                aria-hidden="true"
+                data-testid={`nav-lock-${href.replace('/', '')}`}
+                style={{ marginLeft: 'auto', color: 'var(--text-3)' }}
+              />
+            ) : null}
           </Link>
         );
       })}

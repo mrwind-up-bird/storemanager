@@ -15,6 +15,7 @@ import { getEmailAdapter, sendCredentialsEmail } from '../src/lib/email';
 import { encryptSecret } from '../src/lib/crypto';
 import { createCollection } from '../src/lib/collections';
 import type { AnkaufInput } from '../src/lib/ankauf';
+import { UNLIMITED_ENTITLEMENTS } from '../src/lib/gating';
 
 // ---------------------------------------------------------------------------
 // Tenant definitions
@@ -832,6 +833,8 @@ export async function ensureDemoCollection(
   const { collectionId, purchaseIds } = await createCollection(
     { tenantId, userId: adminUserId },
     { sellerName: input.sellerName, items: input.items },
+    // Vertrauenswürdiger Fixture-Pfad — Request-Pfade laden IMMER getEntitlements (Spec §10).
+    UNLIMITED_ENTITLEMENTS,
   );
 
   console.log(

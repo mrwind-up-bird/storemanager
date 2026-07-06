@@ -11,6 +11,7 @@ import { DiscogsAuthError } from '@/lib/discogs/types';
 import type { DiscogsSearchResult, DiscogsPriceSuggestion } from '@/lib/discogs/types';
 import { performAnkauf, type AnkaufInput } from '@/lib/ankauf';
 import { enqueueDiscogsListing, enqueueWishlistMatch } from '@/lib/jobs';
+import { getEntitlements, LimitExceededError } from '@/lib/gating';
 
 export type SearchResultDTO = DiscogsSearchResult;
 
@@ -97,11 +98,27 @@ export async function ankaufRecord(
   }
 
   const ctx = { tenantId: user.tenantId, userId: user.id };
+  const ent = await getEntitlements(user.tenantId);
+
+  // Modul-Gate VOR der Tx (Spec §10): „Bei Discogs listen" braucht das Feature; die
+  // Discogs-SUCHE bleibt ungated (Produktkern).
+  if (parsed.data.listOnDiscogs && !ent.features.discogsListing) {
+    return {
+      ok: false,
+      reason: 'validation',
+      message: `Discogs-Listing ist im ${ent.planName}-Plan nicht verfügbar. Upgrade unter Einstellungen → Abo.`,
+    };
+  }
+
   let recordId: number;
   let purchaseId: number;
   try {
-    ({ recordId, purchaseId } = await performAnkauf(ctx, parsed.data));
-  } catch {
+    ({ recordId, purchaseId } = await performAnkauf(ctx, parsed.data, ent));
+  } catch (err) {
+    if (err instanceof LimitExceededError) {
+      // Exakter Meldungstext aus der Lib (CONTRACTS C8) — als Formularfehler (Spec §10).
+      return { ok: false, reason: 'validation', message: err.message };
+    }
     return { ok: false, reason: 'error' };
   }
 

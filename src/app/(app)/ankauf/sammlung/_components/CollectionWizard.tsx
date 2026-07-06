@@ -232,6 +232,7 @@ export function CollectionWizard() {
       {error != null && (
         <p
           role="alert"
+          data-testid="sammlung-error"
           style={{
             margin: 0,
             padding: '10px 14px',

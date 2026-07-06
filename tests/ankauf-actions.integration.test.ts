@@ -50,6 +50,11 @@ beforeAll(async () => {
   // Seed AFTER resetModules so seedTenant's ownerPool binds to the same @/db/client
   // instance the teardown closes (a pre-reset seed would leak a qr_owner connection).
   tenantA = (await seedTenant({ slug: 'demo', name: 'Demo' })).tenantId;
+  // Slice 6 T12: ankaufRecord now gates on entitlements (feature + capacity). The seeded
+  // tenant defaults to plan='free' (no discogsListing) — bump to 'big' so this file's
+  // listOnDiscogs:true fixtures keep exercising the enqueue path, not the feature gate.
+  const { ownerPool } = await import('@/db/client');
+  await ownerPool.query('UPDATE tenants SET plan = $1 WHERE id = $2', ['big', tenantA]);
   mod = await import('@/lib/discogs-connection');
   actions = await import('@/app/(app)/ankauf/actions');
 }, 60_000);

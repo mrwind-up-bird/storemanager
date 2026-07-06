@@ -2,6 +2,7 @@
 import { redirect } from 'next/navigation';
 import { requireSession } from '@/auth/session';
 import { getCurrentTenant } from '@/lib/tenant';
+import { getEntitlements } from '@/lib/gating';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { AccentSwitch } from '@/components/theme/AccentSwitch';
 import { VinylDisc } from '@/components/ui/VinylDisc';
@@ -20,6 +21,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if ((user.role === 'admin' || user.isSuperadmin) && !tenant.onboardingCompletedAt) {
     redirect('/onboarding');
   }
+
+  const ent = await getEntitlements(tenant.id);
+  // Gated Module bleiben sichtbar mit Schloss (Spec §10) — Klick landet auf der Upsell-Karte.
+  const lockedHrefs = ent.features.analytik ? [] : ['/analytik'];
 
   const initial = (user.email[0] ?? '?').toUpperCase();
 
@@ -90,7 +95,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
         {/* Nav — client component (needs usePathname for active state).
             Pass the session role so Kasse + Wunschlisten are staff-gated (kunde never sees them). */}
-        <SidebarNav role={user.role} />
+        <SidebarNav role={user.role} lockedHrefs={lockedHrefs} />
 
         {/* User card */}
         <div
@@ -180,7 +185,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </main>
       </div>
 
-      <BottomTabBar role={user.role} />
+      <BottomTabBar role={user.role} lockedHrefs={lockedHrefs} />
     </div>
   );
 }

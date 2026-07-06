@@ -7,6 +7,7 @@ let wishlist: typeof import('@/lib/wishlist');
 let performAnkauf: (typeof import('@/lib/ankauf'))['performAnkauf'];
 let withTenant: (typeof import('@/db/tenant'))['withTenant'];
 let schema: typeof import('@/db/schema');
+let UNLIMITED_ENTITLEMENTS: (typeof import('@/lib/gating'))['UNLIMITED_ENTITLEMENTS'];
 let teardown: (() => Promise<void>) | undefined;
 let tenantA: number;
 let adminUserId: number;
@@ -23,6 +24,7 @@ beforeAll(async () => {
   ({ performAnkauf } = await import('@/lib/ankauf'));
   ({ withTenant } = await import('@/db/tenant'));
   schema = await import('@/db/schema');
+  ({ UNLIMITED_ENTITLEMENTS } = await import('@/lib/gating'));
   // Seed AFTER resetModules so seedTenant's ownerPool binds to the same @/db/client
   // instance teardown closes.
   ({ tenantId: tenantA, adminUserId } = await seedTenant({ slug: 'demo', name: 'Demo' }));
@@ -59,6 +61,7 @@ const ankauf = (artist: string, title: string, discogsId: number) =>
       conditionCover: 4,
       listOnDiscogs: false,
     },
+    UNLIMITED_ENTITLEMENTS,
   );
 
 const fakeJob = (purchaseId: number, recordId: number) =>

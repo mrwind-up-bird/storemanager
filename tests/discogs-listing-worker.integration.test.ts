@@ -6,6 +6,7 @@ let performAnkauf: (typeof import('@/lib/ankauf'))['performAnkauf'];
 let upsertConnection: (typeof import('@/lib/discogs-connection'))['upsertConnection'];
 let withTenant: (typeof import('@/db/tenant'))['withTenant'];
 let schema: typeof import('@/db/schema');
+let UNLIMITED_ENTITLEMENTS: (typeof import('@/lib/gating'))['UNLIMITED_ENTITLEMENTS'];
 let teardown: (() => Promise<void>) | undefined;
 let tenantA: number;
 
@@ -21,6 +22,7 @@ beforeAll(async () => {
   ({ upsertConnection } = await import('@/lib/discogs-connection'));
   ({ withTenant } = await import('@/db/tenant'));
   schema = await import('@/db/schema');
+  ({ UNLIMITED_ENTITLEMENTS } = await import('@/lib/gating'));
   tenantA = (await seedTenant({ slug: 'demo', name: 'Demo' })).tenantId;
   await upsertConnection(
     { tenantId: tenantA, userId: null },
@@ -69,6 +71,7 @@ describe('handleDiscogsListingCreate', () => {
         conditionCover: 4,
         listOnDiscogs: true,
       },
+      UNLIMITED_ENTITLEMENTS,
     );
     await handle(fakeJob(purchaseId));
     const row = await status(purchaseId);
@@ -93,6 +96,7 @@ describe('handleDiscogsListingCreate', () => {
           conditionCover: 4,
           listOnDiscogs: true,
         },
+        UNLIMITED_ENTITLEMENTS,
       );
       await handle(fakeJob(purchaseId));
       const first = await status(purchaseId);
@@ -122,6 +126,7 @@ describe('handleDiscogsListingCreate', () => {
         conditionCover: 4,
         listOnDiscogs: true,
       },
+      UNLIMITED_ENTITLEMENTS,
     );
     await handle(fakeJob(purchaseId));
     const row = await status(purchaseId);

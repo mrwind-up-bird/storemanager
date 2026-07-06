@@ -42,6 +42,12 @@ beforeAll(async () => {
   const seedB = await seedTenant({ slug: 'other', name: 'Other' });
   tenantB = seedB.tenantId;
 
+  // Slice 6 T12: the export route now gates on entitlements (features.analytik). The seeded
+  // tenant defaults to plan='free' (no analytik) — bump to 'big' so this file's CSV assertions
+  // keep exercising the export path, not the feature gate.
+  const { ownerPool } = await import('@/db/client');
+  await ownerPool.query('UPDATE tenants SET plan = $1 WHERE id = $2', ['big', tenantA]);
+
   ({ withOwner } = await import('@/db/tenant'));
   ({ transactions } = await import('@/db/schema'));
   ({ GET } = await import('@/app/(app)/analytik/export/route'));
