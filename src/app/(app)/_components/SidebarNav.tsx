@@ -11,6 +11,7 @@ import {
   Library,
   Store,
   BarChart3,
+  Settings,
   type LucideIcon,
 } from 'lucide-react';
 import type { Role } from '@/db/schema';
@@ -21,6 +22,8 @@ type NavItem = {
   Icon: LucideIcon;
   /** Visible only to staff (role ∈ {mitarbeiter, admin, superadmin}); hidden from `kunde`. */
   staffOnly?: boolean;
+  /** Visible only to admin/superadmin (Spec §12: Einstellungen ist admin-only). */
+  adminOnly?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -31,12 +34,16 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/ankauf/sammlungen', label: 'Sammlungen', Icon: Library,   staffOnly: true      },
   { href: '/schaufenster', label: 'Schaufenster', Icon: Store                              },
   { href: '/analytik',     label: 'Analytik',     Icon: BarChart3                          },
+  { href: '/einstellungen', label: 'Einstellungen', Icon: Settings, adminOnly: true },
 ];
 
 export function SidebarNav({ role }: { role: Role }) {
   const pathname = usePathname();
   const isStaff = role !== 'kunde';
-  const items = NAV_ITEMS.filter((item) => !item.staffOnly || isStaff);
+  const isAdmin = role === 'admin' || role === 'superadmin';
+  const items = NAV_ITEMS.filter(
+    (item) => (!item.staffOnly || isStaff) && (!item.adminOnly || isAdmin),
+  );
 
   return (
     <nav aria-label="Hauptnavigation" style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>

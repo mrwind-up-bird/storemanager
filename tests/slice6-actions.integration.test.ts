@@ -104,3 +104,26 @@ describe('T4 platform tenant actions (echte Server Actions) + Lib', () => {
     expect(after.rows[0].must_change_password).toBe(true);
   });
 });
+
+describe('T7 tenant settings', () => {
+  it('updateTenantInfo schreibt Name + Farbe und erhält logo im config-Merge', async () => {
+    const { provisionTenant } = await import('@/lib/provisioning');
+    const { tenantId } = await provisionTenant({
+      slug: 'settings-shop', name: 'Vorher', adminEmail: 'a@settings.test', primaryColor: '#C84B31',
+    });
+    await owner.query(
+      `UPDATE tenants SET config = jsonb_set(config, '{branding,logo}', '"logo.png"') WHERE id = $1`,
+      [tenantId],
+    );
+    const { updateTenantInfo, completeOnboarding } = await import('@/lib/tenant-settings');
+    await updateTenantInfo(tenantId, { name: 'Nachher', primaryColor: '#5B4FCF' });
+    const row = await owner.query(`SELECT name, config, onboarding_completed_at FROM tenants WHERE id = $1`, [tenantId]);
+    expect(row.rows[0].name).toBe('Nachher');
+    expect(row.rows[0].config.branding).toEqual({ primaryColor: '#5B4FCF', logo: 'logo.png' });
+    expect(row.rows[0].onboarding_completed_at).toBeNull();
+
+    await completeOnboarding(tenantId);
+    const after = await owner.query(`SELECT onboarding_completed_at FROM tenants WHERE id = $1`, [tenantId]);
+    expect(after.rows[0].onboarding_completed_at).not.toBeNull();
+  });
+});
