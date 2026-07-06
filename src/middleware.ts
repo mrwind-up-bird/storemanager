@@ -2,7 +2,7 @@
 // Edge runtime — DO NOT import from src/db/, src/lib/tenant.ts, or any Node-only package.
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { parseTenantSlug } from '@/lib/subdomain';
+import { parseTenantSlug, isPlatformHost } from '@/lib/subdomain';
 
 // ROOT_DOMAIN is read directly from process.env (not from src/env.ts which is
 // Node-only and uses zod). Middleware is fail-closed: missing ROOT_DOMAIN →
@@ -39,13 +39,49 @@ function resolveHost(request: NextRequest): string {
 
 export function middleware(request: NextRequest): NextResponse {
   const host = resolveHost(request);
-  const result = parseTenantSlug(host, ROOT_DOMAIN);
+  const { pathname } = request.nextUrl;
 
-  // Strip any client-supplied tenant header on EVERY path before branching — only
-  // middleware may set x-tenant-slug. Without this, a spoofed header survives on
-  // always-allowed routes (e.g. /api/auth/*) → confused-deputy tenant resolution.
+  // Header-Hygiene ZUERST, auf jedem Pfad: client-gelieferte Zonen-/Tenant-Header strippen —
+  // nur die Middleware darf x-tenant-slug und x-platform-zone setzen (Spec §4.1/§13.3).
   const requestHeaders = new Headers(request.headers);
   requestHeaders.delete('x-tenant-slug');
+  requestHeaders.delete('x-platform-zone');
+
+  // Direkter /platform*-Request ist auf JEDEM Host 404 — die Zone ist ausschließlich über den
+  // Rewrite unten erreichbar (ein Rewrite durchläuft die Middleware nicht erneut) (Spec §4.3).
+  if (pathname === '/platform' || pathname.startsWith('/platform/')) {
+    return new NextResponse(null, { status: 404 });
+  }
+
+  // Stripe-Webhook: exakter Pfad, host-unabhängig erlaubt — die Signaturprüfung im Handler
+  // ist der Wächter (Spec §4.4/§9.1). Kein Tenant-Header nötig (Owner-Kontext im Handler).
+  if (pathname === '/api/billing/webhook') {
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
+  // Platform-Zone: Host ist exakt admin.<ROOT_DOMAIN> → Rewrite auf /platform/* (Spec §4.2).
+  // Greift VOR dem reserved-404 — 'admin' bleibt in RESERVED_SUBDOMAINS.
+  if (isPlatformHost(host, ROOT_DOMAIN)) {
+    // Geteilte Root-Assets NICHT rewriten: der Matcher schließt sie nicht aus, und das
+    // Root-Layout referenziert sie auf jeder Seite. /sw.js und /icons/* liegen als
+    // /public-Statics nur unter ihrem Original-Pfad — ein Rewrite auf /platform/... wäre
+    // ein 404 für Icons/Service-Worker auf admin.<ROOT_DOMAIN>. (/manifest.webmanifest
+    // bleibt hier bewusst mit drin: der reguläre Not-Found-Pfad greift, Spec §4 will
+    // ohnehin „kein PWA" für die Platform-Zone.)
+    if (
+      pathname === '/manifest.webmanifest' ||
+      pathname === '/sw.js' ||
+      pathname.startsWith('/icons/')
+    ) {
+      return NextResponse.next({ request: { headers: requestHeaders } });
+    }
+    requestHeaders.set('x-platform-zone', '1');
+    const url = request.nextUrl.clone();
+    url.pathname = pathname === '/' ? '/platform' : `/platform${pathname}`;
+    return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
+  }
+
+  const result = parseTenantSlug(host, ROOT_DOMAIN);
 
   if (result.kind === 'tenant') {
     // Forward the resolved slug to Server Components via a request header.

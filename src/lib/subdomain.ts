@@ -55,3 +55,13 @@ export function parseTenantSlug(
 
   return { kind: 'tenant', slug: label };
 }
+
+/**
+ * True gdw. der Host (ohne Port, case-insensitiv) EXAKT `admin.<rootDomain>` ist.
+ * Leerer rootDomain → immer false (fail-closed, wie die Middleware bei fehlendem ROOT_DOMAIN).
+ */
+export function isPlatformHost(host: string | null, rootDomain: string): boolean {
+  if (!host || !rootDomain) return false;
+  const h = host.split(':')[0].toLowerCase();
+  return h === `admin.${rootDomain.toLowerCase()}`;
+}
