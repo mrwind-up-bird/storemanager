@@ -168,3 +168,30 @@ export async function salesCounts(tenantId: number): Promise<{
     notifiedMatches: Number(r.notified),
   };
 }
+
+// ── Slice-6 additions (Platform-Zone + Billing + Gating) ────────────────────
+
+export const PLATFORM_URL = 'http://admin.localhost:3000';
+export const FREESHOP_URL = 'http://freeshop.localhost:3000';
+
+/** Muss mit scripts/seed.ts PLATFORM_ADMIN_EMAIL + SEED_ADMIN_PASSWORD (.env.compose) übereinstimmen. */
+export const PLATFORM_EMAIL = process.env.E2E_PLATFORM_EMAIL ?? 'platform@qrecords.test';
+export const PLATFORM_PASSWORD = process.env.E2E_PLATFORM_PASSWORD ?? 'E2eDevPassword1!';
+export const FREESHOP_EMAIL = process.env.E2E_FREESHOP_EMAIL ?? 'admin@freeshop.test';
+export const FREESHOP_PASSWORD = process.env.E2E_FREESHOP_PASSWORD ?? 'E2eDevPassword1!';
+
+/** Login in der Platform-Zone (eigene Session, NICHT Auth.js — Submit-Button „Anmelden"). */
+export async function platformLogin(page: Page): Promise<void> {
+  await page.goto(`${PLATFORM_URL}/login`);
+  await page.getByLabel(/e-mail/i).fill(PLATFORM_EMAIL);
+  await page.getByLabel(/passwort/i).fill(PLATFORM_PASSWORD);
+  await page.getByRole('button', { name: /anmelden/i }).click();
+  await expect(page.getByTestId('platform-tenant-list')).toBeVisible();
+}
+
+/** Freeshop-Tenant-Id aus der Registry (Gating-Szenarien). */
+export async function freeshopTenantId(): Promise<number> {
+  const rows = await dbQuery<{ id: number }>(`SELECT id FROM tenants WHERE slug = 'freeshop' LIMIT 1`);
+  if (!rows[0]) throw new Error('freeshop tenant not found — is the stack seeded?');
+  return rows[0].id;
+}
