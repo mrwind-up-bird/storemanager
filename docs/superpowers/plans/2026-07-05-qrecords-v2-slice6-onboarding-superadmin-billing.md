@@ -913,12 +913,19 @@ export async function resetFreeshopGatingState(ownerPool: Pool, tenantId: number
 }
 ```
 
-6. In `main()` — nach dem demo-Block `await seedTenantCollections(...)` UND nach dem vinylcave-Block je eine Zeile ergänzen, sowie den freeshop- und Platform-Block anhängen (vor `console.log('[seed] Done…')`):
+6. In `main()` — nach dem demo-Block `await seedTenantCollections(...)` UND nach dem vinylcave-Block je einen Block ergänzen, sowie den freeshop- und Platform-Block anhängen (vor `console.log('[seed] Done…')`):
 
 ```ts
+    // Plan-Konvergenz auch für BESTEHENDE Tenants: ensureTenant() überspringt existierende
+    // Tenants komplett — der Spec-§8-Plan-Flip (demo → 'big') würde in Umgebungen mit
+    // persistentem Compose-Volume (Seed lief vor Slice 6 mit plan='free') sonst nie ankommen
+    // und die 59 Bestands-E2E (Analytik/Discogs-Gates) scheitern. Unconditional wie
+    // resetFreeshopGatingState/markTenantOnboarded.
+    await ownerPool.query(`UPDATE tenants SET plan = $1 WHERE id = $2`, [DEMO_TENANT.plan, demoId]);
     await markTenantOnboarded(ownerPool, demoId);
 ```
 ```ts
+    await ownerPool.query(`UPDATE tenants SET plan = $1 WHERE id = $2`, [VINYLCAVE_TENANT.plan, vinylId]);
     await markTenantOnboarded(ownerPool, vinylId);
 
     // ── freeshop tenant (Gating-E2E, Spec §8) ──────────────────────────────
@@ -1196,6 +1203,19 @@ export function middleware(request: NextRequest): NextResponse {
   // Platform-Zone: Host ist exakt admin.<ROOT_DOMAIN> → Rewrite auf /platform/* (Spec §4.2).
   // Greift VOR dem reserved-404 — 'admin' bleibt in RESERVED_SUBDOMAINS.
   if (isPlatformHost(host, ROOT_DOMAIN)) {
+    // Geteilte Root-Assets NICHT rewriten: der Matcher schließt sie nicht aus, und das
+    // Root-Layout referenziert sie auf jeder Seite. /sw.js und /icons/* liegen als
+    // /public-Statics nur unter ihrem Original-Pfad — ein Rewrite auf /platform/... wäre
+    // ein 404 für Icons/Service-Worker auf admin.<ROOT_DOMAIN>. (/manifest.webmanifest
+    // bleibt hier bewusst mit drin: der reguläre Not-Found-Pfad greift, Spec §4 will
+    // ohnehin „kein PWA" für die Platform-Zone.)
+    if (
+      pathname === '/manifest.webmanifest' ||
+      pathname === '/sw.js' ||
+      pathname.startsWith('/icons/')
+    ) {
+      return NextResponse.next({ request: { headers: requestHeaders } });
+    }
     requestHeaders.set('x-platform-zone', '1');
     const url = request.nextUrl.clone();
     url.pathname = pathname === '/' ? '/platform' : `/platform${pathname}`;
@@ -1358,7 +1378,11 @@ export async function destroyPlatformSession(): Promise<void> {
   if (token) {
     await withOwner((tx) => tx.delete(platformSessions).where(eq(platformSessions.token, token)));
   }
-  jar.delete(PLATFORM_COOKIE_NAME);
+  // NICHT jar.delete(): das erzeugte Lösch-Set-Cookie trägt kein Secure-Attribut, und
+  // Browser verwerfen JEDES __Host--Set-Cookie ohne Secure+Path=/ — das Login-Cookie
+  // bliebe in Produktion bis zum TTL-Ablauf bestehen (Spec §5: „Cookie clearen").
+  // Löschen daher mit denselben Attributen wie beim Setzen, maxAge 0.
+  jar.set(PLATFORM_COOKIE_NAME, '', { ...platformSessionCookieOptions(), maxAge: 0 });
 }
 ```
 
@@ -1832,7 +1856,8 @@ export type CreateTenantState = {
   slug: string | null;
 };
 
-const createTenantSchema = z.object({
+// export: Schema-Unit-Tests (Spec §14 „zod-Schemata (Passwort-Policy, Plan-Slugs)", T10 Step 5).
+export const createTenantSchema = z.object({
   slug: z.string().trim().toLowerCase(),
   name: z.string().trim().min(1, 'Name darf nicht leer sein.'),
   adminEmail: z.string().trim().email('Bitte eine gültige E-Mail angeben.'),
@@ -2362,16 +2387,37 @@ Create `tests/slice6-actions.integration.test.ts` mit dem T4-Block (T7/T8/T10/T1
 
 ```ts
 // Slice 6 — Action-/Lib-Integrationsfälle (T4/T7/T8/T10/T11 teilen sich diesen Container).
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+// Die Platform-Actions werden ECHT aufgerufen (Spec §14: „provisionTenant über die
+// Platform-UI-Action") — Session/Headers/Cache gemockt nach dem etablierten Muster
+// von tests/ankauf-actions.integration.test.ts. MAIL_DRIVER=console (Default der
+// Test-Helpers) fängt den Credential-Mail-Versand ab.
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { Pool } from 'pg';
 import { setupTestDatabase, type TestDatabase } from './helpers/db';
 
 let db: TestDatabase;
 let owner: Pool;
+let platformActions: typeof import('@/app/platform/(dashboard)/tenants/actions');
+
+const fd = (entries: Record<string, string>): FormData => {
+  const f = new FormData();
+  for (const [k, v] of Object.entries(entries)) f.set(k, v);
+  return f;
+};
 
 beforeAll(async () => {
   db = await setupTestDatabase();
   owner = new Pool({ connectionString: db.ownerUrl, max: 2 });
+  vi.doMock('@/auth/platform', () => ({
+    requirePlatformSession: async () => ({ id: 1, email: 'platform@qrecords.test' }),
+  }));
+  vi.doMock('next/headers', () => ({
+    headers: async () => new Headers(),
+    cookies: async () => ({ get: () => undefined, set: () => undefined, delete: () => undefined }),
+  }));
+  vi.doMock('next/cache', () => ({ revalidatePath: () => undefined }));
+  vi.resetModules();
+  platformActions = await import('@/app/platform/(dashboard)/tenants/actions');
 }, 180_000);
 
 afterAll(async () => {
@@ -2379,16 +2425,24 @@ afterAll(async () => {
   await db.teardown();
 });
 
-describe('T4 platform tenants lib', () => {
-  it('listTenantsWithStats liefert Aggregatzahlen, getTenantDetail Branding/Admin/Sub', async () => {
-    const { provisionTenant } = await import('@/lib/provisioning');
-    const { tenantId } = await provisionTenant({
-      slug: 'plattenkiste',
-      name: 'Die Plattenkiste',
-      adminEmail: 'chef@plattenkiste.test',
-      primaryColor: '#C84B31',
-      plan: 'small',
-    });
+describe('T4 platform tenant actions (echte Server Actions) + Lib', () => {
+  it('createTenantAction provisioniert Tenant + Admin, liefert das Einmal-Passwort; Lib-Aggregate stimmen', async () => {
+    const state = await platformActions.createTenantAction(
+      { ok: false, error: null, temporaryPassword: null, slug: null },
+      fd({
+        slug: 'plattenkiste',
+        name: 'Die Plattenkiste',
+        adminEmail: 'chef@plattenkiste.test',
+        primaryColor: '#C84B31',
+        plan: 'small',
+      }),
+    );
+    expect(state.ok).toBe(true);
+    expect(state.slug).toBe('plattenkiste');
+    expect(state.temporaryPassword).toMatch(/^[A-Z2-7]{16}$/); // Einmal-Anzeige (Spec §13.9)
+
+    const { rows } = await owner.query(`SELECT id FROM tenants WHERE slug = 'plattenkiste'`);
+    const tenantId: number = rows[0].id;
     await owner.query(
       `INSERT INTO records (tenant_id, title, artist, hash) VALUES ($1, 'X', 'Y', repeat('a', 64))`,
       [tenantId],
@@ -2406,20 +2460,30 @@ describe('T4 platform tenants lib', () => {
     expect(detail.onboardingCompletedAt).toBeNull(); // frisch provisioniert → Wizard offen
   });
 
-  it('Credentials-Resend-Kern: neues Passwort + mustChangePassword=true', async () => {
-    // Der Action-Wrapper braucht Request-Kontext (Cookies/Origin) — hier wird der DB-Kern
-    // geprüft, den resendCredentialsAction ausführt (identisches SQL).
-    const { generateTempPassword } = await import('@/lib/provisioning');
-    const { hashPassword } = await import('@/lib/password');
+  it('setTenantPlanAction schreibt den Plan-Override', async () => {
+    const { rows } = await owner.query(`SELECT id FROM tenants WHERE slug = 'plattenkiste'`);
+    const state = await platformActions.setTenantPlanAction(
+      { ok: false, error: null },
+      fd({ tenantId: String(rows[0].id), plan: 'big' }),
+    );
+    expect(state).toEqual({ ok: true, error: null });
+    const after = await owner.query(`SELECT plan FROM tenants WHERE id = $1`, [rows[0].id]);
+    expect(after.rows[0].plan).toBe('big');
+  });
+
+  it('resendCredentialsAction: neues Passwort + mustChangePassword=true, Passwort NICHT im State', async () => {
     const before = await owner.query(
       `SELECT id, password FROM users WHERE email = 'chef@plattenkiste.test'`,
     );
-    const temp = generateTempPassword();
-    expect(temp).toMatch(/^[A-Z2-7]{16}$/);
-    await owner.query(`UPDATE users SET password = $1, must_change_password = true WHERE id = $2`, [
-      await hashPassword(temp),
-      before.rows[0].id,
-    ]);
+    await owner.query(`UPDATE users SET must_change_password = false WHERE id = $1`, [before.rows[0].id]);
+    const { rows } = await owner.query(`SELECT id FROM tenants WHERE slug = 'plattenkiste'`);
+
+    const state = await platformActions.resendCredentialsAction(
+      { ok: false, error: null },
+      fd({ tenantId: String(rows[0].id) }),
+    );
+    expect(state).toEqual({ ok: true, error: null }); // kein temporaryPassword-Feld (nur Mail, Spec §13.9)
+
     const after = await owner.query(
       `SELECT password, must_change_password FROM users WHERE id = $1`,
       [before.rows[0].id],
@@ -2430,8 +2494,10 @@ describe('T4 platform tenants lib', () => {
 });
 ```
 
+(Die `vi.doMock`-Blöcke gelten für die GANZE Datei — T7/T8/T10/T11 hängen ihre describes an und ergänzen bei Bedarf eigene `vi.doMock('@/auth/session', …)`-Mocks im selben `beforeAll`, bevor `vi.resetModules()` läuft.)
+
 Run: `pnpm test tests/slice6-actions.integration.test.ts`
-Expected: PASS (2 Tests).
+Expected: PASS (3 Tests).
 
 - [ ] **Step 7: Lint/Typecheck + Commit**
 
@@ -4718,7 +4784,8 @@ In `src/app/(app)/einstellungen/actions.ts` (Imports ergänzen: `getBillingAdapt
 // dem Aufruf läuft nichts mehr. Fehler enden als Redirect zurück auf den Tab.
 // ---------------------------------------------------------------------------
 
-const checkoutSchema = z.enum(['small', 'big']);
+// export: Schema-Unit-Tests (Spec §14, T10 Step 5).
+export const checkoutSchema = z.enum(['small', 'big']);
 
 export async function startCheckoutAction(formData: FormData): Promise<void> {
   const user = await requireSession();
@@ -5025,7 +5092,8 @@ import { verifyAndChangePassword } from '@/lib/account';
 
 export type ChangePasswordState = { error: string | null };
 
-const changePasswordSchema = z
+// export: Schema-Unit-Tests (Spec §14, Step 5 unten).
+export const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, 'Bitte das aktuelle Passwort eingeben.'),
     newPassword: z.string().min(12, 'Das neue Passwort muss mindestens 12 Zeichen haben.'),
@@ -5233,6 +5301,44 @@ describe('T10 mustChangePassword flow', () => {
     expect(await verifyCredentials({ email: 'a@pw.test', password: 'AltesPasswort123!', tenantId })).toBeNull();
   });
 });
+
+// Spec §14 „zod-Schemata (Passwort-Policy, Plan-Slugs)" — reine Schema-Grenzfälle, kein DB-Zugriff.
+// Läuft hier statt in einer eigenen Datei, weil die actions-Module env/server-only-Kontext
+// brauchen, den dieser Container bereits aufgebaut hat. Die drei Schemas sind dafür exportiert
+// (T4 createTenantSchema · T9 checkoutSchema · T10 changePasswordSchema).
+describe('T10 zod-Schemata (Spec §14)', () => {
+  it('changePasswordSchema: 11 Zeichen scheitern, 12 bestehen, Mismatch scheitert', async () => {
+    const { changePasswordSchema } = await import('@/app/passwort/actions');
+    const base = { currentPassword: 'x' };
+    expect(
+      changePasswordSchema.safeParse({ ...base, newPassword: 'a'.repeat(11), confirmPassword: 'a'.repeat(11) }).success,
+    ).toBe(false);
+    expect(
+      changePasswordSchema.safeParse({ ...base, newPassword: 'a'.repeat(12), confirmPassword: 'a'.repeat(12) }).success,
+    ).toBe(true);
+    expect(
+      changePasswordSchema.safeParse({ ...base, newPassword: 'a'.repeat(12), confirmPassword: 'b'.repeat(12) }).success,
+    ).toBe(false);
+  });
+
+  it('checkoutSchema: nur small|big — free und Fantasiewerte scheitern', async () => {
+    const { checkoutSchema } = await import('@/app/(app)/einstellungen/actions');
+    expect(checkoutSchema.safeParse('small').success).toBe(true);
+    expect(checkoutSchema.safeParse('big').success).toBe(true);
+    expect(checkoutSchema.safeParse('free').success).toBe(false);
+    expect(checkoutSchema.safeParse('enterprise').success).toBe(false);
+  });
+
+  it('createTenantSchema: Plan-Enum + Farb-Regex fail-closed', async () => {
+    const { createTenantSchema } = await import('@/app/platform/(dashboard)/tenants/actions');
+    const valid = {
+      slug: 'kiste', name: 'Kiste', adminEmail: 'a@kiste.test', primaryColor: '#C84B31', plan: 'small',
+    };
+    expect(createTenantSchema.safeParse(valid).success).toBe(true);
+    expect(createTenantSchema.safeParse({ ...valid, plan: 'enterprise' }).success).toBe(false);
+    expect(createTenantSchema.safeParse({ ...valid, primaryColor: 'rot' }).success).toBe(false);
+  });
+});
 ```
 
 Run: `pnpm test tests/slice6-actions.integration.test.ts`
@@ -5273,9 +5379,16 @@ Create `tests/wizard-stepper.test.tsx`:
 ```tsx
 // Slice 6 T11 — Stepper pixel-treu zum Handoff: 4 Kreise (30px), Labels Info/Discogs/Admin/Review,
 // done/current = accent, future = surface-3 + border-strong, aria-current auf dem aktuellen Schritt.
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+// Plus Spec §14 „Wizard-Schritt-Actions (jsdom/RTL für … Formularfehler)": das im Wizard
+// eingebettete ShopInfoForm (T7) zeigt den Action-Fehler als role="alert".
+import { describe, it, expect, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { WizardStepper } from '@/app/onboarding/_components/WizardStepper';
+import { ShopInfoForm } from '@/app/(app)/einstellungen/_components/ShopInfoForm';
+
+vi.mock('@/app/(app)/einstellungen/actions', () => ({
+  updateShopInfoAction: vi.fn(async () => ({ ok: false, error: 'Name darf nicht leer sein.' })),
+}));
 
 describe('WizardStepper', () => {
   it('rendert 4 Schritte mit den Handoff-Labels', () => {
@@ -5296,9 +5409,18 @@ describe('WizardStepper', () => {
     expect(items[3]!.getAttribute('data-state')).toBe('future');
   });
 });
+
+describe('Wizard-Schritt: Formularfehler (Spec §14)', () => {
+  it('ShopInfoForm (next="wizard") zeigt den Action-Fehler als role="alert"', async () => {
+    render(<ShopInfoForm initialName="Demo" initialColor="#C84B31" next="wizard" submitLabel="Weiter" />);
+    expect(screen.queryByRole('alert')).toBeNull();
+    fireEvent.submit(screen.getByTestId('shop-info-form'));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Name darf nicht leer sein.');
+  });
+});
 ```
 
-Run: `pnpm test tests/wizard-stepper.test.tsx` — Expected: FAIL (Komponente fehlt).
+Run: `pnpm test tests/wizard-stepper.test.tsx` — Expected: FAIL (WizardStepper fehlt; der ShopInfoForm-Fall ist mit T7 bereits grün — das ist ok, TDD-rot bezieht sich auf die Stepper-Fälle).
 
 - [ ] **Step 2: Stepper implementieren (Handoff-Markup)**
 
@@ -5828,12 +5950,23 @@ Sammlung-Wizard-Fehleranzeige VERIFIZIEREN: `grep -n "reason\|message" src/app/\
 
 - [ ] **Step 3: Bestehende Tests an die neuen Signaturen anpassen**
 
-`pnpm typecheck` listet alle Aufrufer. Erwartete Anpassungen (mechanisch, Verhalten unverändert):
-- `tests/ankauf.integration.test.ts`: jeden `performAnkauf(ctx, input)`-Aufruf um `UNLIMITED_ENTITLEMENTS` ergänzen (`import { UNLIMITED_ENTITLEMENTS } from '@/lib/gating';` — dynamisch wie die übrigen Imports der Datei).
-- Aufrufer von `createCollection` in Tests (z. B. `tests/seed-collections.integration.test.ts`, falls direkt): ebenfalls `UNLIMITED_ENTITLEMENTS` (läuft über die Seed-Helper meist automatisch mit).
-- `tests/ankauf-actions.integration.test.ts` + `tests/slice5-actions.integration.test.ts`: Diese testen die ACTIONS — die laden jetzt `getEntitlements` aus der DB. Die dort geseedeten Tenants haben `plan='free'` (Spalten-Default) → `listOnDiscogs: true`-Fälle würden neu am Feature-Gate scheitern und >100-Records-Fixtures am Limit. Fix im Fixture, nicht im Test: nach dem Tenant-Seed `UPDATE tenants SET plan = 'big' WHERE id = $1` (ownerPool) ergänzen. KEINE Assertions ändern.
+`pnpm typecheck` listet alle Aufrufer. Erwartete Anpassungen (mechanisch, Verhalten unverändert) — die Liste ist VOLLSTÄNDIG verifiziert (Verifikations-Workflow 2026-07-06, 13 Zwei-Argument-Call-Sites in den 5 zusätzlichen Dateien per grep bestätigt); `tsconfig.json` inkludiert `tests/**/*.ts`, jede vergessene Stelle ist ein TS2554:
 
-Run: `pnpm test tests/ankauf.integration.test.ts tests/ankauf-actions.integration.test.ts tests/slice5-actions.integration.test.ts tests/seed-collections.integration.test.ts`
+Direkte Lib-Aufrufer — jeden `performAnkauf(ctx, input)`/`createCollection(ctx, input)`-Aufruf um `UNLIMITED_ENTITLEMENTS` als drittes Argument ergänzen (Import im Stil der jeweiligen Datei, überwiegend dynamisch: `const { UNLIMITED_ENTITLEMENTS } = await import('@/lib/gating');`):
+- `tests/ankauf.integration.test.ts`
+- `tests/lib/ankauf-acquire.integration.test.ts` (6 Call-Sites: Zeilen 52, 53, 105, 140, 149, 157)
+- `tests/lib/collections.integration.test.ts` (2 Call-Sites: Zeilen 53, 88)
+- `tests/reservation.integration.test.ts` (Zeile 46)
+- `tests/discogs-listing-worker.integration.test.ts` (Zeilen 62, 86, 115)
+- `tests/worker/wishlistMatch.integration.test.ts` (Zeile 42)
+- `tests/seed-collections.integration.test.ts` (falls direkt; läuft über die Seed-Helper meist automatisch mit)
+
+Action-Tests — `tests/ankauf-actions.integration.test.ts` + `tests/slice5-actions.integration.test.ts`: Diese testen die ACTIONS — die laden jetzt `getEntitlements` aus der DB. Die dort geseedeten Tenants haben `plan='free'` (Spalten-Default) → `listOnDiscogs: true`-Fälle würden neu am Feature-Gate scheitern und >100-Records-Fixtures am Limit. Fix im Fixture, nicht im Test: nach dem Tenant-Seed `UPDATE tenants SET plan = 'big' WHERE id = $1` (ownerPool) ergänzen. KEINE Assertions ändern.
+
+Run: `pnpm typecheck`
+Expected: 0 Fehler (erst dann gilt die Aufrufer-Liste als abgearbeitet).
+
+Run: `pnpm test tests/ankauf.integration.test.ts tests/ankauf-actions.integration.test.ts tests/slice5-actions.integration.test.ts tests/seed-collections.integration.test.ts tests/lib/ankauf-acquire.integration.test.ts tests/lib/collections.integration.test.ts tests/reservation.integration.test.ts tests/discogs-listing-worker.integration.test.ts tests/worker/wishlistMatch.integration.test.ts`
 Expected: PASS.
 
 - [ ] **Step 4: Gating-Integrationsfälle anhängen (tests/gating.integration.test.ts)**
@@ -6138,6 +6271,11 @@ let tempPassword = '';
 
 test('1. Platform-Login → Tenant anlegen → temp. Passwort sichtbar → Tenant lädt', async ({ page }) => {
   await platformLogin(page);
+
+  // Regression Middleware-Passthrough (T3): geteilte Root-Assets werden auf dem Platform-Host
+  // NICHT auf /platform/* rewritet — sonst 404 für Icons/Service-Worker aus dem Root-Layout.
+  expect((await page.request.get(`${PLATFORM_URL}/sw.js`)).status()).toBe(200);
+  expect((await page.request.get(`${PLATFORM_URL}/icons/apple-touch-icon.png`)).status()).toBe(200);
 
   await page.getByTestId('platform-tenant-create-link').click();
   await page.getByLabel('Slug').fill(NEW_SLUG);
