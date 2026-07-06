@@ -23,6 +23,15 @@ beforeAll(async () => {
   vi.doMock('@/auth/platform', () => ({
     requirePlatformSession: async () => ({ id: 1, email: 'platform@qrecords.test' }),
   }));
+  // Tenant-Actions (passwort/actions, einstellungen/actions) importieren requireSession aus
+  // @/auth/session, das @/auth/index (NextAuth) lädt und in vitest an next/server scheitert.
+  // Gemockt nach dem Muster von tests/ankauf-actions.integration.test.ts. Die Schema-Unit-Tests
+  // rufen die Actions nie auf — der Stub-User wird nur gebraucht, damit die Module laden.
+  vi.doMock('@/auth/session', () => ({
+    requireSession: async () => ({
+      id: 1, email: 'a@demo', tenantId: 1, role: 'admin', isSuperadmin: false, mustChangePassword: false,
+    }),
+  }));
   vi.doMock('next/headers', () => ({
     headers: async () => new Headers(),
     cookies: async () => ({ get: () => undefined, set: () => undefined, delete: () => undefined }),
@@ -211,7 +220,7 @@ describe('T10 mustChangePassword flow', () => {
 // (T4 createTenantSchema · T9 checkoutSchema · T10 changePasswordSchema).
 describe('T10 zod-Schemata (Spec §14)', () => {
   it('changePasswordSchema: 11 Zeichen scheitern, 12 bestehen, Mismatch scheitert', async () => {
-    const { changePasswordSchema } = await import('@/app/passwort/schemas');
+    const { changePasswordSchema } = await import('@/app/passwort/actions');
     const base = { currentPassword: 'x' };
     expect(
       changePasswordSchema.safeParse({ ...base, newPassword: 'a'.repeat(11), confirmPassword: 'a'.repeat(11) }).success,

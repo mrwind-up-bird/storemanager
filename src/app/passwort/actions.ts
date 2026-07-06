@@ -1,16 +1,25 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { z } from 'zod';
 import { requireSession } from '@/auth/session';
 import { getCurrentTenant } from '@/lib/tenant';
 import { isValidOrigin } from '@/lib/csrf';
 import { verifyAndChangePassword } from '@/lib/account';
-import { changePasswordSchema } from './schemas';
 
 export type ChangePasswordState = { error: string | null };
 
 // export: Schema-Unit-Tests (Spec §14, Step 5 unten).
-export { changePasswordSchema } from './schemas';
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Bitte das aktuelle Passwort eingeben.'),
+    newPassword: z.string().min(12, 'Das neue Passwort muss mindestens 12 Zeichen haben.'),
+    confirmPassword: z.string(),
+  })
+  .refine((v) => v.newPassword === v.confirmPassword, {
+    message: 'Die Passwörter stimmen nicht überein.',
+    path: ['confirmPassword'],
+  });
 
 export async function changePasswordAction(
   _prev: ChangePasswordState,
