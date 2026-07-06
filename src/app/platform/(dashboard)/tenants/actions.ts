@@ -7,10 +7,11 @@ import { requirePlatformSession } from '@/auth/platform';
 import { isValidOrigin } from '@/lib/csrf';
 import { withOwner } from '@/db/tenant';
 import { tenants, users } from '@/db/schema';
-import { provisionTenant, generateTempPassword, HEX_COLOR_REGEX } from '@/lib/provisioning';
+import { provisionTenant, generateTempPassword } from '@/lib/provisioning';
 import { hashPassword } from '@/lib/password';
 import { getEmailAdapter, sendCredentialsEmail } from '@/lib/email';
 import { tenantUrl } from '@/env';
+import { createTenantSchema } from './schemas';
 
 // ---------------------------------------------------------------------------
 // Tenant anlegen (Spec §6.2) — Platform-Action-Kette (CONTRACTS C3):
@@ -24,15 +25,6 @@ export type CreateTenantState = {
   temporaryPassword: string | null;
   slug: string | null;
 };
-
-// export: Schema-Unit-Tests (Spec §14 „zod-Schemata (Passwort-Policy, Plan-Slugs)", T10 Step 5).
-export const createTenantSchema = z.object({
-  slug: z.string().trim().toLowerCase(),
-  name: z.string().trim().min(1, 'Name darf nicht leer sein.'),
-  adminEmail: z.string().trim().email('Bitte eine gültige E-Mail angeben.'),
-  primaryColor: z.string().trim().regex(HEX_COLOR_REGEX, 'Primärfarbe muss #RGB oder #RRGGBB sein.'),
-  plan: z.enum(['free', 'small', 'big']),
-});
 
 export async function createTenantAction(
   _prev: CreateTenantState,

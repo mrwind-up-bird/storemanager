@@ -220,7 +220,7 @@ describe('T10 mustChangePassword flow', () => {
 // (T4 createTenantSchema · T9 checkoutSchema · T10 changePasswordSchema).
 describe('T10 zod-Schemata (Spec §14)', () => {
   it('changePasswordSchema: 11 Zeichen scheitern, 12 bestehen, Mismatch scheitert', async () => {
-    const { changePasswordSchema } = await import('@/app/passwort/actions');
+    const { changePasswordSchema } = await import('@/app/passwort/schemas');
     const base = { currentPassword: 'x' };
     expect(
       changePasswordSchema.safeParse({ ...base, newPassword: 'a'.repeat(11), confirmPassword: 'a'.repeat(11) }).success,
@@ -234,7 +234,7 @@ describe('T10 zod-Schemata (Spec §14)', () => {
   });
 
   it('checkoutSchema: nur small|big — free und Fantasiewerte scheitern', async () => {
-    const { checkoutSchema } = await import('@/app/(app)/einstellungen/actions');
+    const { checkoutSchema } = await import('@/app/(app)/einstellungen/schemas');
     expect(checkoutSchema.safeParse('small').success).toBe(true);
     expect(checkoutSchema.safeParse('big').success).toBe(true);
     expect(checkoutSchema.safeParse('free').success).toBe(false);
@@ -242,7 +242,7 @@ describe('T10 zod-Schemata (Spec §14)', () => {
   });
 
   it('createTenantSchema: Plan-Enum + Farb-Regex fail-closed', async () => {
-    const { createTenantSchema } = await import('@/app/platform/(dashboard)/tenants/actions');
+    const { createTenantSchema } = await import('@/app/platform/(dashboard)/tenants/schemas');
     const valid = {
       slug: 'kiste', name: 'Kiste', adminEmail: 'a@kiste.test', primaryColor: '#C84B31', plan: 'small',
     };

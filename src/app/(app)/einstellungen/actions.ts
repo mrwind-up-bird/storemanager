@@ -16,6 +16,7 @@ import { getEmailAdapter, sendCredentialsEmail } from '@/lib/email';
 import { tenantUrl } from '@/env';
 import { getBillingAdapter } from '@/lib/billing';
 import { getSubscriptionForTenant } from '@/lib/billing/store';
+import { checkoutSchema } from './schemas';
 
 export type ShopInfoState = { ok: boolean; error: string | null };
 
@@ -190,9 +191,6 @@ export async function resetTeamPasswordAction(
 // Abo-Tab (Spec §9): Checkout + Portal. redirect() wirft NEXT_REDIRECT — nach
 // dem Aufruf läuft nichts mehr. Fehler enden als Redirect zurück auf den Tab.
 // ---------------------------------------------------------------------------
-
-// export: Schema-Unit-Tests (Spec §14, T10 Step 5).
-export const checkoutSchema = z.enum(['small', 'big']);
 
 export async function startCheckoutAction(formData: FormData): Promise<void> {
   const user = await requireSession();
