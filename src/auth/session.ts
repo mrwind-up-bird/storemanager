@@ -36,6 +36,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     tenantId: Number(u.tenantId),
     role: u.role as Role,
     isSuperadmin: Boolean(u.isSuperadmin),
+    mustChangePassword: Boolean(u.mustChangePassword),
   };
 }
 

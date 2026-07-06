@@ -8,4 +8,5 @@ export type SessionUser = {
   tenantId: number;
   role: Role;
   isSuperadmin: boolean;
+  mustChangePassword: boolean;
 };

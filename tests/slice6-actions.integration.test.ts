@@ -28,6 +28,7 @@ beforeAll(async () => {
     cookies: async () => ({ get: () => undefined, set: () => undefined, delete: () => undefined }),
   }));
   vi.doMock('next/cache', () => ({ revalidatePath: () => undefined }));
+  vi.doMock('next/server', () => ({}));
   vi.resetModules();
   platformActions = await import('@/app/platform/(dashboard)/tenants/actions');
 }, 180_000);
@@ -174,5 +175,70 @@ describe('T8 team lib', () => {
     expect(
       await resetTeamUserPassword({ tenantId: u.rows[0].tenant_id, userId: null }, 999_999),
     ).toBeNull();
+  });
+});
+
+describe('T10 mustChangePassword flow', () => {
+  it('verifyAndChangePassword: falsches Altpasswort → false, korrektes → Hash neu + Flag weg', async () => {
+    const { provisionTenant } = await import('@/lib/provisioning');
+    const { tenantId, adminUserId } = await provisionTenant({
+      slug: 'pw-shop', name: 'PW', adminEmail: 'a@pw.test', password: 'AltesPasswort123!',
+    });
+    await owner.query(`UPDATE users SET must_change_password = true WHERE id = $1`, [adminUserId]);
+
+    const { verifyAndChangePassword } = await import('@/lib/account');
+    const ctx = { tenantId, userId: adminUserId };
+
+    expect(await verifyAndChangePassword(ctx, 'falsch', 'NeuesPasswort123!')).toBe(false);
+    const still = await owner.query(`SELECT must_change_password FROM users WHERE id = $1`, [adminUserId]);
+    expect(still.rows[0].must_change_password).toBe(true);
+
+    expect(await verifyAndChangePassword(ctx, 'AltesPasswort123!', 'NeuesPasswort123!')).toBe(true);
+    const after = await owner.query(`SELECT must_change_password FROM users WHERE id = $1`, [adminUserId]);
+    expect(after.rows[0].must_change_password).toBe(false);
+
+    // Neues Passwort verifiziert (verifyCredentials nutzt jetzt den neuen Hash):
+    const { verifyCredentials } = await import('@/auth/config');
+    const session = await verifyCredentials({ email: 'a@pw.test', password: 'NeuesPasswort123!', tenantId });
+    expect(session).toMatchObject({ email: 'a@pw.test', mustChangePassword: false });
+    expect(await verifyCredentials({ email: 'a@pw.test', password: 'AltesPasswort123!', tenantId })).toBeNull();
+  });
+});
+
+// Spec §14 „zod-Schemata (Passwort-Policy, Plan-Slugs)" — reine Schema-Grenzfälle, kein DB-Zugriff.
+// Läuft hier statt in einer eigenen Datei, weil die actions-Module env/server-only-Kontext
+// brauchen, den dieser Container bereits aufgebaut hat. Die drei Schemas sind dafür exportiert
+// (T4 createTenantSchema · T9 checkoutSchema · T10 changePasswordSchema).
+describe('T10 zod-Schemata (Spec §14)', () => {
+  it('changePasswordSchema: 11 Zeichen scheitern, 12 bestehen, Mismatch scheitert', async () => {
+    const { changePasswordSchema } = await import('@/app/passwort/schemas');
+    const base = { currentPassword: 'x' };
+    expect(
+      changePasswordSchema.safeParse({ ...base, newPassword: 'a'.repeat(11), confirmPassword: 'a'.repeat(11) }).success,
+    ).toBe(false);
+    expect(
+      changePasswordSchema.safeParse({ ...base, newPassword: 'a'.repeat(12), confirmPassword: 'a'.repeat(12) }).success,
+    ).toBe(true);
+    expect(
+      changePasswordSchema.safeParse({ ...base, newPassword: 'a'.repeat(12), confirmPassword: 'b'.repeat(12) }).success,
+    ).toBe(false);
+  });
+
+  it('checkoutSchema: nur small|big — free und Fantasiewerte scheitern', async () => {
+    const { checkoutSchema } = await import('@/app/(app)/einstellungen/actions');
+    expect(checkoutSchema.safeParse('small').success).toBe(true);
+    expect(checkoutSchema.safeParse('big').success).toBe(true);
+    expect(checkoutSchema.safeParse('free').success).toBe(false);
+    expect(checkoutSchema.safeParse('enterprise').success).toBe(false);
+  });
+
+  it('createTenantSchema: Plan-Enum + Farb-Regex fail-closed', async () => {
+    const { createTenantSchema } = await import('@/app/platform/(dashboard)/tenants/actions');
+    const valid = {
+      slug: 'kiste', name: 'Kiste', adminEmail: 'a@kiste.test', primaryColor: '#C84B31', plan: 'small',
+    };
+    expect(createTenantSchema.safeParse(valid).success).toBe(true);
+    expect(createTenantSchema.safeParse({ ...valid, plan: 'enterprise' }).success).toBe(false);
+    expect(createTenantSchema.safeParse({ ...valid, primaryColor: 'rot' }).success).toBe(false);
   });
 });

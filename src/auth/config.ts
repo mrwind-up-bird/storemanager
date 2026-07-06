@@ -41,7 +41,7 @@ export async function verifyCredentials(args: {
     // user-enumeration timing oracle between "unknown email" and "wrong password".
     const ok = await bcrypt.compare(args.password, u?.password ?? DUMMY_BCRYPT_HASH);
     if (!u || !ok) return null;
-    return { id: u.id, email: u.email, tenantId: u.tenantId, role: u.role, isSuperadmin: u.isSuperadmin };
+    return { id: u.id, email: u.email, tenantId: u.tenantId, role: u.role, isSuperadmin: u.isSuperadmin, mustChangePassword: u.mustChangePassword };
   });
 }
 
@@ -85,11 +85,17 @@ export const authConfig: NextAuthConfig = {
     },
     session({ session, user }) {
       if (session.user) {
-        const u = user as unknown as { tenantId: number; role: Role; isSuperadmin: boolean };
+        const u = user as unknown as {
+          tenantId: number;
+          role: Role;
+          isSuperadmin: boolean;
+          mustChangePassword: boolean;
+        };
         const target = session.user as unknown as Record<string, unknown>;
         target.tenantId = u.tenantId;
         target.role = u.role;
         target.isSuperadmin = u.isSuperadmin;
+        target.mustChangePassword = u.mustChangePassword;
       }
       return session;
     },

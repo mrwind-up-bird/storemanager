@@ -9,6 +9,7 @@ const mk = (role: Role, isSuperadmin = false): SessionUser => ({
   tenantId: 1,
   role,
   isSuperadmin,
+  mustChangePassword: false,
 });
 
 describe('can()', () => {

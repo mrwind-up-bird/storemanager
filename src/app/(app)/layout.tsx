@@ -1,4 +1,5 @@
 // src/app/(app)/layout.tsx
+import { redirect } from 'next/navigation';
 import { requireSession } from '@/auth/session';
 import { getCurrentTenant } from '@/lib/tenant';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
@@ -12,6 +13,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Enforces session↔tenant invariant; redirects to /login if no session.
   const user = await requireSession();
   const tenant = await getCurrentTenant();
+
+  // Erst-Login-Zwang (Spec §11): /passwort und /onboarding liegen AUSSERHALB dieser
+  // Route-Gruppe — kein Redirect-Loop. Reihenfolge bindend: Passwortzwang vor Wizard.
+  if (user.mustChangePassword) redirect('/passwort');
+  if ((user.role === 'admin' || user.isSuperadmin) && !tenant.onboardingCompletedAt) {
+    redirect('/onboarding');
+  }
 
   const initial = (user.email[0] ?? '?').toUpperCase();
 
