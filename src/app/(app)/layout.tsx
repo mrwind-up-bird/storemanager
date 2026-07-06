@@ -2,6 +2,7 @@
 import { redirect } from 'next/navigation';
 import { requireSession } from '@/auth/session';
 import { getCurrentTenant } from '@/lib/tenant';
+import { needsOnboarding } from '@/lib/onboarding';
 import { getEntitlements } from '@/lib/gating';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { AccentSwitch } from '@/components/theme/AccentSwitch';
@@ -18,7 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Erst-Login-Zwang (Spec §11): /passwort und /onboarding liegen AUSSERHALB dieser
   // Route-Gruppe — kein Redirect-Loop. Reihenfolge bindend: Passwortzwang vor Wizard.
   if (user.mustChangePassword) redirect('/passwort');
-  if ((user.role === 'admin' || user.isSuperadmin) && !tenant.onboardingCompletedAt) {
+  if (needsOnboarding(user, tenant)) {
     redirect('/onboarding');
   }
 

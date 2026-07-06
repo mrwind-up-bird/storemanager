@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation';
 import { requireSession } from '@/auth/session';
 import { getCurrentTenant } from '@/lib/tenant';
+import { needsOnboarding } from '@/lib/onboarding';
 import { isValidOrigin } from '@/lib/csrf';
 import { verifyAndChangePassword } from '@/lib/account';
 import { changePasswordSchema } from './schemas';
@@ -32,7 +33,7 @@ export async function changePasswordAction(
 
   // Danach: Admin ohne abgeschlossenes Onboarding → Wizard, sonst Dashboard (Spec §11).
   const tenant = await getCurrentTenant();
-  if ((user.role === 'admin' || user.isSuperadmin) && !tenant.onboardingCompletedAt) {
+  if (needsOnboarding(user, tenant)) {
     redirect('/onboarding');
   }
   redirect('/');
