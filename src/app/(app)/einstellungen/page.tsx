@@ -3,10 +3,13 @@ import { requireSession } from '@/auth/session';
 import { getCurrentTenant } from '@/lib/tenant';
 import { getConnection } from '@/lib/discogs-connection';
 import { listTeamUsers } from '@/lib/team';
+import { getEntitlements } from '@/lib/gating';
+import { getSubscriptionForTenant, listPlans } from '@/lib/billing/store';
 import { TabNav } from './_components/TabNav';
 import { ShopInfoForm } from './_components/ShopInfoForm';
 import { DiscogsTab } from './_components/DiscogsTab';
 import { TeamTab } from './_components/TeamTab';
+import { AboTab } from './_components/AboTab';
 
 export type SettingsTab = 'info' | 'discogs' | 'team' | 'abo';
 const SETTINGS_TABS: readonly SettingsTab[] = ['info', 'discogs', 'team', 'abo'];
@@ -58,7 +61,14 @@ export default async function EinstellungenPage({
         {tab === 'team' ? (
           <TeamTab users={await listTeamUsers({ tenantId: tenant.id, userId: user.id })} />
         ) : null}
-        {tab === 'abo' ? <p data-testid="tab-abo">Abo-Tab folgt (T9).</p> : null}
+        {tab === 'abo' ? (
+          <AboTab
+            ent={await getEntitlements(tenant.id)}
+            sub={await getSubscriptionForTenant({ tenantId: tenant.id, userId: user.id })}
+            plans={await listPlans()}
+            checkoutSuccess={sp.checkout === 'success'}
+          />
+        ) : null}
       </div>
     </section>
   );

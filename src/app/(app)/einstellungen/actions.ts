@@ -14,6 +14,8 @@ import { getEntitlements, LimitExceededError } from '@/lib/gating';
 import { createTeamUser, resetTeamUserPassword, DuplicateEmailError } from '@/lib/team';
 import { getEmailAdapter, sendCredentialsEmail } from '@/lib/email';
 import { tenantUrl } from '@/env';
+import { getBillingAdapter } from '@/lib/billing';
+import { getSubscriptionForTenant } from '@/lib/billing/store';
 
 export type ShopInfoState = { ok: boolean; error: string | null };
 
@@ -182,4 +184,47 @@ export async function resetTeamPasswordAction(
   }
   revalidatePath('/einstellungen');
   return { ok: true, error: null, info: `Neues temporäres Passwort an ${result.email} geschickt.` };
+}
+
+// ---------------------------------------------------------------------------
+// Abo-Tab (Spec §9): Checkout + Portal. redirect() wirft NEXT_REDIRECT — nach
+// dem Aufruf läuft nichts mehr. Fehler enden als Redirect zurück auf den Tab.
+// ---------------------------------------------------------------------------
+
+// export: Schema-Unit-Tests (Spec §14, T10 Step 5).
+export const checkoutSchema = z.enum(['small', 'big']);
+
+export async function startCheckoutAction(formData: FormData): Promise<void> {
+  const user = await requireSession();
+  if (!(user.role === 'admin' || user.isSuperadmin)) forbidden();
+  if (!(await isValidOrigin())) redirect('/einstellungen?tab=abo');
+
+  const parsed = checkoutSchema.safeParse(formData.get('plan'));
+  if (!parsed.success) redirect('/einstellungen?tab=abo');
+
+  const tenant = await getCurrentTenant();
+  const base = tenantUrl(tenant.slug);
+  const { url } = await getBillingAdapter().createCheckoutSession({
+    tenantId: tenant.id,
+    planSlug: parsed.data,
+    successUrl: `${base}/einstellungen?tab=abo&checkout=success`,
+    cancelUrl: `${base}/einstellungen?tab=abo`,
+  });
+  redirect(url);
+}
+
+export async function openPortalAction(): Promise<void> {
+  const user = await requireSession();
+  if (!(user.role === 'admin' || user.isSuperadmin)) forbidden();
+  if (!(await isValidOrigin())) redirect('/einstellungen?tab=abo');
+
+  const tenant = await getCurrentTenant();
+  const sub = await getSubscriptionForTenant({ tenantId: tenant.id, userId: user.id });
+  if (!sub) redirect('/einstellungen?tab=abo');
+
+  const { url } = await getBillingAdapter().createPortalSession({
+    customerId: sub.stripeCustomerId,
+    returnUrl: `${tenantUrl(tenant.slug)}/einstellungen?tab=abo`,
+  });
+  redirect(url);
 }
