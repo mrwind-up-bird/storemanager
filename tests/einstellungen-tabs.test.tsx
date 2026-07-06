@@ -21,13 +21,18 @@ describe('TabNav', () => {
 
 describe('SidebarNav Einstellungen-Gate', () => {
   it('admin sieht Einstellungen, mitarbeiter und kunde nicht', () => {
-    const { unmount } = render(<SidebarNav role="admin" />);
+    const { unmount } = render(<SidebarNav role="admin" isSuperadmin={false} />);
     expect(screen.getByText('Einstellungen')).toBeInTheDocument();
     unmount();
-    const second = render(<SidebarNav role="mitarbeiter" />);
+    const second = render(<SidebarNav role="mitarbeiter" isSuperadmin={false} />);
     expect(screen.queryByText('Einstellungen')).not.toBeInTheDocument();
     second.unmount();
-    render(<SidebarNav role="kunde" />);
+    render(<SidebarNav role="kunde" isSuperadmin={false} />);
     expect(screen.queryByText('Einstellungen')).not.toBeInTheDocument();
+  });
+
+  it('isSuperadmin sieht Einstellungen auch ohne role=admin (canonical admin gate)', () => {
+    render(<SidebarNav role="mitarbeiter" isSuperadmin />);
+    expect(screen.getByText('Einstellungen')).toBeInTheDocument();
   });
 });

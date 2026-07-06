@@ -144,7 +144,7 @@ test('4. Upgrade freeshop → Small via Fake-Checkout: Plan sichtbar, Analytik r
   // Fake-Checkout redirectet direkt zurück mit checkout=success:
   await expect(page).toHaveURL(`${FREESHOP_URL}/einstellungen?tab=abo&checkout=success`);
   await expect(page.getByTestId('abo-current-plan')).toContainText('Small');
-  await expect(page.getByTestId('abo-subscription')).toContainText('active');
+  await expect(page.getByTestId('abo-subscription')).toContainText('aktiv');
 
   // Analytik rendert jetzt Charts statt Upsell:
   await page.goto(`${FREESHOP_URL}/analytik`);

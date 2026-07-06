@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getTenantDetail } from '@/lib/platform/tenants';
+import { SUB_STATUS_DE } from '@/lib/billing/types';
 import { env, tenantUrl } from '@/env';
 import { PlanOverrideForm } from './_components/PlanOverrideForm';
 import { ResendCredentialsButton } from './_components/ResendCredentialsButton';
@@ -63,7 +64,8 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
         </p>
         {detail.subscription ? (
           <p style={{ margin: 0 }} data-testid="tenant-subscription">
-            Abo: {detail.subscription.planSlug} · Status {detail.subscription.status}
+            Abo: <span style={{ textTransform: 'capitalize' }}>{detail.subscription.planSlug}</span> · Status{' '}
+            {SUB_STATUS_DE[detail.subscription.status] ?? detail.subscription.status}
             {detail.subscription.currentPeriodEnd ? ` · läuft bis ${dateDE(detail.subscription.currentPeriodEnd)}` : ''}
             {detail.subscription.cancelAtPeriodEnd ? ' · gekündigt zum Periodenende' : ''}
           </p>

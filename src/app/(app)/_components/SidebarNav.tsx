@@ -38,10 +38,18 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/einstellungen', label: 'Einstellungen', Icon: Settings, adminOnly: true },
 ];
 
-export function SidebarNav({ role, lockedHrefs = [] }: { role: Role; lockedHrefs?: string[] }) {
+export function SidebarNav({
+  role,
+  isSuperadmin,
+  lockedHrefs = [],
+}: {
+  role: Role;
+  isSuperadmin: boolean;
+  lockedHrefs?: string[];
+}) {
   const pathname = usePathname();
   const isStaff = role !== 'kunde';
-  const isAdmin = role === 'admin' || role === 'superadmin';
+  const isAdmin = role === 'admin' || isSuperadmin;
   const items = NAV_ITEMS.filter(
     (item) => (!item.staffOnly || isStaff) && (!item.adminOnly || isAdmin),
   );

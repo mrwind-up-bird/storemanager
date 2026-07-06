@@ -95,7 +95,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
         {/* Nav — client component (needs usePathname for active state).
             Pass the session role so Kasse + Wunschlisten are staff-gated (kunde never sees them). */}
-        <SidebarNav role={user.role} lockedHrefs={lockedHrefs} />
+        <SidebarNav role={user.role} isSuperadmin={user.isSuperadmin} lockedHrefs={lockedHrefs} />
 
         {/* User card */}
         <div
@@ -156,7 +156,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
       {/* ── Main content area ── */}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <MobileChrome role={user.role} tenantName={tenant.name} />
+        <MobileChrome role={user.role} isSuperadmin={user.isSuperadmin} tenantName={tenant.name} />
 
         {/* Sticky topbar */}
         <header

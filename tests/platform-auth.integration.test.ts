@@ -1,6 +1,7 @@
 // Slice 6 T3 — Platform-Session (Spec §5/§14): verify mit Dummy-Hash-Fallback, Create/Lookup,
 // Expiry-Cleanup, Cookie-Name je Protokoll (pure), Token-Delete.
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import bcrypt from 'bcryptjs';
 import { Pool } from 'pg';
 import { setupTestDatabase, type TestDatabase } from './helpers/db';
 
@@ -34,7 +35,14 @@ describe('platform auth', () => {
     const ok = await verifyPlatformCredentials('platform@qrecords.test', 'PlatformPw123!');
     expect(ok).toMatchObject({ email: 'platform@qrecords.test' });
     expect(await verifyPlatformCredentials('platform@qrecords.test', 'falsch')).toBeNull();
+
+    // Timing-Regression-Guard: bcrypt.compare MUSS auch bei unbekannter E-Mail laufen
+    // (Dummy-Hash-Pfad) — ein künftiges `if (!u) return null;` VOR dem compare würde ein
+    // User-Enumeration-Zeitfenster reißen, ohne dass ein reiner Ergebnis-Check das bemerkt.
+    const compareSpy = vi.spyOn(bcrypt, 'compare');
     expect(await verifyPlatformCredentials('nix@qrecords.test', 'PlatformPw123!')).toBeNull();
+    expect(compareSpy).toHaveBeenCalled();
+    compareSpy.mockRestore();
   });
 
   it('Session: create → lookup → destroy-by-delete', async () => {

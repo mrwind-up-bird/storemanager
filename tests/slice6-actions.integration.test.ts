@@ -4,6 +4,7 @@
 // von tests/ankauf-actions.integration.test.ts. MAIL_DRIVER=console (Default der
 // Test-Helpers) fängt den Credential-Mail-Versand ab.
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import bcrypt from 'bcryptjs';
 import { Pool } from 'pg';
 import { setupTestDatabase, type TestDatabase } from './helpers/db';
 
@@ -211,6 +212,22 @@ describe('T10 mustChangePassword flow', () => {
     const session = await verifyCredentials({ email: 'a@pw.test', password: 'NeuesPasswort123!', tenantId });
     expect(session).toMatchObject({ email: 'a@pw.test', mustChangePassword: false });
     expect(await verifyCredentials({ email: 'a@pw.test', password: 'AltesPasswort123!', tenantId })).toBeNull();
+  });
+
+  it('verifyAndChangePassword: unbekannte userId → false, bcrypt.compare läuft trotzdem (Timing-Regression-Guard)', async () => {
+    const { provisionTenant } = await import('@/lib/provisioning');
+    const { tenantId } = await provisionTenant({
+      slug: 'pw-shop-2', name: 'PW2', adminEmail: 'b@pw.test', password: 'AltesPasswort123!',
+    });
+    const { verifyAndChangePassword } = await import('@/lib/account');
+    // Ein künftiges `if (!u) return false;` VOR dem compare würde den Dummy-Hash-Pfad
+    // überspringen und den Timing-Schutz stillschweigend aufheben — Assert, dass
+    // bcrypt.compare auch bei einer nicht existierenden userId tatsächlich läuft.
+    const compareSpy = vi.spyOn(bcrypt, 'compare');
+    const result = await verifyAndChangePassword({ tenantId, userId: 999_999 }, 'irgendwas', 'NeuesPasswort123!');
+    expect(result).toBe(false);
+    expect(compareSpy).toHaveBeenCalled();
+    compareSpy.mockRestore();
   });
 });
 

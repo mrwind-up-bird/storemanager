@@ -1,5 +1,6 @@
 import type { Entitlements } from '@/lib/gating';
 import type { SubscriptionInfo } from '@/lib/billing/store';
+import { SUB_STATUS_DE } from '@/lib/billing/types';
 import { fromCents } from '@/lib/money';
 import { startCheckoutAction, openPortalAction } from '../actions';
 
@@ -42,7 +43,7 @@ export function AboTab({
         </p>
         {sub ? (
           <p data-testid="abo-subscription" style={{ margin: '6px 0 0', fontSize: 13.5, color: 'var(--text-3)' }}>
-            Abo-Status: {sub.status}
+            Abo-Status: {SUB_STATUS_DE[sub.status] ?? sub.status}
             {sub.currentPeriodEnd ? ` · verlängert sich am ${dateDE(sub.currentPeriodEnd)}` : ''}
             {sub.cancelAtPeriodEnd ? ' · gekündigt zum Periodenende' : ''}
           </p>

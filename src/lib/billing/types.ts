@@ -49,3 +49,15 @@ export type BillingEvent =
 export class BillingSignatureError extends Error {}
 /** Konfigurationsfehler (fehlender Key / fehlende stripePriceId) — 500er-Klasse, kein User-Fehler. */
 export class BillingConfigError extends Error {}
+
+/** Deutsche Labels für den rohen Stripe-Status (UI darf den Enum-Wert nicht roh anzeigen, Constraint 10). */
+export const SUB_STATUS_DE: Record<string, string> = {
+  active: 'aktiv',
+  past_due: 'überfällig',
+  canceled: 'gekündigt',
+  incomplete: 'unvollständig',
+  incomplete_expired: 'abgelaufen',
+  trialing: 'Testphase',
+  unpaid: 'unbezahlt',
+  paused: 'pausiert',
+};

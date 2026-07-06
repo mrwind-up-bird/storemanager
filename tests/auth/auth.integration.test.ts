@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'node:crypto';
 import { setupTestDatabase } from '../helpers/db';
@@ -85,6 +85,23 @@ describe('verifyCredentials (keyed on email + tenant)', () => {
     expect(
       await config.verifyCredentials({ email: 'admin@b.test', password: 'nope', tenantId }),
     ).toBeNull();
+  });
+
+  it('rejects an unknown email AND still runs bcrypt.compare (timing-regression guard)', async () => {
+    const { tenantId } = await seedTenantUser({
+      slug: 'cred-unknown',
+      name: 'U',
+      email: 'admin@unknown.test',
+      password: 'pw-correct-123',
+    });
+    // A future `if (!u) return null;` short-circuit BEFORE bcrypt.compare would reopen a
+    // user-enumeration timing oracle — assert the dummy-hash path actually runs.
+    const compareSpy = vi.spyOn(bcrypt, 'compare');
+    expect(
+      await config.verifyCredentials({ email: 'nix@unknown.test', password: 'irrelevant', tenantId }),
+    ).toBeNull();
+    expect(compareSpy).toHaveBeenCalled();
+    compareSpy.mockRestore();
   });
 
   it('rejects a correct password under the WRONG tenant (RLS isolation)', async () => {

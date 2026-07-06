@@ -81,6 +81,10 @@ export async function processBillingEvent(event: BillingEvent): Promise<ApplyRes
         await tx
           .update(subscriptions)
           .set({
+            // Self-heal: eine Zeile, die je mit leerem/veraltetem customerId geschrieben wurde
+            // (z. B. Checkout-Race), repariert sich hier — sonst bleibt der Billing-Portal-Call
+            // dauerhaft mit customer: '' hängen.
+            stripeCustomerId: event.customerId,
             status: event.status,
             currentPeriodEnd: event.currentPeriodEnd,
             cancelAtPeriodEnd: event.cancelAtPeriodEnd,

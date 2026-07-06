@@ -31,12 +31,13 @@ const TITLES: TitleEntry[] = [
 
 export interface MobileHeaderProps {
   role: Role;
+  isSuperadmin: boolean;
   tenantName: string;
   /** FAB rendert nur, wenn gesetzt UND role !== 'kunde' (C3; Task 7 verdrahtet ihn). */
   onSchnellverkauf?: () => void;
 }
 
-export function MobileHeader({ role, tenantName, onSchnellverkauf }: MobileHeaderProps) {
+export function MobileHeader({ role, isSuperadmin, tenantName, onSchnellverkauf }: MobileHeaderProps) {
   const pathname = usePathname();
   const entry = TITLES.find((t) => t.match(pathname));
   const title = entry?.title ?? 'q·records';
@@ -84,7 +85,7 @@ export function MobileHeader({ role, tenantName, onSchnellverkauf }: MobileHeade
         </div>
       </div>
       <ThemeToggle />
-      {(role === 'admin' || role === 'superadmin') && (
+      {(role === 'admin' || isSuperadmin) && (
         <Link
           href="/einstellungen"
           aria-label="Einstellungen"

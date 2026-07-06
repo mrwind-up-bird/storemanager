@@ -70,6 +70,11 @@ describe('processBillingEvent', () => {
     ).toBe('applied');
     expect(await tenantPlan()).toBe('small');
 
+    // Self-heal-Regression (Fix 2): eine kaputte/leere stripeCustomerId (z. B. aus einer
+    // früheren Race) muss subscription_updated aus dem Event reparieren — sonst bleibt
+    // openPortalAction dauerhaft mit customer: '' hängen.
+    await owner.query(`UPDATE subscriptions SET stripe_customer_id = '' WHERE tenant_id = $1`, [tenantId]);
+
     expect(
       await processBillingEvent({
         kind: 'subscription_updated', eventId: 'evt_2', type: 'customer.subscription.updated',
@@ -78,9 +83,10 @@ describe('processBillingEvent', () => {
       }),
     ).toBe('applied');
     expect(await tenantPlan()).toBe('big');
-    const row = await owner.query(`SELECT plan_slug, current_period_end FROM subscriptions WHERE tenant_id = $1`, [tenantId]);
+    const row = await owner.query(`SELECT plan_slug, current_period_end, stripe_customer_id FROM subscriptions WHERE tenant_id = $1`, [tenantId]);
     expect(row.rows[0].plan_slug).toBe('big');
     expect(new Date(row.rows[0].current_period_end).toISOString()).toBe('2026-08-01T00:00:00.000Z');
+    expect(row.rows[0].stripe_customer_id).toBe('cus_w');
 
     // Unbekannte priceId → Zeile aktualisiert, Plan bleibt:
     expect(
