@@ -7,6 +7,7 @@ let listCollections: (typeof import('@/lib/collections'))['listCollections'];
 let getCollection: (typeof import('@/lib/collections'))['getCollection'];
 let withTenant: (typeof import('@/db/tenant'))['withTenant'];
 let schema: typeof import('@/db/schema');
+let UNLIMITED_ENTITLEMENTS: (typeof import('@/lib/gating'))['UNLIMITED_ENTITLEMENTS'];
 let teardown: (() => Promise<void>) | undefined;
 let tenantA: number;
 
@@ -41,6 +42,7 @@ beforeAll(async () => {
   ({ createCollection, listCollections, getCollection } = await import('@/lib/collections'));
   ({ withTenant } = await import('@/db/tenant'));
   schema = await import('@/db/schema');
+  ({ UNLIMITED_ENTITLEMENTS } = await import('@/lib/gating'));
   tenantA = (await seedTenant({ slug: 'collections-demo', name: 'Collections Demo' })).tenantId;
 });
 afterAll(async () => {
@@ -50,10 +52,14 @@ const ctx = () => ({ tenantId: tenantA, userId: null });
 
 describe('createCollection / listCollections / getCollection', () => {
   it('creates one collection + N purchases in one tx, all carrying collection_id', async () => {
-    const res = await createCollection(ctx(), {
-      sellerName: 'Nachlass Müller',
-      items: [ankaufItem('3.00'), ankaufItem('5.00')],
-    });
+    const res = await createCollection(
+      ctx(),
+      {
+        sellerName: 'Nachlass Müller',
+        items: [ankaufItem('3.00'), ankaufItem('5.00')],
+      },
+      UNLIMITED_ENTITLEMENTS,
+    );
     expect(res.purchaseIds).toHaveLength(2);
     expect(res.recordIds).toHaveLength(2);
 
@@ -85,10 +91,14 @@ describe('createCollection / listCollections / getCollection', () => {
   it('is fail-closed: a bad item rolls back the whole collection', async () => {
     const before = await listCollections(ctx());
     await expect(
-      createCollection(ctx(), {
-        sellerName: 'x',
-        items: [ankaufItem('3.00'), ankaufItem('not-a-price')],
-      }),
+      createCollection(
+        ctx(),
+        {
+          sellerName: 'x',
+          items: [ankaufItem('3.00'), ankaufItem('not-a-price')],
+        },
+        UNLIMITED_ENTITLEMENTS,
+      ),
     ).rejects.toThrow();
     const after = await listCollections(ctx());
     expect(after).toHaveLength(before.length); // nothing committed

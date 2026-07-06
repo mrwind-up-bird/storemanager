@@ -52,6 +52,7 @@ beforeAll(async () => {
   const { withTenant } = await import('@/db/tenant');
   const { purchases } = await import('@/db/schema');
   const { eq } = await import('drizzle-orm');
+  const { UNLIMITED_ENTITLEMENTS } = await import('@/lib/gating');
 
   await upsertConnection(
     { tenantId: tenantA, userId: null },
@@ -67,9 +68,9 @@ beforeAll(async () => {
     conditionRecord: 5, conditionCover: 4, listOnDiscogs: false,
   };
   const ctxA = { tenantId: tenantA, userId: null };
-  await performAnkauf(ctxA, base);
-  await performAnkauf(ctxA, base);
-  const { purchaseId: soldId } = await performAnkauf(ctxA, base);
+  await performAnkauf(ctxA, base, UNLIMITED_ENTITLEMENTS);
+  await performAnkauf(ctxA, base, UNLIMITED_ENTITLEMENTS);
+  const { purchaseId: soldId } = await performAnkauf(ctxA, base, UNLIMITED_ENTITLEMENTS);
   await withTenant(ctxA, (tx) =>
     tx.update(purchases).set({ status: 'verkauft' }).where(eq(purchases.id, soldId)),
   );
@@ -78,7 +79,7 @@ beforeAll(async () => {
   // Releases (discogsId 11111) — nur so beweist der RLS-Test unten echte Isolation statt eines
   // vakuosen "B hat halt gar keinen passenden record" Zufallstreffers.
   const ctxB = { tenantId: tenantB, userId: null };
-  await performAnkauf(ctxB, base);
+  await performAnkauf(ctxB, base, UNLIMITED_ENTITLEMENTS);
 }, 120_000);
 
 afterAll(async () => {

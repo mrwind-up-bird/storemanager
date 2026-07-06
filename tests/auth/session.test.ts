@@ -29,6 +29,7 @@ const base: SessionUser = {
   tenantId: 1,
   role: 'admin',
   isSuperadmin: false,
+  mustChangePassword: false,
 };
 
 beforeEach(() => {

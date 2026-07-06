@@ -8,6 +8,7 @@ let ReservationConflictError: (typeof import('@/lib/reservation'))['ReservationC
 let performAnkauf: (typeof import('@/lib/ankauf'))['performAnkauf'];
 let withTenant: (typeof import('@/db/tenant'))['withTenant'];
 let schema: typeof import('@/db/schema');
+let UNLIMITED_ENTITLEMENTS: (typeof import('@/lib/gating'))['UNLIMITED_ENTITLEMENTS'];
 let teardown: (() => Promise<void>) | undefined;
 let tenantA: number;
 
@@ -33,6 +34,7 @@ beforeAll(async () => {
   ({ performAnkauf } = await import('@/lib/ankauf'));
   ({ withTenant } = await import('@/db/tenant'));
   schema = await import('@/db/schema');
+  ({ UNLIMITED_ENTITLEMENTS } = await import('@/lib/gating'));
   tenantA = (await seedTenant({ slug: 'demo', name: 'Demo' })).tenantId;
 });
 afterAll(async () => {
@@ -43,14 +45,18 @@ const ctx = () => ({ tenantId: tenantA, userId: null });
 
 /** Insert a fresh `verfuegbar` copy and return its purchaseId. */
 async function freshCopy(): Promise<number> {
-  const { purchaseId } = await performAnkauf(ctx(), {
-    release,
-    purchasePrice: '3.00',
-    targetPrice: '22.50',
-    conditionRecord: 5,
-    conditionCover: 4,
-    listOnDiscogs: false,
-  });
+  const { purchaseId } = await performAnkauf(
+    ctx(),
+    {
+      release,
+      purchasePrice: '3.00',
+      targetPrice: '22.50',
+      conditionRecord: 5,
+      conditionCover: 4,
+      listOnDiscogs: false,
+    },
+    UNLIMITED_ENTITLEMENTS,
+  );
   return purchaseId;
 }
 

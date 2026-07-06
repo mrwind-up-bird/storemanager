@@ -11,6 +11,8 @@ import {
   Library,
   Store,
   BarChart3,
+  Settings,
+  Lock,
   type LucideIcon,
 } from 'lucide-react';
 import type { Role } from '@/db/schema';
@@ -21,6 +23,8 @@ type NavItem = {
   Icon: LucideIcon;
   /** Visible only to staff (role ∈ {mitarbeiter, admin, superadmin}); hidden from `kunde`. */
   staffOnly?: boolean;
+  /** Visible only to admin/superadmin (Spec §12: Einstellungen ist admin-only). */
+  adminOnly?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -31,23 +35,37 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/ankauf/sammlungen', label: 'Sammlungen', Icon: Library,   staffOnly: true      },
   { href: '/schaufenster', label: 'Schaufenster', Icon: Store                              },
   { href: '/analytik',     label: 'Analytik',     Icon: BarChart3                          },
+  { href: '/einstellungen', label: 'Einstellungen', Icon: Settings, adminOnly: true },
 ];
 
-export function SidebarNav({ role }: { role: Role }) {
+export function SidebarNav({
+  role,
+  isSuperadmin,
+  lockedHrefs = [],
+}: {
+  role: Role;
+  isSuperadmin: boolean;
+  lockedHrefs?: string[];
+}) {
   const pathname = usePathname();
   const isStaff = role !== 'kunde';
-  const items = NAV_ITEMS.filter((item) => !item.staffOnly || isStaff);
+  const isAdmin = role === 'admin' || isSuperadmin;
+  const items = NAV_ITEMS.filter(
+    (item) => (!item.staffOnly || isStaff) && (!item.adminOnly || isAdmin),
+  );
 
   return (
     <nav aria-label="Hauptnavigation" style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
       {items.map(({ href, label, Icon }) => {
         // Exact match for dashboard, prefix match for others
         const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
+        const isLocked = lockedHrefs.includes(href);
         return (
           <Link
             key={href}
             href={href}
             aria-current={isActive ? 'page' : undefined}
+            aria-label={isLocked ? `${label} (gesperrt im aktuellen Plan)` : undefined}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -66,6 +84,14 @@ export function SidebarNav({ role }: { role: Role }) {
           >
             <Icon size={18} aria-hidden="true" />
             {label}
+            {isLocked ? (
+              <Lock
+                size={13}
+                aria-hidden="true"
+                data-testid={`nav-lock-${href.replace('/', '')}`}
+                style={{ marginLeft: 'auto', color: 'var(--text-3)' }}
+              />
+            ) : null}
           </Link>
         );
       })}

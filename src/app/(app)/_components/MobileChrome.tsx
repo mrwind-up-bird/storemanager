@@ -7,13 +7,22 @@ import { MobileHeader } from './MobileHeader';
 import { VerkaufSheet } from './VerkaufSheet';
 import type { Role } from '@/db/schema';
 
-export function MobileChrome({ role, tenantName }: { role: Role; tenantName: string }) {
+export function MobileChrome({
+  role,
+  isSuperadmin,
+  tenantName,
+}: {
+  role: Role;
+  isSuperadmin: boolean;
+  tenantName: string;
+}) {
   const [verkaufOpen, setVerkaufOpen] = useState(false);
   const isStaff = role !== 'kunde';
   return (
     <>
       <MobileHeader
         role={role}
+        isSuperadmin={isSuperadmin}
         tenantName={tenantName}
         onSchnellverkauf={isStaff ? () => setVerkaufOpen(true) : undefined}
       />

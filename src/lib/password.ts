@@ -16,3 +16,10 @@ export const BCRYPT_COST = 12;
 export async function hashPassword(plaintext: string): Promise<string> {
   return bcryptjs.hash(plaintext, BCRYPT_COST);
 }
+
+/**
+ * Gültig geformter bcrypt-Hash (Cost 12) für den Timing-Schutz: wird verglichen, wenn KEINE
+ * User-Zeile existiert, damit "unbekannte E-Mail" und "falsches Passwort" identisch lange
+ * dauern (kein User-Enumeration-Orakel). Geteilt von Tenant-Auth und Platform-Auth.
+ */
+export const DUMMY_BCRYPT_HASH = '$2a$12$C6UzMDM.H6dfI/f/IKcEeO.iI5wQp.J7m9F9pYVxq3sCJ8B9YQ3qK';

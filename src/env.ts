@@ -54,6 +54,12 @@ export const envSchema = z.object({
   DISCOGS_USER_AGENT: z.string().min(1).default('QRecordsStoremanager/2.0 +https://q-records.example'),
   DISCOGS_DRIVER: z.enum(['http', 'fake']).default('http'),
 
+  // ── Billing ───────────────────────────────────────────────
+  BILLING_DRIVER: z.enum(['fake', 'stripe']).default('fake'),
+  /** Pflicht bei BILLING_DRIVER=stripe — geprüft in parseEnv (fail-closed on boot). */
+  STRIPE_SECRET_KEY: z.string().min(1).optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+
   // ── Pool / timeouts ───────────────────────────────────────
   DB_POOL_MAX: z.coerce.number().int().positive().default(10),
   DB_STATEMENT_TIMEOUT_MS: z.coerce.number().int().nonnegative().default(10_000),
@@ -63,10 +69,25 @@ export const envSchema = z.object({
 export type Env = z.infer<typeof envSchema>;
 
 /**
- * Validated environment variables. Throws a ZodError at module-load time (boot) if any
+ * Parse + Cross-Field-Refinement. Bewusst KEIN .superRefine am Schema selbst —
+ * das würde envSchema zu ZodEffects machen und bestehende .shape-Zugriffe in Tests brechen.
+ * Exportiert für tests/env-billing.test.ts.
+ */
+export function parseEnv(source: NodeJS.ProcessEnv): Env {
+  const parsed = envSchema.parse(source);
+  if (parsed.BILLING_DRIVER === 'stripe' && (!parsed.STRIPE_SECRET_KEY || !parsed.STRIPE_WEBHOOK_SECRET)) {
+    throw new Error(
+      'BILLING_DRIVER=stripe erfordert STRIPE_SECRET_KEY und STRIPE_WEBHOOK_SECRET (src/env.ts).',
+    );
+  }
+  return parsed;
+}
+
+/**
+ * Validated environment variables. Throws at module-load time (boot) if any
  * required key is absent or fails validation — this is intentional "fail-closed on boot".
  */
-export const env: Env = envSchema.parse(process.env);
+export const env: Env = parseEnv(process.env);
 
 /**
  * Builds a fully-qualified tenant URL.

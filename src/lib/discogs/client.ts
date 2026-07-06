@@ -223,5 +223,10 @@ export function createHttpDiscogsAdapter(): DiscogsAdapter {
       })) as { listing_id: number };
       return { listingId: String(body.listing_id) };
     },
+
+    async identity(auth: DiscogsAuth) {
+      const body = (await requestJson('GET', '/oauth/identity', auth)) as { username: string };
+      return { username: body.username };
+    },
   };
 }

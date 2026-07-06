@@ -126,5 +126,9 @@ export function createFakeDiscogsAdapter(): DiscogsAdapter {
     async createListing(_auth: DiscogsAuth, input: DiscogsListingInput): Promise<{ listingId: string }> {
       return { listingId: `fake-listing-${input.releaseId}` };
     },
+
+    async identity() {
+      return { username: 'fake-seller' };
+    },
   };
 }

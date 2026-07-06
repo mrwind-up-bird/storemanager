@@ -6,6 +6,7 @@ import { withTenant } from '@/db/tenant';
 import { periodRange, berlinLocalYMD, type AnalyticsPeriod } from '@/lib/analytics-period';
 import { toCents } from '@/lib/money';
 import { serializeAnalyticsCsv, type CsvTxRow } from '@/lib/analytics-csv';
+import { getEntitlements } from '@/lib/gating';
 
 // One more than the cap so a single query tells us whether more rows exist (C13: cap 10 000).
 const CAP = 10_000;
@@ -24,6 +25,9 @@ type TxRow = {
 export async function GET(request: Request): Promise<Response> {
   const user = await requireSession();
   if (user.role === 'kunde') forbidden();
+
+  const ent = await getEntitlements(user.tenantId);
+  if (!ent.features.analytik) forbidden();
 
   const url = new URL(request.url);
   const raw = url.searchParams.get('period');

@@ -8,6 +8,7 @@ import { isValidOrigin } from '@/lib/csrf';
 import { createCollection } from '@/lib/collections';
 import { enqueueDiscogsListing, enqueueWishlistMatch } from '@/lib/jobs';
 import { MONEY_STRING_RE } from '@/lib/money';
+import { getEntitlements, LimitExceededError } from '@/lib/gating';
 
 export type CreateCollectionResult =
   | { ok: true; collectionId: number; count: number }
@@ -73,12 +74,25 @@ export async function createCollectionAction(input: unknown): Promise<CreateColl
   }
 
   const ctx = { tenantId: user.tenantId, userId: user.id };
+  const ent = await getEntitlements(user.tenantId);
+
+  if (parsed.data.items.some((i) => i.listOnDiscogs) && !ent.features.discogsListing) {
+    return {
+      ok: false,
+      reason: 'validation',
+      message: `Discogs-Listing ist im ${ent.planName}-Plan nicht verfügbar. Upgrade unter Einstellungen → Abo.`,
+    };
+  }
+
   let collectionId: number;
   let purchaseIds: number[];
   let recordIds: number[];
   try {
-    ({ collectionId, purchaseIds, recordIds } = await createCollection(ctx, parsed.data));
+    ({ collectionId, purchaseIds, recordIds } = await createCollection(ctx, parsed.data, ent));
   } catch (err) {
+    if (err instanceof LimitExceededError) {
+      return { ok: false, reason: 'validation', message: err.message };
+    }
     console.error('[sammlung] createCollection failed', err);
     return { ok: false, reason: 'error' };
   }

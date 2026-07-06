@@ -63,3 +63,22 @@ describe('parseTenantSlug', () => {
     },
   );
 });
+
+describe('isPlatformHost', () => {
+  it('erkennt exakt admin.<rootDomain> (case-insensitiv, Port-strip)', async () => {
+    const { isPlatformHost } = await import('@/lib/subdomain');
+    expect(isPlatformHost('admin.localhost', 'localhost')).toBe(true);
+    expect(isPlatformHost('admin.localhost:3000', 'localhost')).toBe(true);
+    expect(isPlatformHost('ADMIN.Localhost:3000', 'localhost')).toBe(true);
+  });
+
+  it('lehnt alles andere ab (Tenant, nested, root, leer)', async () => {
+    const { isPlatformHost } = await import('@/lib/subdomain');
+    expect(isPlatformHost('demo.localhost', 'localhost')).toBe(false);
+    expect(isPlatformHost('admin.demo.localhost', 'localhost')).toBe(false);
+    expect(isPlatformHost('localhost', 'localhost')).toBe(false);
+    expect(isPlatformHost('admin.evil.com', 'localhost')).toBe(false);
+    expect(isPlatformHost(null, 'localhost')).toBe(false);
+    expect(isPlatformHost('admin.localhost', '')).toBe(false);
+  });
+});

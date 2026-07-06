@@ -2,12 +2,12 @@
 import 'dotenv/config';
 
 import { fileURLToPath } from 'url';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray, isNull, notInArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from '../src/db/schema';
 import type { RecordStatus } from '../src/db/schema';
-import { provisionTenant, type ProvisionInput } from '../src/lib/provisioning';
+import { provisionTenant, type ProvisionInput, generateTempPassword } from '../src/lib/provisioning';
 import { DEFAULT_PRIMARY_COLOR } from '../src/lib/branding';
 import { recordHash } from '../src/db/hash';
 import { hashPassword } from '../src/lib/password';
@@ -15,6 +15,7 @@ import { getEmailAdapter, sendCredentialsEmail } from '../src/lib/email';
 import { encryptSecret } from '../src/lib/crypto';
 import { createCollection } from '../src/lib/collections';
 import type { AnkaufInput } from '../src/lib/ankauf';
+import { UNLIMITED_ENTITLEMENTS } from '../src/lib/gating';
 
 // ---------------------------------------------------------------------------
 // Tenant definitions
@@ -25,7 +26,7 @@ const DEMO_TENANT: ProvisionInput = {
   name: 'Q-Records Demo',
   adminEmail: 'admin@demo.test',
   primaryColor: DEFAULT_PRIMARY_COLOR,
-  plan: 'free',
+  plan: 'big',
 };
 
 const VINYLCAVE_TENANT: ProvisionInput = {
@@ -35,6 +36,19 @@ const VINYLCAVE_TENANT: ProvisionInput = {
   primaryColor: '#5B4FCF',
   plan: 'small',
 };
+
+// Dritter Seed-Tenant NUR für die Gating-E2E (Spec §8/§14): plan=free mit
+// tenants.limits-Override {maxRecords: 2} — deterministisch kleines Limit.
+// resetFreeshopGatingState() dreht E2E-Rückstände vor jedem Lauf zurück.
+export const FREESHOP_TENANT: ProvisionInput = {
+  slug: 'freeshop',
+  name: 'Freeshop',
+  adminEmail: 'admin@freeshop.test',
+  primaryColor: DEFAULT_PRIMARY_COLOR,
+  plan: 'free',
+};
+
+export const PLATFORM_ADMIN_EMAIL = 'platform@qrecords.test';
 
 // ---------------------------------------------------------------------------
 // Fake Discogs connection — DEMO tenant ONLY (Slice 2, C12)
@@ -286,6 +300,20 @@ export const VINYLCAVE_PERMALINKS: PermalinkSpec[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Datasets — freeshop tenant (Gating-Baseline: GENAU 1 Platte, Limit-Override 2)
+// ---------------------------------------------------------------------------
+
+export const FREESHOP_RECORDS: RecordSeed[] = [
+  { title: 'Nevermind', artist: 'Nirvana', country: 'US', releaseYear: 1991, label: ['DGC'], format: 'Vinyl', genre: ['Grunge'] },
+];
+
+export const FREESHOP_PURCHASES: PurchaseSpec[] = [
+  { recordIndex: 0, ek: '5.00', vk: '19.90', status: 'verfuegbar', conditionRecord: 5, conditionCover: 5 },
+];
+
+export const FREESHOP_PERMALINKS: PermalinkSpec[] = []; // provisionTenant legt 'lager' an — reicht.
+
+// ---------------------------------------------------------------------------
 // Internal helpers (not exported — use seedTenantInventory from tests)
 // ---------------------------------------------------------------------------
 
@@ -505,6 +533,93 @@ export async function ensureDiscogsConnection(
 }
 
 /**
+ * Idempotenter Platform-User (Spec §5). Passwort: SEED_ADMIN_PASSWORD, sonst generiert
+ * (einmalig geloggt — Muster wie printCredentials). Re-Seed setzt das Passwort neu,
+ * wenn SEED_ADMIN_PASSWORD gesetzt ist (wie ensureTenant für Tenant-Admins).
+ */
+export async function ensurePlatformUser(
+  ownerPool: Pool,
+  email: string,
+  password: string | undefined,
+): Promise<void> {
+  const db = drizzle(ownerPool, { schema });
+
+  const existing = await db
+    .select({ id: schema.platformUsers.id })
+    .from(schema.platformUsers)
+    .where(eq(schema.platformUsers.email, email))
+    .limit(1);
+
+  if (existing.length > 0 && existing[0]) {
+    if (password) {
+      await db
+        .update(schema.platformUsers)
+        .set({ password: await hashPassword(password), updatedAt: new Date() })
+        .where(eq(schema.platformUsers.id, existing[0].id));
+      console.log(`[seed]   Platform-User "${email}" Passwort aktualisiert.`);
+    }
+    return;
+  }
+
+  const effective = password ?? generateTempPassword();
+  await db.insert(schema.platformUsers).values({ email, password: await hashPassword(effective) });
+  console.log(`[seed]   Platform-User "${email}" angelegt${password ? '' : ` — temporäres Passwort: ${effective}`}.`);
+}
+
+/**
+ * Seed-Tenants sind fertig konfiguriert: Wizard nie zeigen, Passwortzwang aus (Spec §8) —
+ * sonst laufen die bestehenden E2E-Logins in Passwort-/Wizard-Redirects.
+ */
+export async function markTenantOnboarded(ownerPool: Pool, tenantId: number): Promise<void> {
+  const db = drizzle(ownerPool, { schema });
+  await db
+    .update(schema.tenants)
+    .set({ onboardingCompletedAt: new Date() })
+    .where(and(eq(schema.tenants.id, tenantId), isNull(schema.tenants.onboardingCompletedAt)));
+  await db
+    .update(schema.users)
+    .set({ mustChangePassword: false })
+    .where(eq(schema.users.tenantId, tenantId));
+}
+
+/**
+ * Freeshop-Reset (Reset-Muster wie ensureWishlist, Slice 3): Die Upgrade-E2E (Szenario 4)
+ * hinterlässt plan='small' + eine subscriptions-Zeile, die Gating-E2E (Szenario 3) zusätzliche
+ * records/purchases/collections. Alles zurückdrehen, damit jeder Lauf deterministisch startet.
+ * freeshop verkauft in keinem E2E (sonst FK transaction_items → purchases beachten).
+ */
+export async function resetFreeshopGatingState(ownerPool: Pool, tenantId: number): Promise<void> {
+  const db = drizzle(ownerPool, { schema });
+
+  await db
+    .update(schema.tenants)
+    .set({ plan: 'free', limits: { maxRecords: 2 }, updatedAt: new Date() })
+    .where(eq(schema.tenants.id, tenantId));
+  await db.delete(schema.subscriptions).where(eq(schema.subscriptions.tenantId, tenantId));
+
+  // Nicht-Seed-Bestände löschen: purchases → collections → records (FK-Reihenfolge).
+  const keepHashes = FREESHOP_RECORDS.map((r) =>
+    recordHash({ title: r.title, artist: r.artist, country: r.country, year: r.releaseYear, label: r.label }),
+  );
+  const stale = await db
+    .select({ id: schema.records.id })
+    .from(schema.records)
+    .where(and(eq(schema.records.tenantId, tenantId), notInArray(schema.records.hash, keepHashes)));
+  const staleIds = stale.map((r) => r.id);
+  if (staleIds.length > 0) {
+    await db
+      .delete(schema.purchases)
+      .where(and(eq(schema.purchases.tenantId, tenantId), inArray(schema.purchases.recordId, staleIds)));
+  }
+  await db.delete(schema.collections).where(eq(schema.collections.tenantId, tenantId));
+  if (staleIds.length > 0) {
+    await db
+      .delete(schema.records)
+      .where(and(eq(schema.records.tenantId, tenantId), inArray(schema.records.id, staleIds)));
+  }
+}
+
+/**
  * Seeds records, purchases, and permalinks for a tenant.
  * Exported so integration tests can call it directly with a testcontainer ownerPool.
  */
@@ -718,6 +833,8 @@ export async function ensureDemoCollection(
   const { collectionId, purchaseIds } = await createCollection(
     { tenantId, userId: adminUserId },
     { sellerName: input.sellerName, items: input.items },
+    // Vertrauenswürdiger Fixture-Pfad — Request-Pfade laden IMMER getEntitlements (Spec §10).
+    UNLIMITED_ENTITLEMENTS,
   );
 
   console.log(
@@ -827,6 +944,14 @@ async function main(): Promise<void> {
     console.log(`[seed] Seeding demo collection for "${DEMO_TENANT.slug}"...`);
     await seedTenantCollections(ownerPool, demoId, DEMO_COLLECTION);
 
+    // Plan-Konvergenz auch für BESTEHENDE Tenants: ensureTenant() überspringt existierende
+    // Tenants komplett — der Spec-§8-Plan-Flip (demo → 'big') würde in Umgebungen mit
+    // persistentem Compose-Volume (Seed lief vor Slice 6 mit plan='free') sonst nie ankommen
+    // und die 59 Bestands-E2E (Analytik/Discogs-Gates) scheitern. Unconditional wie
+    // resetFreeshopGatingState/markTenantOnboarded.
+    await ownerPool.query(`UPDATE tenants SET plan = $1 WHERE id = $2`, [DEMO_TENANT.plan, demoId]);
+    await markTenantOnboarded(ownerPool, demoId);
+
     // ── vinylcave tenant ───────────────────────────────────────────────────
     const { tenantId: vinylId, usedPassword: vinylPw } = await ensureTenant(VINYLCAVE_TENANT, ownerPool);
     printCredentials(VINYLCAVE_TENANT, vinylPw, protocol, rootDomain);
@@ -834,6 +959,24 @@ async function main(): Promise<void> {
 
     console.log(`[seed] Seeding inventory for "${VINYLCAVE_TENANT.slug}"...`);
     await seedTenantInventory(ownerPool, vinylId, VINYLCAVE_RECORDS, VINYLCAVE_PURCHASES, VINYLCAVE_PERMALINKS);
+
+    await ownerPool.query(`UPDATE tenants SET plan = $1 WHERE id = $2`, [VINYLCAVE_TENANT.plan, vinylId]);
+    await markTenantOnboarded(ownerPool, vinylId);
+
+    // ── freeshop tenant (Gating-E2E, Spec §8) ──────────────────────────────
+    const { tenantId: freeId, usedPassword: freePw } = await ensureTenant(FREESHOP_TENANT, ownerPool);
+    printCredentials(FREESHOP_TENANT, freePw, protocol, rootDomain);
+    await sendCredentialMail(FREESHOP_TENANT, freePw, protocol, rootDomain);
+
+    console.log(`[seed] Resetting gating state for "${FREESHOP_TENANT.slug}"...`);
+    await resetFreeshopGatingState(ownerPool, freeId);
+
+    console.log(`[seed] Seeding inventory for "${FREESHOP_TENANT.slug}"...`);
+    await seedTenantInventory(ownerPool, freeId, FREESHOP_RECORDS, FREESHOP_PURCHASES, FREESHOP_PERMALINKS);
+    await markTenantOnboarded(ownerPool, freeId);
+
+    // ── Platform-User (Spec §5) ────────────────────────────────────────────
+    await ensurePlatformUser(ownerPool, PLATFORM_ADMIN_EMAIL, process.env['SEED_ADMIN_PASSWORD']);
 
     console.log('[seed] Done. Safe to re-run (idempotent).');
   } finally {

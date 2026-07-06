@@ -20,6 +20,7 @@ import { TimeBuckets } from '@/app/(app)/analytik/_components/TimeBuckets';
 import { TopRecordsTable } from '@/app/(app)/analytik/_components/TopRecordsTable';
 import { PeriodToggle } from '@/app/(app)/analytik/_components/PeriodToggle';
 import { CsvExportButton } from '@/app/(app)/analytik/_components/CsvExportButton';
+import { AnalytikUpsell } from '@/app/(app)/analytik/_components/AnalytikUpsell';
 import { fixtureAnalytics } from './fixtures-analytics';
 
 afterEach(cleanup);
@@ -161,5 +162,26 @@ describe('PeriodToggle', () => {
     render(<PeriodToggle period="week" />);
     fireEvent.click(screen.getByRole('radio', { name: 'Monat' }));
     expect(push).toHaveBeenCalledWith('/analytik?period=month');
+  });
+});
+
+describe('AnalytikUpsell', () => {
+  it('renders the testid + plan-scoped copy, with an upgrade CTA for an admin', () => {
+    render(<AnalytikUpsell planName="Free" isAdmin={true} />);
+
+    expect(screen.getByTestId('analytik-upsell')).toBeInTheDocument();
+    expect(screen.getByText('Analytik ist im Free-Plan nicht enthalten')).toBeVisible();
+
+    const cta = screen.getByTestId('analytik-upsell-cta');
+    expect(cta).toHaveAttribute('href', '/einstellungen?tab=abo');
+    expect(cta).toHaveTextContent('Zum Abo-Tab');
+  });
+
+  it('shows a "ask your admin" message instead of the CTA for a non-admin', () => {
+    render(<AnalytikUpsell planName="Free" isAdmin={false} />);
+
+    expect(screen.getByTestId('analytik-upsell')).toBeInTheDocument();
+    expect(screen.queryByTestId('analytik-upsell-cta')).toBeNull();
+    expect(screen.getByText('Bitte wende dich an deinen Admin für ein Upgrade.')).toBeVisible();
   });
 });

@@ -19,6 +19,27 @@ const createCollection = vi.fn(async () => ({
 const enqueueWishlistMatch = vi.fn(async () => undefined);
 const enqueueDiscogsListing = vi.fn(async () => undefined);
 
+// Slice 6 T12: the action now loads getEntitlements(user.tenantId) before createCollection —
+// mocked out here (no DB in this fast unit test) so the discogsListing-feature-gated fixture
+// below (listOnDiscogs: true) still reaches createCollection instead of short-circuiting.
+class LimitExceededError extends Error {
+  constructor(
+    message: string,
+    public readonly current: number,
+    public readonly max: number,
+  ) {
+    super(message);
+    this.name = 'LimitExceededError';
+  }
+}
+const getEntitlements = vi.fn(async () => ({
+  plan: 'big',
+  planName: 'Big',
+  priceMonthlyCents: 4900,
+  limits: { maxRecords: null, maxUsers: null },
+  features: { analytik: true, discogsListing: true },
+}));
+
 const release = {
   discogsId: 42,
   title: 'Kind of Blue',
@@ -87,6 +108,7 @@ beforeAll(async () => {
   vi.doMock('next/cache', () => ({ revalidatePath: () => undefined }));
   vi.doMock('@/lib/collections', () => ({ createCollection }));
   vi.doMock('@/lib/jobs', () => ({ enqueueWishlistMatch, enqueueDiscogsListing }));
+  vi.doMock('@/lib/gating', () => ({ getEntitlements, LimitExceededError }));
   vi.resetModules();
   actions = await import('@/app/(app)/ankauf/sammlung/actions');
 });
@@ -138,5 +160,17 @@ describe('createCollectionAction', () => {
     // Only the first item had listOnDiscogs=true -> exactly one listing enqueue, paired by index.
     expect(enqueueDiscogsListing).toHaveBeenCalledTimes(1);
     expect(enqueueDiscogsListing).toHaveBeenCalledWith({ tenantId: 7, purchaseId: 10 });
+  });
+
+  it('createCollection throws LimitExceededError -> {ok:false, reason:"validation", message} (C8 action boundary)', async () => {
+    const message = 'Plan-Limit erreicht: max. 100 Platten im Free-Plan. Upgrade unter Einstellungen → Abo.';
+    createCollection.mockRejectedValueOnce(new LimitExceededError(message, 100, 100));
+
+    const r = await actions.createCollectionAction({ sellerName: 'Max', items: [item()] });
+
+    // Must map to reason:'validation' (a form error, not the generic reason:'error' fallback) so
+    // the client renders the exact plan-limit copy — this is the contract the T12 review flagged
+    // as untested.
+    expect(r).toEqual({ ok: false, reason: 'validation', message });
   });
 });

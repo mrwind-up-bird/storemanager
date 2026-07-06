@@ -11,6 +11,7 @@ import {
   Package,
   Heart,
   BarChart3,
+  Lock,
   type LucideIcon,
 } from 'lucide-react';
 import type { Role } from '@/db/schema';
@@ -25,7 +26,7 @@ const TABS: Tab[] = [
   { href: '/analytik',     label: 'Analytik', Icon: BarChart3 },
 ];
 
-export function BottomTabBar({ role }: { role: Role }) {
+export function BottomTabBar({ role, lockedHrefs = [] }: { role: Role; lockedHrefs?: string[] }) {
   const pathname = usePathname();
   const isStaff = role !== 'kunde';
   const tabs = TABS.filter((t) => !t.staffOnly || isStaff);
@@ -51,11 +52,13 @@ export function BottomTabBar({ role }: { role: Role }) {
     >
       {tabs.map(({ href, label, Icon }) => {
         const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
+        const isLocked = lockedHrefs.includes(href);
         return (
           <Link
             key={href}
             href={href}
             aria-current={isActive ? 'page' : undefined}
+            aria-label={isLocked ? `${label} (gesperrt im aktuellen Plan)` : undefined}
             style={{
               flex: 1,
               display: 'flex',
@@ -69,7 +72,16 @@ export function BottomTabBar({ role }: { role: Role }) {
               fontSize: '10.5px',
             }}
           >
-            <Icon size={20} aria-hidden="true" />
+            <span style={{ position: 'relative', display: 'inline-flex' }}>
+              <Icon size={20} aria-hidden="true" />
+              {isLocked ? (
+                <Lock
+                  size={10}
+                  aria-hidden="true"
+                  style={{ position: 'absolute', right: -6, top: -3, color: 'var(--text-3)' }}
+                />
+              ) : null}
+            </span>
             {label}
           </Link>
         );

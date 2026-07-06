@@ -36,6 +36,7 @@ export async function getTenantSessionAndUser(
         uTenant: users.tenantId,
         uRole: users.role,
         uSuper: users.isSuperadmin,
+        uMust: users.mustChangePassword,
       })
       .from(sessions)
       .innerJoin(users, eq(sessions.userId, users.id))
@@ -45,7 +46,7 @@ export async function getTenantSessionAndUser(
     if (!r) return null;
     return {
       session: { sessionToken: r.sToken, userId: r.sUser, expires: r.sExpires },
-      user: { id: r.uId, email: r.uEmail, tenantId: r.uTenant, role: r.uRole, isSuperadmin: r.uSuper },
+      user: { id: r.uId, email: r.uEmail, tenantId: r.uTenant, role: r.uRole, isSuperadmin: r.uSuper, mustChangePassword: r.uMust },
     };
   });
 }
@@ -71,7 +72,7 @@ export async function getTenantUser(tenantId: number, userId: number): Promise<S
     const rows = await tx.select().from(users).where(eq(users.id, userId)).limit(1);
     const u = rows[0];
     if (!u) return null;
-    return { id: u.id, email: u.email, tenantId: u.tenantId, role: u.role, isSuperadmin: u.isSuperadmin };
+    return { id: u.id, email: u.email, tenantId: u.tenantId, role: u.role, isSuperadmin: u.isSuperadmin, mustChangePassword: u.mustChangePassword };
   });
 }
 
@@ -83,6 +84,7 @@ function toAdapterUser(user: SessionUser): AdapterUser {
     tenantId: user.tenantId,
     role: user.role,
     isSuperadmin: user.isSuperadmin,
+    mustChangePassword: user.mustChangePassword,
   } as unknown as AdapterUser;
 }
 

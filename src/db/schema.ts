@@ -53,6 +53,8 @@ export const tenants = pgTable('tenants', {
   config: jsonb('config').notNull().default({}),
   plan: text('plan').notNull().default('free'),
   limits: jsonb('limits').notNull().default({}),
+  /** NULL = Onboarding-Wizard noch offen (nur neu provisionierte Tenants). */
+  onboardingCompletedAt: timestamp('onboarding_completed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
@@ -64,6 +66,36 @@ export const plans = pgTable('plans', {
   limits: jsonb('limits').notNull().default({}),
   features: jsonb('features').notNull().default({}),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  /** Stripe Price-Id (Test-Mode). NULL beim Fake-Driver — der ignoriert sie. */
+  stripePriceId: text('stripe_price_id'),
+});
+
+// ── Slice 6: Platform-Identität + Webhook-Dedup (Registry, KEINE Tenant-RLS,
+//    KEINE qr_app-Grants — Zugriff ausschließlich via withOwner(), Spec §5/§8) ──
+
+export const platformUsers = pgTable('platform_users', {
+  id: serial('id').primaryKey(),
+  email: text('email').unique().notNull(),
+  /** bcrypt-Hash, Cost 12 (hashPassword) */
+  password: text('password').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});
+
+export const platformSessions = pgTable('platform_sessions', {
+  token: text('token').primaryKey(),
+  platformUserId: integer('platform_user_id')
+    .notNull()
+    .references(() => platformUsers.id),
+  expires: timestamp('expires', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+
+export const webhookEvents = pgTable('webhook_events', {
+  /** Provider-Event-Id (Stripe event.id) — PK = Dedup-Schlüssel (Spec §9.2) */
+  id: text('id').primaryKey(),
+  type: text('type').notNull(),
+  receivedAt: timestamp('received_at', { withTimezone: true }).defaultNow(),
 });
 
 // ── Tenant-scoped tables (RLS applied in 0001_rls.sql) ───────────────────────
@@ -79,6 +111,8 @@ export const users = pgTable(
     password: text('password').notNull(),
     role: roleEnum('role').notNull().default('kunde'),
     isSuperadmin: boolean('is_superadmin').notNull().default(false),
+    /** Erzwingt /passwort beim nächsten Login (Provisioning/Team-Anlage/Credentials-Resend). */
+    mustChangePassword: boolean('must_change_password').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
@@ -398,5 +432,32 @@ export const wishlistMatches = pgTable(
   (t) => ({
     tenantStatusIdx: index('wishlist_matches_tenant_status_idx').on(t.tenantId, t.status),
     wishlistPurchaseUnique: unique('wishlist_matches_wishlist_purchase').on(t.wishlistId, t.purchaseId),
+  }),
+);
+
+// ── Slice 6: Abo-Zeile (tenant-scoped, RLS in 0011_slice6_rls.sql) ───────────
+// Genau ein Abo pro Tenant (UNIQUE tenant_id). Free-Plan = keine Zeile.
+// `status` ist informativ fürs UI — Gating-Autorität ist ausschließlich tenants.plan.
+
+export const subscriptions = pgTable(
+  'subscriptions',
+  {
+    id: serial('id').primaryKey(),
+    tenantId: integer('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    stripeCustomerId: text('stripe_customer_id').notNull(),
+    stripeSubscriptionId: text('stripe_subscription_id').notNull(),
+    planSlug: text('plan_slug')
+      .notNull()
+      .references(() => plans.slug),
+    status: text('status').notNull(),
+    currentPeriodEnd: timestamp('current_period_end', { withTimezone: true }),
+    cancelAtPeriodEnd: boolean('cancel_at_period_end').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (t) => ({
+    tenantUnique: unique('subscriptions_tenant').on(t.tenantId),
   }),
 );

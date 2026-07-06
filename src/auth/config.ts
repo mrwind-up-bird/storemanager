@@ -9,6 +9,7 @@ import { env } from '@/env';
 import { withTenant } from '@/db/tenant';
 import { users } from '@/db/schema';
 import { getCurrentTenant } from '@/lib/tenant';
+import { DUMMY_BCRYPT_HASH } from '@/lib/password';
 import { DrizzleTenantAdapter, createTenantSession } from './adapter';
 import type { Role, SessionUser } from './schema-types';
 
@@ -23,10 +24,6 @@ const USE_SECURE_COOKIES = env.APP_PROTOCOL === 'https';
 export const SESSION_COOKIE_NAME = USE_SECURE_COOKIES
   ? '__Host-authjs.session-token'
   : 'authjs.session-token';
-
-// A valid-shape bcrypt hash compared against when no user row exists, so an attacker cannot
-// distinguish "unknown email" from "wrong password" by response timing (user enumeration).
-const DUMMY_BCRYPT_HASH = '$2a$12$C6UzMDM.H6dfI/f/IKcEeO.iI5wQp.J7m9F9pYVxq3sCJ8B9YQ3qK';
 
 export async function verifyCredentials(args: {
   email: string;
@@ -44,7 +41,7 @@ export async function verifyCredentials(args: {
     // user-enumeration timing oracle between "unknown email" and "wrong password".
     const ok = await bcrypt.compare(args.password, u?.password ?? DUMMY_BCRYPT_HASH);
     if (!u || !ok) return null;
-    return { id: u.id, email: u.email, tenantId: u.tenantId, role: u.role, isSuperadmin: u.isSuperadmin };
+    return { id: u.id, email: u.email, tenantId: u.tenantId, role: u.role, isSuperadmin: u.isSuperadmin, mustChangePassword: u.mustChangePassword };
   });
 }
 
@@ -88,11 +85,17 @@ export const authConfig: NextAuthConfig = {
     },
     session({ session, user }) {
       if (session.user) {
-        const u = user as unknown as { tenantId: number; role: Role; isSuperadmin: boolean };
+        const u = user as unknown as {
+          tenantId: number;
+          role: Role;
+          isSuperadmin: boolean;
+          mustChangePassword: boolean;
+        };
         const target = session.user as unknown as Record<string, unknown>;
         target.tenantId = u.tenantId;
         target.role = u.role;
         target.isSuperadmin = u.isSuperadmin;
+        target.mustChangePassword = u.mustChangePassword;
       }
       return session;
     },

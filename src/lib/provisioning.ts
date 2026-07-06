@@ -24,7 +24,7 @@ const SLUG_REGEX = /^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/;
  * Validated before `assertAccessibleAccent` so that NaN-based luminance values
  * do not silently bypass the contrast check.
  */
-const HEX_COLOR_REGEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+export const HEX_COLOR_REGEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
 /**
  * Base32 alphabet (RFC 4648 §6): A–Z + 2–7.
@@ -62,7 +62,7 @@ export type ProvisionResult = {
  * Generate a cryptographically strong 16-character base32 temporary password
  * (80 bits of entropy from 16 random bytes, 5 bits each).
  */
-function generateTempPassword(): string {
+export function generateTempPassword(): string {
   const bytes = crypto.randomBytes(16);
   return Array.from(bytes, (b) => BASE32_ALPHABET[b & 0x1f]!).join('');
 }
@@ -160,6 +160,9 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
         password: passwordHash,
         role: 'admin',
         isSuperadmin: false,
+        // Generiertes temporäres Passwort ⇒ Zwangswechsel beim Erst-Login (Spec §11).
+        // Explizit übergebenes Passwort (Seed) ⇒ kein Zwang.
+        mustChangePassword: password === undefined,
       })
       .returning({ id: users.id });
 

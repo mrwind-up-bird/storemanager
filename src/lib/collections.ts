@@ -4,6 +4,7 @@ import { withTenant, type TenantCtx } from '@/db/tenant';
 import { collections, purchases, records } from '@/db/schema';
 import { toCents } from '@/lib/money';
 import { acquireOne, type AnkaufInput } from '@/lib/ankauf';
+import { checkRecordCapacity, type Entitlements } from '@/lib/gating';
 
 export interface CreateCollectionInput {
   sellerName: string;
@@ -48,8 +49,13 @@ export interface CollectionDetail extends CollectionSummary {
 export async function createCollection(
   ctx: TenantCtx,
   input: CreateCollectionInput,
+  ent: Entitlements,
 ): Promise<{ collectionId: number; purchaseIds: number[]; recordIds: number[] }> {
   return withTenant(ctx, async (tx) => {
+    // Konservativ mit Batchgröße prüfen (aktuell + items.length ≤ max) — Dedupe auf
+    // bestehende records wird bewusst nicht vorweggenommen (Spec §10 „aktuell + Batchgröße").
+    await checkRecordCapacity(tx, ent, input.items.length);
+
     const [col] = await tx
       .insert(collections)
       .values({

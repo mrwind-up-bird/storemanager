@@ -35,6 +35,8 @@ export interface DiscogsAdapter {
   searchByBarcode(auth: DiscogsAuth, barcode: string): Promise<DiscogsSearchResult[]>;
   priceSuggestions(auth: DiscogsAuth, releaseId: number): Promise<DiscogsPriceSuggestion | null>;
   createListing(auth: DiscogsAuth, input: DiscogsListingInput): Promise<{ listingId: string }>;
+  /** GET /oauth/identity — verifiziert Token-Gültigkeit („Verbindung testen", Spec §11.2/§12). */
+  identity(auth: DiscogsAuth): Promise<{ username: string }>;
 }
 
 export class DiscogsAuthError extends Error {}       // 401/403 → reconnect required

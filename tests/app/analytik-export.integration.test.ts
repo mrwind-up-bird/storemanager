@@ -11,6 +11,7 @@ let tenantA = 0;
 let tenantB = 0;
 let adminUserId = 0;
 let sessionRole: 'admin' | 'kunde' = 'admin';
+let sessionTenantId = 0;
 
 beforeAll(async () => {
   const db = await setupTestDatabase();
@@ -20,7 +21,7 @@ beforeAll(async () => {
     requireSession: async () => ({
       id: adminUserId,
       email: 'staff@demo',
-      tenantId: tenantA,
+      tenantId: sessionTenantId,
       role: sessionRole,
       isSuperadmin: false,
     }),
@@ -39,8 +40,15 @@ beforeAll(async () => {
   const seedA = await seedTenant({ slug: 'demo', name: 'Demo' });
   tenantA = seedA.tenantId;
   adminUserId = seedA.adminUserId;
+  sessionTenantId = tenantA;
   const seedB = await seedTenant({ slug: 'other', name: 'Other' });
   tenantB = seedB.tenantId;
+
+  // Slice 6 T12: the export route now gates on entitlements (features.analytik). The seeded
+  // tenant defaults to plan='free' (no analytik) — bump to 'big' so this file's CSV assertions
+  // keep exercising the export path, not the feature gate.
+  const { ownerPool } = await import('@/db/client');
+  await ownerPool.query('UPDATE tenants SET plan = $1 WHERE id = $2', ['big', tenantA]);
 
   ({ withOwner } = await import('@/db/tenant'));
   ({ transactions } = await import('@/db/schema'));
@@ -76,11 +84,22 @@ afterAll(async () => {
 
 afterEach(() => {
   sessionRole = 'admin';
+  sessionTenantId = tenantA;
 });
 
 describe('GET /analytik/export', () => {
   it('kunde role is forbidden', async () => {
     sessionRole = 'kunde';
+    await expect(
+      GET(new Request('http://localhost/analytik/export?period=week')),
+    ).rejects.toThrow('FORBIDDEN');
+  });
+
+  it('FREE-plan tenant (no analytik feature) is blocked -> forbidden(), no CSV ever produced', async () => {
+    // tenantB was seeded above and never bumped to 'big' — it stays on the default plan='free'
+    // (features.analytik=false), so this exercises the feature gate itself, distinct from the
+    // role gate above. Route must throw via forbidden() BEFORE touching withTenant/transactions.
+    sessionTenantId = tenantB;
     await expect(
       GET(new Request('http://localhost/analytik/export?period=week')),
     ).rejects.toThrow('FORBIDDEN');

@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { withTenant, type TenantCtx, type Tx } from '@/db/tenant';
 import { recordHash } from '@/db/hash';
 import { records, purchases } from '@/db/schema';
+import { checkRecordCapacity, type Entitlements } from '@/lib/gating';
 
 export type AnkaufRelease = {
   discogsId: number | null; // null for manually-entered (off-Discogs) items — never a synthetic id.
@@ -98,10 +99,19 @@ export async function acquireOne(
   return { recordId, purchaseId: pur!.id };
 }
 
-/** ONE withTenant transaction wrapping a single `acquireOne` (collectionId always null). */
+/**
+ * ONE withTenant transaction wrapping a single `acquireOne` (collectionId always null).
+ * Kapazitäts-Gate (Spec §10) läuft IN der Tx: Entitlements lädt der Aufrufer VOR der Tx
+ * (getEntitlements); die harmlose Race zwischen Count und Insert zweier paralleler Ankäufe
+ * ist akzeptiert (Limit ist Produkt-, keine Sicherheitsgrenze).
+ */
 export async function performAnkauf(
   ctx: TenantCtx,
   input: AnkaufInput,
+  ent: Entitlements,
 ): Promise<{ recordId: number; purchaseId: number }> {
-  return withTenant(ctx, (tx) => acquireOne(tx, ctx, input, null));
+  return withTenant(ctx, async (tx) => {
+    await checkRecordCapacity(tx, ent, 1);
+    return acquireOne(tx, ctx, input, null);
+  });
 }

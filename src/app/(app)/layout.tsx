@@ -1,6 +1,8 @@
 // src/app/(app)/layout.tsx
+import { redirect } from 'next/navigation';
 import { requireSession } from '@/auth/session';
 import { getCurrentTenant } from '@/lib/tenant';
+import { getEntitlements } from '@/lib/gating';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { AccentSwitch } from '@/components/theme/AccentSwitch';
 import { VinylDisc } from '@/components/ui/VinylDisc';
@@ -12,6 +14,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Enforces session↔tenant invariant; redirects to /login if no session.
   const user = await requireSession();
   const tenant = await getCurrentTenant();
+
+  // Erst-Login-Zwang (Spec §11): /passwort und /onboarding liegen AUSSERHALB dieser
+  // Route-Gruppe — kein Redirect-Loop. Reihenfolge bindend: Passwortzwang vor Wizard.
+  if (user.mustChangePassword) redirect('/passwort');
+  if ((user.role === 'admin' || user.isSuperadmin) && !tenant.onboardingCompletedAt) {
+    redirect('/onboarding');
+  }
+
+  const ent = await getEntitlements(tenant.id);
+  // Gated Module bleiben sichtbar mit Schloss (Spec §10) — Klick landet auf der Upsell-Karte.
+  const lockedHrefs = ent.features.analytik ? [] : ['/analytik'];
 
   const initial = (user.email[0] ?? '?').toUpperCase();
 
@@ -82,7 +95,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
         {/* Nav — client component (needs usePathname for active state).
             Pass the session role so Kasse + Wunschlisten are staff-gated (kunde never sees them). */}
-        <SidebarNav role={user.role} />
+        <SidebarNav role={user.role} isSuperadmin={user.isSuperadmin} lockedHrefs={lockedHrefs} />
 
         {/* User card */}
         <div
@@ -143,7 +156,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
       {/* ── Main content area ── */}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <MobileChrome role={user.role} tenantName={tenant.name} />
+        <MobileChrome role={user.role} isSuperadmin={user.isSuperadmin} tenantName={tenant.name} />
 
         {/* Sticky topbar */}
         <header
@@ -172,7 +185,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </main>
       </div>
 
-      <BottomTabBar role={user.role} />
+      <BottomTabBar role={user.role} lockedHrefs={lockedHrefs} />
     </div>
   );
 }
