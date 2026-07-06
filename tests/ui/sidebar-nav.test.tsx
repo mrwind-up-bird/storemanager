@@ -52,4 +52,17 @@ describe('SidebarNav role gating', () => {
     render(<SidebarNav role="mitarbeiter" />);
     expect(screen.getByRole('link', { name: 'Sammlungen' })).toHaveAttribute('href', '/ankauf/sammlungen');
   });
+
+  it('lockedHrefs renders a lock icon + "(gesperrt im aktuellen Plan)" aria-label on the affected item only', () => {
+    render(<SidebarNav role="admin" lockedHrefs={['/analytik']} />);
+
+    const locked = screen.getByRole('link', { name: 'Analytik (gesperrt im aktuellen Plan)' });
+    expect(locked).toBeInTheDocument();
+    expect(screen.getByTestId('nav-lock-analytik')).toBeInTheDocument();
+
+    // Unaffected items keep their plain accessible name (no aria-label override, no lock icon).
+    const kasse = screen.getByRole('link', { name: 'Kasse' });
+    expect(kasse).not.toHaveAttribute('aria-label');
+    expect(screen.queryByTestId('nav-lock-kasse')).toBeNull();
+  });
 });

@@ -34,4 +34,14 @@ describe('BottomTabBar (C2)', () => {
     render(<BottomTabBar role="admin" />);
     expect(screen.getByRole('link', { name: /start/i })).toHaveAttribute('aria-current', 'page');
   });
+
+  it('lockedHrefs zeigt Lock-Icon + "(gesperrt im aktuellen Plan)" aria-label nur auf dem betroffenen Tab', () => {
+    render(<BottomTabBar role="admin" lockedHrefs={['/analytik']} />);
+
+    const locked = screen.getByRole('link', { name: 'Analytik (gesperrt im aktuellen Plan)' });
+    expect(locked).toBeInTheDocument();
+
+    // Andere Tabs bleiben ungesperrt (kein aria-label-Override).
+    expect(screen.getByRole('link', { name: 'Start' })).not.toHaveAttribute('aria-label');
+  });
 });

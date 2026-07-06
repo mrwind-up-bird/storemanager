@@ -161,4 +161,16 @@ describe('createCollectionAction', () => {
     expect(enqueueDiscogsListing).toHaveBeenCalledTimes(1);
     expect(enqueueDiscogsListing).toHaveBeenCalledWith({ tenantId: 7, purchaseId: 10 });
   });
+
+  it('createCollection throws LimitExceededError -> {ok:false, reason:"validation", message} (C8 action boundary)', async () => {
+    const message = 'Plan-Limit erreicht: max. 100 Platten im Free-Plan. Upgrade unter Einstellungen → Abo.';
+    createCollection.mockRejectedValueOnce(new LimitExceededError(message, 100, 100));
+
+    const r = await actions.createCollectionAction({ sellerName: 'Max', items: [item()] });
+
+    // Must map to reason:'validation' (a form error, not the generic reason:'error' fallback) so
+    // the client renders the exact plan-limit copy — this is the contract the T12 review flagged
+    // as untested.
+    expect(r).toEqual({ ok: false, reason: 'validation', message });
+  });
 });
