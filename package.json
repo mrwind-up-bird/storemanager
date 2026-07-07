@@ -18,7 +18,8 @@
     "e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
-    "db:seed": "tsx scripts/seed.ts"
+    "db:seed": "tsx scripts/seed.ts",
+    "embeddings:backfill": "tsx scripts/embeddings-backfill.ts"
   },
   "dependencies": {
     "barcode-detector": "^3.2.0",

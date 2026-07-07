@@ -2,15 +2,17 @@
 import 'dotenv/config';
 
 import { fileURLToPath } from 'url';
-import { and, eq, inArray, isNull, notInArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from '../src/db/schema';
 import type { RecordStatus } from '../src/db/schema';
 import { provisionTenant, type ProvisionInput, generateTempPassword } from '../src/lib/provisioning';
 import { DEFAULT_PRIMARY_COLOR } from '../src/lib/branding';
-import { recordHash } from '../src/db/hash';
+import { recordHash, sha256Hex } from '../src/db/hash';
 import { hashPassword } from '../src/lib/password';
+import { getEmbeddingsAdapter } from '../src/lib/embeddings';
+import { buildEmbeddingDocument } from '../src/lib/embeddings/document';
 import { getEmailAdapter, sendCredentialsEmail } from '../src/lib/email';
 import { encryptSecret } from '../src/lib/crypto';
 import { createCollection } from '../src/lib/collections';
@@ -398,7 +400,23 @@ async function ensureRecord(
     .returning({ id: schema.records.id });
 
   console.log(`[seed]   Inserted "${rec.title}" — ${rec.artist} (${rec.releaseYear}).`);
-  return inserted!.id;
+
+  const recordId = inserted!.id;
+  // KI-Suche (Slice 7): Embedding inline berechnen (Dev/CI = fake, deterministisch), damit die
+  // KI-Suche in E2E ohne laufenden Worker sofort Daten hat. Idempotent über content_hash.
+  const doc = buildEmbeddingDocument({
+    artist: rec.artist, title: rec.title, label: rec.label, genre: rec.genre ?? [],
+    format: rec.format ?? 'Vinyl', releaseYear: rec.releaseYear, country: rec.country,
+  });
+  const [vec] = await getEmbeddingsAdapter().embed([doc]);
+  const literal = `[${vec!.join(',')}]`;
+  await db.execute(sql`
+    INSERT INTO record_embeddings (tenant_id, record_id, embedding, content_hash, model)
+    VALUES (${tenantId}, ${recordId}, ${literal}::vector(1536), ${sha256Hex(doc)}, ${getEmbeddingsAdapter().model})
+    ON CONFLICT (tenant_id, record_id) DO UPDATE
+      SET embedding = EXCLUDED.embedding, content_hash = EXCLUDED.content_hash, model = EXCLUDED.model, updated_at = now()
+  `);
+  return recordId;
 }
 
 // ---------------------------------------------------------------------------

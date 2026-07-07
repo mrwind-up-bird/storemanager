@@ -86,6 +86,7 @@ services:
       DISCOGS_CONSUMER_SECRET: dev-secret
       DISCOGS_API_URL: https://api.discogs.com
       DISCOGS_USER_AGENT: "QRecordsStoremanager/2.0 +https://q-records.example"
+      EMBEDDINGS_DRIVER: fake
     ports:
       - "3000:3000"
     depends_on:
@@ -115,6 +116,7 @@ services:
       DISCOGS_CONSUMER_SECRET: dev-secret
       DISCOGS_API_URL: https://api.discogs.com
       DISCOGS_USER_AGENT: "QRecordsStoremanager/2.0 +https://q-records.example"
+      EMBEDDINGS_DRIVER: fake
     depends_on:
       migrate:
         condition: service_completed_successfully
