@@ -6,6 +6,11 @@ import { enqueueEmbeddingRefresh } from '@/lib/jobs';
 /**
  * Reiht pro Tenant alle Records ohne aktuelles Embedding zum Re-Index ein — für Bestandsdaten
  * und nach Modellwechsel. Idempotent über den content_hash-Guard im Handler.
+ *
+ * Ausführen im Deployment (server-only ist nur im esbuild-Bundle gestubbt, NICHT unter tsx):
+ *   docker compose exec -T worker node /app/embeddings-backfill.cjs
+ * `pnpm embeddings:backfill` (tsx) wirft auf `server-only` und ist nur für aliasende Kontexte
+ * (vitest) gedacht — nicht für echte Läufe.
  */
 export async function backfillEmbeddings(): Promise<void> {
   const missing = await withSuperadmin((tx) =>
