@@ -17,3 +17,8 @@ export function recordHash(input: {
   ].map((s) => String(s).trim().toLowerCase());
   return createHash('sha256').update(parts.join('|')).digest('hex');
 }
+
+/** Generischer sha256-Hex eines Strings — für den Content-Hash des Embedding-Dokuments. */
+export function sha256Hex(s: string): string {
+  return createHash('sha256').update(s).digest('hex');
+}
