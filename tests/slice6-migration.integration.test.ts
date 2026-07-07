@@ -48,10 +48,10 @@ describe('slice6 migration (0010–0012)', () => {
       res.rows.map((r: { slug: string; limits: unknown; features: unknown }) => [r.slug, r]),
     ) as Record<string, { limits: Record<string, unknown>; features: Record<string, unknown> }>;
     expect(bySlug.free.limits).toEqual({ maxRecords: 100, maxUsers: 2 });
-    expect(bySlug.free.features).toEqual({ analytik: false, discogsListing: false });
+    expect(bySlug.free.features).toEqual({ analytik: false, discogsListing: false, kiSuche: false });
     expect(bySlug.small.limits).toEqual({ maxRecords: 5000, maxUsers: 10 });
     expect(bySlug.big.limits).toEqual({ maxRecords: null, maxUsers: null });
-    expect(bySlug.big.features).toEqual({ analytik: true, discogsListing: true });
+    expect(bySlug.big.features).toEqual({ analytik: true, discogsListing: true, kiSuche: true });
   });
 
   it('subscriptions-RLS ist nicht-vakuos: A sieht exakt seine Zeile, B exakt seine', async () => {

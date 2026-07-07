@@ -9,7 +9,7 @@ import { plans, records, tenants, users } from '@/db/schema';
 // ---------------------------------------------------------------------------
 
 export type PlanLimits = { maxRecords: number | null; maxUsers: number | null };
-export type PlanFeatures = { analytik: boolean; discogsListing: boolean };
+export type PlanFeatures = { analytik: boolean; discogsListing: boolean; kiSuche: boolean };
 
 export type Entitlements = {
   plan: string;
@@ -25,7 +25,7 @@ export const FREE_FALLBACK_ENTITLEMENTS: Entitlements = {
   planName: 'Free',
   priceMonthlyCents: 0,
   limits: { maxRecords: 100, maxUsers: 2 },
-  features: { analytik: false, discogsListing: false },
+  features: { analytik: false, discogsListing: false, kiSuche: false },
 };
 
 /**
@@ -37,7 +37,7 @@ export const UNLIMITED_ENTITLEMENTS: Entitlements = {
   planName: 'Big',
   priceMonthlyCents: 4900,
   limits: { maxRecords: null, maxUsers: null },
-  features: { analytik: true, discogsListing: true },
+  features: { analytik: true, discogsListing: true, kiSuche: true },
 };
 
 export class LimitExceededError extends Error {
@@ -111,6 +111,7 @@ export function mergeEntitlements(
     features: {
       analytik: pf.analytik === true,
       discogsListing: pf.discogsListing === true,
+      kiSuche: pf.kiSuche === true,
     },
   };
 }

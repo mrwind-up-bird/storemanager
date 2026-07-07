@@ -46,7 +46,7 @@ describe('mergeEntitlements', () => {
       planName: 'Small',
       priceMonthlyCents: 1900,
       limits: { maxRecords: 5000, maxUsers: 10 },
-      features: { analytik: true, discogsListing: true },
+      features: { analytik: true, discogsListing: true, kiSuche: false },
     });
   });
 
@@ -81,11 +81,11 @@ describe('mergeEntitlements', () => {
       {},
     );
     expect(e.limits).toEqual(FREE_FALLBACK_ENTITLEMENTS.limits);
-    expect(e.features).toEqual({ analytik: false, discogsListing: false });
+    expect(e.features).toEqual({ analytik: false, discogsListing: false, kiSuche: false });
   });
 
   it('Features sind strikt boolesch (truthy-Strings zählen nicht)', () => {
     const e = mergeEntitlements({ ...SMALL, features: { analytik: 'yes', discogsListing: 1 } }, {});
-    expect(e.features).toEqual({ analytik: false, discogsListing: false });
+    expect(e.features).toEqual({ analytik: false, discogsListing: false, kiSuche: false });
   });
 });
