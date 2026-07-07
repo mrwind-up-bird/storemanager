@@ -15,9 +15,27 @@ import { DEFAULT_CONDITION_RECORD } from '@/lib/pricing';
 import type { LabelItem } from '@/lib/labels';
 
 export interface InventoryListProps {
-  rows: InventoryRow[];
+  rows: (InventoryRow & { score?: number })[];
   total: number; // from inventoryAggregates.total (ignores status tab) → footer
 }
+
+/** KI-Suche (Slice 7): Relevanz-Badge, gerendert wo immer row.score gesetzt ist. */
+const ScoreBadge = ({ score }: { score: number }) => (
+  <span
+    data-testid="ki-score"
+    style={{
+      marginLeft: 8,
+      padding: '1px 6px',
+      borderRadius: 'var(--r-pill)',
+      background: 'var(--accent-soft)',
+      color: 'var(--accent-ink)',
+      fontWeight: 600,
+      fontSize: 12,
+    }}
+  >
+    {Math.round(score * 100)}%
+  </span>
+);
 
 const HEAD_CELL: React.CSSProperties = {
   padding: '12px 12px',
@@ -153,7 +171,10 @@ export function InventoryList({ rows, total }: InventoryListProps) {
                   <br />
                   <span style={{ color: 'var(--text-2)', fontSize: 13 }}>{row.artist}</span>
                 </span>
-                <StatusBadge status={row.status} />
+                <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                  <StatusBadge status={row.status} />
+                  {row.score != null && <ScoreBadge score={row.score} />}
+                </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 {row.conditionRecord !== null && (
@@ -265,6 +286,7 @@ export function InventoryList({ rows, total }: InventoryListProps) {
                       />
                       <span style={{ minWidth: 0 }}>
                         <strong style={{ fontWeight: 700 }}>{row.title}</strong>
+                        {row.score != null && <ScoreBadge score={row.score} />}
                         <br />
                         <span style={{ color: 'var(--text-2)', fontSize: 13 }}>{row.artist}</span>
                       </span>

@@ -2,9 +2,11 @@
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useCallback, useState, useEffect, useRef } from 'react';
-import { ScanLine } from 'lucide-react';
+import Link from 'next/link';
+import { Lock, ScanLine } from 'lucide-react';
 import { SearchField } from '@/components/ui/SearchField';
 import { Select } from '@/components/ui/Select';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { ScannerSheet } from '@/components/scanner/ScannerSheet';
 import { SellModal } from './SellModal';
 import { findAvailableCopiesByRelease, type CopyHit } from '@/app/(app)/kasse/actions';
@@ -27,12 +29,18 @@ export interface FilterBarProps {
   genreOptions: string[];
   resultCount: number;
   valueAvailable: number;
+  kiEnabled: boolean;
+  planName: string;
+  isAdmin: boolean;
 }
 
-export function FilterBar({ genreOptions, resultCount, valueAvailable }: FilterBarProps) {
+export function FilterBar({ genreOptions, resultCount, valueAvailable, kiEnabled, planName, isAdmin }: FilterBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  // KI-Suche (Slice 7): Modus aus der URL — 'ki' nur bei explizitem ?mode=ki, sonst 'classic'.
+  const mode = searchParams.get('mode') === 'ki' ? 'ki' : 'classic';
 
   // Controlled search field — debounced URL push
   const [q, setQ] = useState(searchParams.get('q') ?? '');
@@ -42,8 +50,11 @@ export function FilterBar({ genreOptions, resultCount, valueAvailable }: FilterB
     setQ(searchParams.get('q') ?? '');
   }, [searchParams]);
 
-  // Debounce: push URL 300 ms after q changes, skip if already matches URL
+  // Debounce: push URL 300 ms after q changes, skip if already matches URL.
+  // Im KI-Modus NICHT feuern — dort löst Enter (onKeyDown) den ?q=-Push aus, damit pro Suche
+  // genau ein Embedding-Call entsteht statt einer pro Tastendruck.
   useEffect(() => {
+    if (mode !== 'classic') return;
     const trimmed = q.trim();
     const urlQ = searchParams.get('q') ?? '';
     if (trimmed === urlQ) return;
@@ -58,7 +69,7 @@ export function FilterBar({ genreOptions, resultCount, valueAvailable }: FilterB
     }, 300);
     return () => clearTimeout(tid);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]); // intentionally only q — avoid infinite loop from searchParams/router/pathname deps
+  }, [q, mode]); // intentionally only q/mode — avoid infinite loop from searchParams/router/pathname deps
 
   const setParam = useCallback(
     (key: string, value: string) => {
@@ -133,7 +144,17 @@ export function FilterBar({ genreOptions, resultCount, valueAvailable }: FilterB
           <SearchField
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Im Sortiment suchen — Titel, Artist, Label, Katalog-Nr…"
+            onKeyDown={(e) => {
+              // KI-Modus: Submit-on-Enter statt Debounce (ein Embedding-Call pro Suche).
+              if (mode === 'ki' && e.key === 'Enter') {
+                setParam('q', q.trim());
+              }
+            }}
+            placeholder={
+              mode === 'ki'
+                ? 'Beschreibe, wonach du suchst…'
+                : 'Im Sortiment suchen — Titel, Artist, Label, Katalog-Nr…'
+            }
           />
         </div>
         {/* Etiketten-Scan (Slice 5): QR auf dem Preisetikett → Exemplar → SellModal */}
@@ -157,6 +178,30 @@ export function FilterBar({ genreOptions, resultCount, valueAvailable }: FilterB
         >
           <ScanLine size={20} aria-hidden="true" />
         </button>
+        {/* KI-Suche (Slice 7): Modus-Umschalter (eine responsive Leiste, mobil+desktop) oder Lock/Upsell */}
+        {kiEnabled ? (
+          <SegmentedControl
+            aria-label="Suchmodus"
+            value={mode}
+            onChange={(v) => setParam('mode', v === 'ki' ? 'ki' : '')}
+            options={[
+              { value: 'classic', label: 'Klassisch' },
+              { value: 'ki', label: 'KI-Suche' },
+            ]}
+          />
+        ) : (
+          <div data-testid="kisuche-lock" style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: 0.7 }}>
+            <Lock size={16} aria-hidden />
+            <span>KI-Suche — nicht im {planName}-Plan enthalten</span>
+            {isAdmin ? (
+              <Link href="/einstellungen?tab=abo" data-testid="kisuche-lock-cta" className="focus-ring-button">
+                Ab Small verfügbar
+              </Link>
+            ) : (
+              <span>Verfügbar ab Small — wende dich an deinen Admin.</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Row 2: selects + reset + count/value */}

@@ -348,3 +348,39 @@ describe('Empty state', () => {
     expect(screen.getByRole('link', { name: /Filter zurücksetzen/i })).toBeInTheDocument();
   });
 });
+
+// ── KI-Suche (Slice 7): Score-Badge + Unavailable-State ─────────────────────────
+
+describe('KI-Suche — Score-Badge (row.score → gerundeter %-Wert)', () => {
+  it('InventoryList: rendert ki-score nur für Zeilen mit gesetztem score, gerundet auf %', () => {
+    const rowsWithScore = [
+      { ...ROWS[0], score: 0.873 },
+      { ...ROWS[1], score: undefined },
+    ];
+    render(<InventoryList rows={rowsWithScore} total={rowsWithScore.length} />);
+    const badges = screen.getAllByTestId('ki-score');
+    // einmal in der Desktop-Tabelle, einmal in der Mobile-Karte — beide zeigen 87%.
+    expect(badges.length).toBeGreaterThan(0);
+    badges.forEach((b) => expect(b).toHaveTextContent('87%'));
+  });
+
+  it('InventoryTiles: rendert ki-score gerundet auf %, wenn row.score gesetzt ist', () => {
+    const rowsWithScore = [{ ...ROWS[0], score: 0.5 }];
+    render(<InventoryTiles rows={rowsWithScore} />);
+    expect(screen.getByTestId('ki-score')).toHaveTextContent('50%');
+  });
+
+  it('kein ki-score-Badge ohne row.score (klassische Suche)', () => {
+    render(<InventoryList rows={ROWS} total={ROWS.length} />);
+    expect(screen.queryByTestId('ki-score')).not.toBeInTheDocument();
+  });
+});
+
+describe('ViewToggle — kiUnavailable', () => {
+  it('zeigt den KI-Unavailable-Zustand statt der normalen Liste/Kacheln', () => {
+    render(<ViewToggle rows={[]} total={0} kiMode kiUnavailable />);
+    expect(screen.getByText('KI-Suche momentan nicht verfügbar')).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(screen.queryByText('Kein Treffer im Sortiment')).not.toBeInTheDocument();
+  });
+});

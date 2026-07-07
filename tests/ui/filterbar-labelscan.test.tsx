@@ -31,7 +31,14 @@ const copy = (purchaseId: number) => ({
   purchaseId, title: 'Kind of Blue', artist: 'Miles Davis',
   targetPrice: '22.50', conditionRecord: 5, conditionCover: 4,
 });
-const props = { genreOptions: [], resultCount: 0, valueAvailable: 0 };
+const props = {
+  genreOptions: [],
+  resultCount: 0,
+  valueAvailable: 0,
+  kiEnabled: false,
+  planName: 'Free',
+  isAdmin: false,
+};
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
