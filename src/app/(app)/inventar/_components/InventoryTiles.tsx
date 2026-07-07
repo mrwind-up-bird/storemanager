@@ -85,6 +85,7 @@ export function InventoryTiles({ rows }: InventoryTilesProps) {
                   {row.score != null && (
                     <span
                       data-testid="ki-score"
+                      aria-label={`Relevanz: ${Math.round(row.score * 100)} Prozent`}
                       style={{
                         marginLeft: 8,
                         padding: '1px 6px',

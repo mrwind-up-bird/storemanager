@@ -23,6 +23,7 @@ export interface InventoryListProps {
 const ScoreBadge = ({ score }: { score: number }) => (
   <span
     data-testid="ki-score"
+    aria-label={`Relevanz: ${Math.round(score * 100)} Prozent`}
     style={{
       marginLeft: 8,
       padding: '1px 6px',

@@ -14,7 +14,6 @@ const VIEW_OPTIONS = [
 export interface ViewToggleProps {
   rows: (InventoryRow & { score?: number })[];
   total: number;
-  kiMode?: boolean;
   kiUnavailable?: boolean;
 }
 

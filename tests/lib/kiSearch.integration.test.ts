@@ -76,4 +76,14 @@ describe('kiSearch', () => {
     const { rows } = await kiSearch({ tenantId: freeId, userId: null }, { query: 'irgendwas', filters: {} });
     expect(rows).toHaveLength(0);
   });
+
+  it('Regression: q darf im KI-Modus NICHT als harter ILIKE-Vorfilter auf die Query selbst wirken', async () => {
+    // Spiegelt, wie die Seite q sowohl in query ALS AUCH in filters.q einträgt. Ein
+    // frei erfundener Vibe-Text matcht garantiert keinen Titel/Artist/Label per ILIKE —
+    // ohne den Fix würde basePreds(filters) diesen q-Substring-Predicate anwenden und
+    // alle semantisch passenden Treffer wegfiltern → 0 rows trotz vorhandener Embeddings.
+    const vibe = 'komplett fiktiver vibe text';
+    const { rows } = await kiSearch({ tenantId, userId: null }, { query: vibe, filters: { q: vibe } });
+    expect(rows.length).toBeGreaterThan(0);
+  });
 });

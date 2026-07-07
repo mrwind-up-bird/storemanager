@@ -35,17 +35,18 @@ export default async function InventarPage({
   const kiMode = rawMode === 'ki' && ent.features.kiSuche;
   const query = typeof sp.q === 'string' ? sp.q : Array.isArray(sp.q) ? sp.q[0] ?? '' : '';
 
-  // inventoryAggregates läuft immer (Treffer/Wert + Facettenzähler bleiben korrekt, auch im KI-Modus).
-  const aggs = await inventoryAggregates(ctx, filters);
-  let rows: (InventoryRow & { score?: number })[];
-  let kiUnavailable = false;
-  if (kiMode) {
-    const res = await kiSearch(ctx, { query, filters });
-    rows = res.rows;
-    kiUnavailable = res.unavailable ?? false;
-  } else {
-    rows = await listInventory(ctx, filters);
-  }
+  // inventoryAggregates läuft immer (Treffer/Wert + Facettenzähler bleiben korrekt, auch im KI-Modus)
+  // — parallel zum Zeilen-Fetch statt sequenziell, sonst Latenz-Regression auf JEDEM Inventar-Load.
+  const [aggs, rowsResult] = await Promise.all([
+    inventoryAggregates(ctx, filters),
+    kiMode ? kiSearch(ctx, { query, filters }) : listInventory(ctx, filters),
+  ]);
+  // kiSearch() → { rows, unavailable? }, listInventory() → InventoryRow[] — per Array.isArray
+  // unterscheiden statt casten (kiMode selbst ist ein boolean, keine literal-narrowbare Diskriminante).
+  const rows: (InventoryRow & { score?: number })[] = Array.isArray(rowsResult)
+    ? rowsResult
+    : rowsResult.rows;
+  const kiUnavailable = Array.isArray(rowsResult) ? false : (rowsResult.unavailable ?? false);
   const isAdmin = user.role === 'admin' || user.isSuperadmin;
 
   return (
@@ -71,7 +72,7 @@ export default async function InventarPage({
       <StatusTabs byStatus={aggs.byStatus} total={aggs.total} />
 
       {/* List/tile toggle + active view + empty state (KI-unavailable state, Score-Badge) */}
-      <ViewToggle rows={rows} total={aggs.total} kiMode={kiMode} kiUnavailable={kiUnavailable} />
+      <ViewToggle rows={rows} total={aggs.total} kiUnavailable={kiUnavailable} />
     </div>
   );
 }

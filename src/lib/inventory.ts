@@ -255,7 +255,12 @@ export async function kiSearch(
   const literal = `[${vec.join(',')}]`;
 
   return withTenant({ tenantId: ctx.tenantId, userId: ctx.userId }, async (tx) => {
-    const preds = basePreds(ctx.tenantId, args.filters);
+    // Im KI-Modus ist der Freitext die SEMANTISCHE Query (bereits oben embedded) — NICHT
+    // zusätzlich als harter ILIKE-Keyword-Vorfilter anwenden (sonst filtert ein Vibe-Query
+    // wie "jazz vinyl" die exakt semantisch passenden Treffer per Substring wieder raus).
+    // Nur die Facetten (format/genre/condition/status) bleiben harte Vorfilter.
+    const facetFilters = { ...args.filters, q: undefined };
+    const preds = basePreds(ctx.tenantId, facetFilters);
     if (args.filters.status) preds.push(eq(purchases.status, args.filters.status));
     const distance = sql<number>`${recordEmbeddings.embedding} <=> ${literal}::vector(1536)`;
     const rows = await tx

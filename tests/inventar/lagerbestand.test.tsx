@@ -378,7 +378,7 @@ describe('KI-Suche — Score-Badge (row.score → gerundeter %-Wert)', () => {
 
 describe('ViewToggle — kiUnavailable', () => {
   it('zeigt den KI-Unavailable-Zustand statt der normalen Liste/Kacheln', () => {
-    render(<ViewToggle rows={[]} total={0} kiMode kiUnavailable />);
+    render(<ViewToggle rows={[]} total={0} kiUnavailable />);
     expect(screen.getByText('KI-Suche momentan nicht verfügbar')).toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
     expect(screen.queryByText('Kein Treffer im Sortiment')).not.toBeInTheDocument();

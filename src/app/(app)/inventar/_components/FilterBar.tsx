@@ -39,8 +39,10 @@ export function FilterBar({ genreOptions, resultCount, valueAvailable, kiEnabled
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // KI-Suche (Slice 7): Modus aus der URL — 'ki' nur bei explizitem ?mode=ki, sonst 'classic'.
-  const mode = searchParams.get('mode') === 'ki' ? 'ki' : 'classic';
+  // KI-Suche (Slice 7): Modus aus der URL — 'ki' nur bei explizitem ?mode=ki UND aktivem Feature,
+  // sonst 'classic'. Ohne das kiEnabled-Gate würde ein downgegradeter Tenant mit einem alten
+  // ?mode=ki-Bookmark den KI-Placeholder + Enter-only-Submit neben der "KI locked"-Anzeige sehen.
+  const mode = kiEnabled && searchParams.get('mode') === 'ki' ? 'ki' : 'classic';
 
   // Controlled search field — debounced URL push
   const [q, setQ] = useState(searchParams.get('q') ?? '');
