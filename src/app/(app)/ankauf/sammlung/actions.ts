@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { requireSession } from '@/auth/session';
 import { isValidOrigin } from '@/lib/csrf';
 import { createCollection } from '@/lib/collections';
-import { enqueueDiscogsListing, enqueueWishlistMatch } from '@/lib/jobs';
+import { enqueueDiscogsListing, enqueueWishlistMatch, enqueueEmbeddingRefresh } from '@/lib/jobs';
 import { MONEY_STRING_RE } from '@/lib/money';
 import { getEntitlements, LimitExceededError } from '@/lib/gating';
 
@@ -101,6 +101,17 @@ export async function createCollectionAction(input: unknown): Promise<CreateColl
   revalidatePath('/');
   revalidatePath('/analytik');
   revalidatePath('/ankauf/sammlungen');
+
+  // Slice 7: re-index embeddings once per DISTINCT record — `acquireOne` dedup-upserts identical
+  // releases into ONE record, so a batch can carry duplicate recordIds. Deliberately outside the
+  // per-purchase loop below (wishlist/discogs stay per-purchase; embeddings are per-record).
+  for (const recordId of new Set(recordIds)) {
+    try {
+      await enqueueEmbeddingRefresh({ tenantId: user.tenantId, recordId });
+    } catch (err) {
+      console.error('[sammlung] embedding-refresh enqueue failed after collection committed', err);
+    }
+  }
 
   // Post-commit, outside the tx, isolated per item — the collection is already committed, so a
   // failed enqueue must NOT roll it back (log + soft-continue). Mirrors ankaufRecord (C11).

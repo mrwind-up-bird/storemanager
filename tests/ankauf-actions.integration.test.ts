@@ -3,9 +3,11 @@ import { setupTestDatabase, seedTenant } from './helpers/db';
 
 const enqueueSpy = vi.fn(async () => undefined);
 const enqueueMatchSpy = vi.fn(async () => undefined);
+const enqueueEmbeddingSpy = vi.fn(async () => undefined);
 vi.mock('@/lib/jobs', () => ({
   enqueueDiscogsListing: enqueueSpy,
   enqueueWishlistMatch: enqueueMatchSpy,
+  enqueueEmbeddingRefresh: enqueueEmbeddingSpy,
 }));
 
 let actions: typeof import('@/app/(app)/ankauf/actions');
