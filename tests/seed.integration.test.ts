@@ -127,4 +127,49 @@ describe('Seed enrichment', () => {
     );
     expect(Number(total.rows[0]!.n)).toBe(30);
   }, 60_000);
+
+  it('resetFreeshopGatingState purgt record_embeddings vor dem records-Delete (FK)', async () => {
+    // KI-Suche (Slice 7): record_embeddings ist ein Kind von records (FK ohne ON DELETE
+    // CASCADE). Ein Re-Seed über einen persistenten Volume-Stand, bei dem ein freeshop-Record
+    // per Worker-Hook ein Embedding angesammelt hat, darf resetFreeshopGatingState nicht mit
+    // FK-Verletzung 23503 abstürzen lassen (gleiche FK-Klasse wie purgeBlueLines in
+    // e2e/discogs.spec.ts).
+    const { resetFreeshopGatingState } = await import('../scripts/seed');
+    const { recordHash } = await import('../src/db/hash');
+
+    const { tenantId } = await seedTenant({ slug: 'freeshop-fk-test', name: 'Freeshop FK Test' });
+
+    // Stale Record: Hash matcht keinen FREESHOP_RECORDS-Eintrag → resetFreeshopGatingState
+    // markiert ihn als stale und löscht ihn.
+    const staleHash = recordHash({
+      title: 'Stale Ghost Pressing', artist: 'Nobody', country: 'US', year: 1999, label: ['none'],
+    });
+    const { rows: recRows } = await ownerPool.query<{ id: number }>(
+      `INSERT INTO records (tenant_id, title, artist, label, country, release_year, format, genre, hash)
+       VALUES ($1, 'Stale Ghost Pressing', 'Nobody', ARRAY['none'], 'US', 1999, 'Vinyl', ARRAY[]::text[], $2)
+       RETURNING id`,
+      [tenantId, staleHash],
+    );
+    const staleRecordId = recRows[0]!.id;
+
+    const fakeVector = `[${Array(1536).fill(0).join(',')}]`;
+    await ownerPool.query(
+      `INSERT INTO record_embeddings (tenant_id, record_id, embedding, content_hash, model)
+       VALUES ($1, $2, $3::vector(1536), 'test-hash', 'fake-v1')`,
+      [tenantId, staleRecordId, fakeVector],
+    );
+    await ownerPool.query(
+      `INSERT INTO purchases (tenant_id, record_id, status) VALUES ($1, $2, 'verfuegbar')`,
+      [tenantId, staleRecordId],
+    );
+
+    await expect(resetFreeshopGatingState(ownerPool, tenantId)).resolves.toBeUndefined();
+
+    const remainingRecords = await ownerPool.query('SELECT id FROM records WHERE id = $1', [staleRecordId]);
+    const remainingEmbeddings = await ownerPool.query('SELECT id FROM record_embeddings WHERE record_id = $1', [staleRecordId]);
+    const remainingPurchases = await ownerPool.query('SELECT id FROM purchases WHERE record_id = $1', [staleRecordId]);
+    expect(remainingRecords.rows).toHaveLength(0);
+    expect(remainingEmbeddings.rows).toHaveLength(0);
+    expect(remainingPurchases.rows).toHaveLength(0);
+  }, 60_000);
 });

@@ -632,6 +632,14 @@ export async function resetFreeshopGatingState(ownerPool: Pool, tenantId: number
   }
   await db.delete(schema.collections).where(eq(schema.collections.tenantId, tenantId));
   if (staleIds.length > 0) {
+    // KI-Suche (Slice 7): record_embeddings ist ein Kind von records (FK ohne ON DELETE
+    // CASCADE) — vor dem records-Delete purgen, sonst FK-Verletzung 23503 (wie purgeBlueLines
+    // in e2e/discogs.spec.ts).
+    await db
+      .delete(schema.recordEmbeddings)
+      .where(and(eq(schema.recordEmbeddings.tenantId, tenantId), inArray(schema.recordEmbeddings.recordId, staleIds)));
+  }
+  if (staleIds.length > 0) {
     await db
       .delete(schema.records)
       .where(and(eq(schema.records.tenantId, tenantId), inArray(schema.records.id, staleIds)));

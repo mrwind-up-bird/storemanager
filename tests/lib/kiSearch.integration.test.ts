@@ -71,9 +71,34 @@ describe('kiSearch', () => {
     expect(rows).toHaveLength(0);
   });
 
-  it('Gate: Free-Tenant (kiSuche=false) → leeres Ergebnis', async () => {
+  it('Gate: Free-Tenant (kiSuche=false) → leeres Ergebnis trotz vorhandenem Record+Embedding', async () => {
     const { tenantId: freeId } = await seedTenant({ slug: 'ki-free', name: 'KIF' });
-    const { rows } = await kiSearch({ tenantId: freeId, userId: null }, { query: 'irgendwas', filters: {} });
+    // Nicht-vakuos: freeId braucht einen echten Treffer, sonst liefert kiSearch auch OHNE
+    // Gate ein leeres Ergebnis (weil freeId sonst 0 Records hat) und der Test wäre trivial grün.
+    const owner = new Pool({ connectionString: db.ownerUrl, max: 1 });
+    try {
+      const doc = buildEmbeddingDocument(coltrane);
+      const [vec] = await getEmbeddingsAdapter().embed([doc]);
+      const { rows: recRows } = await owner.query(
+        `INSERT INTO records (tenant_id, title, artist, label, genre, format, release_year, country, hash)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+        [freeId, coltrane.title, coltrane.artist, coltrane.label, coltrane.genre, coltrane.format, coltrane.releaseYear, coltrane.country, `${coltrane.title}-free`],
+      );
+      const recordId = recRows[0].id;
+      await owner.query(
+        `INSERT INTO record_embeddings (tenant_id, record_id, embedding, content_hash, model)
+         VALUES ($1,$2,$3::vector(1536),$4,'fake-v1')`,
+        [freeId, recordId, `[${vec!.join(',')}]`, coltrane.title],
+      );
+      await owner.query(
+        `INSERT INTO purchases (tenant_id, record_id, status) VALUES ($1,$2,'verfuegbar')`,
+        [freeId, recordId],
+      );
+    } finally {
+      await owner.end();
+    }
+
+    const { rows } = await kiSearch({ tenantId: freeId, userId: null }, { query: buildEmbeddingDocument(coltrane), filters: {} });
     expect(rows).toHaveLength(0);
   });
 
