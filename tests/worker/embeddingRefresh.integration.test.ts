@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { sql } from 'drizzle-orm';
 import { Pool } from 'pg';
 import { setupTestDatabase, seedTenant, type TestDatabase } from '../helpers/db';
 
@@ -60,9 +59,12 @@ describe('handleEmbeddingRefresh', () => {
     const spy = vi.spyOn(embeddingsMod, 'getEmbeddingsAdapter');
     const embedSpy = vi.fn();
     spy.mockReturnValue({ model: 'fake-v1', embed: embedSpy });
-    await handle(job({ tenantId, recordId }));
-    expect(embedSpy).not.toHaveBeenCalled();
-    spy.mockRestore();
+    try {
+      await handle(job({ tenantId, recordId }));
+      expect(embedSpy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('re-embedded bei geändertem Dokument', async () => {

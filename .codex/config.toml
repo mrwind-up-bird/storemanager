@@ -1,0 +1,5 @@
+[mcp_servers.nyxcore]
+url = "https://nyxcore.cloud/api/v1/mcp"
+
+[mcp_servers.nyxcore.http_headers]
+Authorization = "Bearer nyx_mt_pfUfMz4JrKGF5gC1eoCKzpsnWTcTeEoNZUbV1J4-RLI"

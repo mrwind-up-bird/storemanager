@@ -33,7 +33,8 @@ export async function handleEmbeddingRefresh(job: PgBoss.Job<EmbeddingRefreshPay
     if (cur && cur.content_hash === hash && cur.model === adapter.model) return; // unverändert → kein API-Call
 
     const [vec] = await adapter.embed([doc]);
-    const literal = `[${vec!.join(',')}]`;
+    if (!vec) throw new Error('embeddingRefresh: adapter returned no vector');
+    const literal = `[${vec.join(',')}]`;
     await tx.execute(sql`
       INSERT INTO record_embeddings (tenant_id, record_id, embedding, content_hash, model)
       VALUES (${tenantId}, ${recordId}, ${literal}::vector(1536), ${hash}, ${adapter.model})
