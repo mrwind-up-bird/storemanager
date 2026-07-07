@@ -1,6 +1,7 @@
 import {
   boolean,
   check,
+  customType,
   index,
   integer,
   jsonb,
@@ -144,6 +145,20 @@ export const sessions = pgTable('sessions', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
 
+// pgvector-Spalte. Kein Repo-Präzedenzfall — hier definiert. dataType() steuert die generierte DDL;
+// toDriver serialisiert number[] → '[a,b,c]' (pgvector-Textformat), fromDriver zurück.
+export const vector1536 = customType<{ data: number[]; driverData: string }>({
+  dataType() {
+    return 'vector(1536)';
+  },
+  toDriver(value: number[]): string {
+    return `[${value.join(',')}]`;
+  },
+  fromDriver(value: string): number[] {
+    return value.slice(1, -1).split(',').map(Number);
+  },
+});
+
 export const records = pgTable(
   'records',
   {
@@ -193,6 +208,27 @@ export const collections = pgTable(
   },
   (t) => ({
     tenantAcquiredIdx: index('collections_tenant_acquired_idx').on(t.tenantId, t.acquiredAt),
+  }),
+);
+
+export const recordEmbeddings = pgTable(
+  'record_embeddings',
+  {
+    id: serial('id').primaryKey(),
+    tenantId: integer('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    recordId: integer('record_id')
+      .notNull()
+      .references(() => records.id),
+    embedding: vector1536('embedding').notNull(),
+    contentHash: varchar('content_hash', { length: 64 }).notNull(),
+    model: text('model').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (t) => ({
+    tenantRecordUnique: unique('record_embeddings_tenant_record').on(t.tenantId, t.recordId),
   }),
 );
 

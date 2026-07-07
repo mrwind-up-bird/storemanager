@@ -17,6 +17,7 @@ const TENANT_SCOPED_TABLES = [
   'wishlist_matches',
   'collections',
   'subscriptions',
+  'record_embeddings',
 ] as const;
 
 /**

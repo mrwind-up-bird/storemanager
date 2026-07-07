@@ -92,6 +92,20 @@
       "when": 1783328115440,
       "tag": "0012_slice6_data",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1783328115441,
+      "tag": "0013_slice7_embeddings",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1783328115442,
+      "tag": "0014_slice7_rls",
+      "breakpoints": true
     }
   ]
 }
