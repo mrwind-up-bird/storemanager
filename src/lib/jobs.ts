@@ -24,6 +24,7 @@ async function getBoss(): Promise<PgBoss> {
       await boss.createQueue(QUEUE.discogsListingCreate);
       await boss.createQueue(QUEUE.wishlistMatch);
       await boss.createQueue(QUEUE.wishlistNotify);
+      await boss.createQueue(QUEUE.embeddingRefresh);
       return boss;
     })();
   }
@@ -52,6 +53,17 @@ export async function enqueueWishlistMatch(payload: WishlistMatchPayload): Promi
 export async function enqueueWishlistNotification(payload: WishlistNotifyPayload): Promise<void> {
   const boss = await getBoss();
   await boss.send(QUEUE.wishlistNotify, payload, {
+    retryLimit: 5,
+    retryBackoff: true,
+  });
+}
+
+export async function enqueueEmbeddingRefresh(payload: {
+  tenantId: number;
+  recordId: number;
+}): Promise<void> {
+  const boss = await getBoss();
+  await boss.send(QUEUE.embeddingRefresh, payload, {
     retryLimit: 5,
     retryBackoff: true,
   });
