@@ -62,6 +62,10 @@ async function assertSafety() {
       throw new Error('records returned rows without tenant context — RLS is NOT enforcing');
     }
 
+    // (d) pgvector extension must be installed (required for record_embeddings/KI-Suche).
+    const ext = await client.query(`SELECT 1 FROM pg_extension WHERE extname = 'vector'`);
+    if (ext.rows.length !== 1) throw new Error('pgvector-Extension fehlt — record_embeddings/KI-Suche nicht funktionsfähig');
+
     console.log('[boot] All database safety assertions passed.');
   } finally {
     client.release();

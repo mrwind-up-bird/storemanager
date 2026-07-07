@@ -11,7 +11,7 @@ x-app-image: &app-image qrecords-storemanager:local
 
 services:
   db:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:pg17
     environment:
       POSTGRES_DB: qrecords
       POSTGRES_USER: postgres
@@ -86,6 +86,7 @@ services:
       DISCOGS_CONSUMER_SECRET: dev-secret
       DISCOGS_API_URL: https://api.discogs.com
       DISCOGS_USER_AGENT: "QRecordsStoremanager/2.0 +https://q-records.example"
+      EMBEDDINGS_DRIVER: fake
     ports:
       - "3000:3000"
     depends_on:
@@ -115,6 +116,7 @@ services:
       DISCOGS_CONSUMER_SECRET: dev-secret
       DISCOGS_API_URL: https://api.discogs.com
       DISCOGS_USER_AGENT: "QRecordsStoremanager/2.0 +https://q-records.example"
+      EMBEDDINGS_DRIVER: fake
     depends_on:
       migrate:
         condition: service_completed_successfully

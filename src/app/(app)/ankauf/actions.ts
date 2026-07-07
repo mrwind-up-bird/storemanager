@@ -10,7 +10,7 @@ import { getDiscogsAdapter } from '@/lib/discogs';
 import { DiscogsAuthError } from '@/lib/discogs/types';
 import type { DiscogsSearchResult, DiscogsPriceSuggestion } from '@/lib/discogs/types';
 import { performAnkauf, type AnkaufInput } from '@/lib/ankauf';
-import { enqueueDiscogsListing, enqueueWishlistMatch } from '@/lib/jobs';
+import { enqueueDiscogsListing, enqueueWishlistMatch, enqueueEmbeddingRefresh } from '@/lib/jobs';
 import { getEntitlements, LimitExceededError } from '@/lib/gating';
 
 export type SearchResultDTO = DiscogsSearchResult;
@@ -124,6 +124,14 @@ export async function ankaufRecord(
 
   revalidatePath('/inventar');
   revalidatePath('/');
+
+  // Slice 7: re-index the semantic-search embedding for this record. Post-commit, soft-fail —
+  // the purchase is already committed, so an enqueue error must NOT roll it back.
+  try {
+    await enqueueEmbeddingRefresh({ tenantId: user.tenantId, recordId });
+  } catch (err) {
+    console.error('[ankauf] embedding-refresh enqueue failed after purchase committed', err);
+  }
 
   // Slice 3: match this arrived copy against open wishlists. Post-commit, soft-fail —
   // the purchase is already committed, so an enqueue error must NOT roll it back.

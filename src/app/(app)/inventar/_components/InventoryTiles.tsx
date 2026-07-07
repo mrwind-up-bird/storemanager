@@ -9,7 +9,7 @@ const discColor = (format: string | null) =>
   format === 'CD' ? 'var(--info)' : 'var(--accent)';
 
 export interface InventoryTilesProps {
-  rows: InventoryRow[];
+  rows: (InventoryRow & { score?: number })[];
 }
 
 export function InventoryTiles({ rows }: InventoryTilesProps) {
@@ -82,6 +82,23 @@ export function InventoryTiles({ rows }: InventoryTilesProps) {
                   }}
                 >
                   {row.title}
+                  {row.score != null && (
+                    <span
+                      data-testid="ki-score"
+                      aria-label={`Relevanz: ${Math.round(row.score * 100)} Prozent`}
+                      style={{
+                        marginLeft: 8,
+                        padding: '1px 6px',
+                        borderRadius: 'var(--r-pill)',
+                        background: 'var(--accent-soft)',
+                        color: 'var(--accent-ink)',
+                        fontWeight: 600,
+                        fontSize: 12,
+                      }}
+                    >
+                      {Math.round(row.score * 100)}%
+                    </span>
+                  )}
                 </div>
                 <div
                   style={{

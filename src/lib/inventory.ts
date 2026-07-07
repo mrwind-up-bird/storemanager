@@ -1,7 +1,10 @@
 import 'server-only';
 import { and, asc, eq, gte, sql, type SQL } from 'drizzle-orm';
 import { withTenant } from '@/db/tenant';
-import { records, purchases, type RecordStatus } from '@/db/schema';
+import { records, purchases, recordEmbeddings, type RecordStatus } from '@/db/schema';
+import { getEmbeddingsAdapter } from '@/lib/embeddings';
+import { EmbeddingsConfigError } from '@/lib/embeddings/types';
+import { getEntitlements } from '@/lib/gating';
 
 export type InventoryStatus = RecordStatus; // 'verfuegbar'|'reserviert'|'verkauft'|'verliehen'
 export type ConditionBand = 'mint_nm' | 'vgplus' | 'vg'; // ≥6, ≥5, ≥4 on conditionRecord
@@ -218,4 +221,76 @@ export async function findAvailableCopiesByRelease(
       )
       .orderBy(asc(purchases.id)),
   );
+}
+
+export type KiSearchRow = InventoryRow & { score: number };
+
+const KI_SEARCH_LIMIT = 50;
+
+/**
+ * Semantische Suche: Query → Embedding → pgvector-ANN (Cosine) mit basePreds als hartem Vorfilter.
+ * Gated an der Query (Defence-in-Depth zusätzlich zum UI-Gate). server-only.
+ */
+export async function kiSearch(
+  ctx: { tenantId: number; userId: number | null },
+  args: { query: string; filters: InventoryFilters },
+): Promise<{ rows: KiSearchRow[]; unavailable?: boolean }> {
+  const ent = await getEntitlements(ctx.tenantId);
+  if (!ent.features.kiSuche) return { rows: [] }; // fail-closed Gate
+
+  const query = args.query.trim();
+  if (!query) return { rows: [] }; // kein API-Call bei leerer Query
+
+  let vec: number[];
+  try {
+    const [embedded] = await getEmbeddingsAdapter().embed([query]);
+    vec = embedded!;
+  } catch (err) {
+    if (err instanceof EmbeddingsConfigError) {
+      console.error('[kiSearch] embeddings unavailable', err);
+      return { rows: [], unavailable: true }; // sauberer Fehlerzustand, kein 500, kein Leak
+    }
+    throw err;
+  }
+  const literal = `[${vec.join(',')}]`;
+
+  return withTenant({ tenantId: ctx.tenantId, userId: ctx.userId }, async (tx) => {
+    // Im KI-Modus ist der Freitext die SEMANTISCHE Query (bereits oben embedded) — NICHT
+    // zusätzlich als harter ILIKE-Keyword-Vorfilter anwenden (sonst filtert ein Vibe-Query
+    // wie "jazz vinyl" die exakt semantisch passenden Treffer per Substring wieder raus).
+    // Nur die Facetten (format/genre/condition/status) bleiben harte Vorfilter.
+    const facetFilters = { ...args.filters, q: undefined };
+    const preds = basePreds(ctx.tenantId, facetFilters);
+    if (args.filters.status) preds.push(eq(purchases.status, args.filters.status));
+    const distance = sql<number>`${recordEmbeddings.embedding} <=> ${literal}::vector(1536)`;
+    const rows = await tx
+      .select({
+        copyId: purchases.id,
+        recordId: records.id,
+        title: records.title,
+        artist: records.artist,
+        label: records.label,
+        releaseYear: records.releaseYear,
+        country: records.country,
+        format: records.format,
+        genre: records.genre,
+        ek: purchases.purchasePrice,
+        vk: purchases.targetPrice,
+        status: purchases.status,
+        conditionRecord: purchases.conditionRecord,
+        conditionCover: purchases.conditionCover,
+        discogsId: records.discogsId,
+        score: sql<number>`1 - (${distance})`,
+      })
+      .from(purchases)
+      .innerJoin(records, eq(records.id, purchases.recordId))
+      .innerJoin(
+        recordEmbeddings,
+        and(eq(recordEmbeddings.recordId, records.id), eq(recordEmbeddings.tenantId, ctx.tenantId)),
+      )
+      .where(and(...preds))
+      .orderBy(distance)
+      .limit(KI_SEARCH_LIMIT);
+    return { rows: rows.map((r) => ({ ...r, score: Number(r.score) })) };
+  });
 }

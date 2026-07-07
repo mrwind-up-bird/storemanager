@@ -12,12 +12,75 @@ const VIEW_OPTIONS = [
 ];
 
 export interface ViewToggleProps {
-  rows: InventoryRow[];
+  rows: (InventoryRow & { score?: number })[];
   total: number;
+  kiUnavailable?: boolean;
 }
 
-export function ViewToggle({ rows, total }: ViewToggleProps) {
+export function ViewToggle({ rows, total, kiUnavailable }: ViewToggleProps) {
   const [view, setView] = useState<'list' | 'tiles'>('list');
+
+  // KI-Suche (Slice 7): Embeddings-Adapter nicht konfiguriert/erreichbar — sauberer
+  // Fehlerzustand statt leerem "Kein Treffer" (der falsch suggerieren würde, es gäbe keine Treffer).
+  if (kiUnavailable) {
+    return (
+      <div
+        style={{
+          border: '1px dashed var(--border-strong)',
+          borderRadius: 'var(--r-lg)',
+          background: 'var(--surface)',
+          padding: '48px 24px',
+          textAlign: 'center',
+          color: 'var(--text-3)',
+        }}
+      >
+        <div aria-hidden="true" style={{ fontSize: 34, marginBottom: 8 }}>
+          ⚠
+        </div>
+        <div
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontWeight: 700,
+            fontSize: 17,
+            color: 'var(--text-2)',
+          }}
+        >
+          KI-Suche momentan nicht verfügbar
+        </div>
+        <p
+          style={{
+            fontSize: '13.5px',
+            lineHeight: 1.6,
+            margin: '6px auto 16px',
+            maxWidth: '38ch',
+          }}
+        >
+          Bitte versuche es in Kürze erneut oder nutze die klassische Suche.
+        </p>
+        {/* Link löscht mode (+ alle anderen Params) — springt zurück in die klassische Suche */}
+        <a
+          href="/inventar"
+          className="focus-ring-button"
+          style={{
+            display: 'inline-block',
+            minHeight: 40,
+            padding: '0 18px',
+            lineHeight: '40px',
+            border: '1.5px solid var(--border-strong)',
+            borderRadius: 'var(--r-pill)',
+            background: 'var(--surface)',
+            color: 'var(--text)',
+            fontFamily: 'var(--font-body)',
+            fontWeight: 600,
+            fontSize: 13,
+            textDecoration: 'none',
+          }}
+        >
+          Zur klassischen Suche
+        </a>
+      </div>
+    );
+  }
 
   // Empty state (verbatim from Q-Records App.dc.html lines 257-263)
   if (rows.length === 0) {

@@ -53,6 +53,15 @@ async function purgeBlueLines(tenantId: number): Promise<void> {
         AND record_id IN (SELECT id FROM records WHERE tenant_id = $1 AND title = $2)`,
     [tenantId, BLUE_LINES],
   );
+  // record_embeddings (Slice 7) ist ein weiteres Kind von records mit ON DELETE no action —
+  // wie purchases explizit vor dem records-Delete räumen, sonst schlägt die FK fehl, sobald
+  // der Worker beim Ankauf ein Embedding angelegt hat.
+  await dbQuery(
+    `DELETE FROM record_embeddings
+      WHERE tenant_id = $1
+        AND record_id IN (SELECT id FROM records WHERE tenant_id = $1 AND title = $2)`,
+    [tenantId, BLUE_LINES],
+  );
   await dbQuery(`DELETE FROM records WHERE tenant_id = $1 AND title = $2`, [tenantId, BLUE_LINES]);
 }
 

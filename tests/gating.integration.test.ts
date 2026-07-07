@@ -87,7 +87,7 @@ describe('gating capacity checks + freeshop reset', () => {
     const fallback = await fresh(tenantId);
     expect(fallback.plan).toBe('free');
     expect(fallback.limits.maxRecords).toBe(2); // Override bleibt wirksam
-    expect(fallback.features).toEqual({ analytik: false, discogsListing: false });
+    expect(fallback.features).toEqual({ analytik: false, discogsListing: false, kiSuche: false });
     await owner.query(`UPDATE tenants SET plan = 'free' WHERE id = $1`, [tenantId]);
   });
 

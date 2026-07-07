@@ -18,6 +18,7 @@ const createCollection = vi.fn(async () => ({
 }));
 const enqueueWishlistMatch = vi.fn(async () => undefined);
 const enqueueDiscogsListing = vi.fn(async () => undefined);
+const enqueueEmbeddingRefresh = vi.fn(async () => undefined);
 
 // Slice 6 T12: the action now loads getEntitlements(user.tenantId) before createCollection —
 // mocked out here (no DB in this fast unit test) so the discogsListing-feature-gated fixture
@@ -107,7 +108,7 @@ beforeAll(async () => {
   }));
   vi.doMock('next/cache', () => ({ revalidatePath: () => undefined }));
   vi.doMock('@/lib/collections', () => ({ createCollection }));
-  vi.doMock('@/lib/jobs', () => ({ enqueueWishlistMatch, enqueueDiscogsListing }));
+  vi.doMock('@/lib/jobs', () => ({ enqueueWishlistMatch, enqueueDiscogsListing, enqueueEmbeddingRefresh }));
   vi.doMock('@/lib/gating', () => ({ getEntitlements, LimitExceededError }));
   vi.resetModules();
   actions = await import('@/app/(app)/ankauf/sammlung/actions');
@@ -119,6 +120,7 @@ afterEach(() => {
   createCollection.mockClear();
   enqueueWishlistMatch.mockClear();
   enqueueDiscogsListing.mockClear();
+  enqueueEmbeddingRefresh.mockClear();
 });
 
 describe('createCollectionAction', () => {

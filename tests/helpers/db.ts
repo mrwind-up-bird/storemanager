@@ -31,7 +31,7 @@ const APP_PW = 'app_pw';
 
 export async function setupTestDatabase(): Promise<TestDatabase> {
   // Boot a real PostgreSQL 17 (default db/user/pass: test/test/test).
-  const container = await new PostgreSqlContainer('postgres:17').start();
+  const container = await new PostgreSqlContainer('pgvector/pgvector:pg17').start();
 
   const host = container.getHost();
   const port = container.getPort();
@@ -50,6 +50,8 @@ export async function setupTestDatabase(): Promise<TestDatabase> {
     await admin.query(`ALTER SCHEMA public OWNER TO qr_owner`);
     await admin.query(`GRANT ALL ON SCHEMA public TO qr_owner`);
     await admin.query(`GRANT USAGE ON SCHEMA public TO qr_app`);
+    // pgvector: als Superuser anlegen, BEVOR runMigrations (qr_owner) den vector-Typ nutzt.
+    await admin.query('CREATE EXTENSION IF NOT EXISTS vector');
   } finally {
     await admin.end();
   }

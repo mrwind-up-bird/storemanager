@@ -2,15 +2,17 @@
 import 'dotenv/config';
 
 import { fileURLToPath } from 'url';
-import { and, eq, inArray, isNull, notInArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from '../src/db/schema';
 import type { RecordStatus } from '../src/db/schema';
 import { provisionTenant, type ProvisionInput, generateTempPassword } from '../src/lib/provisioning';
 import { DEFAULT_PRIMARY_COLOR } from '../src/lib/branding';
-import { recordHash } from '../src/db/hash';
+import { recordHash, sha256Hex } from '../src/db/hash';
 import { hashPassword } from '../src/lib/password';
+import { getEmbeddingsAdapter } from '../src/lib/embeddings';
+import { buildEmbeddingDocument } from '../src/lib/embeddings/document';
 import { getEmailAdapter, sendCredentialsEmail } from '../src/lib/email';
 import { encryptSecret } from '../src/lib/crypto';
 import { createCollection } from '../src/lib/collections';
@@ -398,7 +400,24 @@ async function ensureRecord(
     .returning({ id: schema.records.id });
 
   console.log(`[seed]   Inserted "${rec.title}" — ${rec.artist} (${rec.releaseYear}).`);
-  return inserted!.id;
+
+  const recordId = inserted!.id;
+  // KI-Suche (Slice 7): Embedding inline berechnen (Dev/CI = fake, deterministisch), damit die
+  // KI-Suche in E2E ohne laufenden Worker sofort Daten hat. Idempotent über content_hash.
+  const doc = buildEmbeddingDocument({
+    artist: rec.artist, title: rec.title, label: rec.label, genre: rec.genre ?? [],
+    format: rec.format ?? 'Vinyl', releaseYear: rec.releaseYear, country: rec.country,
+  });
+  const adapter = getEmbeddingsAdapter();
+  const [vec] = await adapter.embed([doc]);
+  const literal = `[${vec!.join(',')}]`;
+  await db.execute(sql`
+    INSERT INTO record_embeddings (tenant_id, record_id, embedding, content_hash, model)
+    VALUES (${tenantId}, ${recordId}, ${literal}::vector(1536), ${sha256Hex(doc)}, ${adapter.model})
+    ON CONFLICT (tenant_id, record_id) DO UPDATE
+      SET embedding = EXCLUDED.embedding, content_hash = EXCLUDED.content_hash, model = EXCLUDED.model, updated_at = now()
+  `);
+  return recordId;
 }
 
 // ---------------------------------------------------------------------------
@@ -612,6 +631,14 @@ export async function resetFreeshopGatingState(ownerPool: Pool, tenantId: number
       .where(and(eq(schema.purchases.tenantId, tenantId), inArray(schema.purchases.recordId, staleIds)));
   }
   await db.delete(schema.collections).where(eq(schema.collections.tenantId, tenantId));
+  if (staleIds.length > 0) {
+    // KI-Suche (Slice 7): record_embeddings ist ein Kind von records (FK ohne ON DELETE
+    // CASCADE) — vor dem records-Delete purgen, sonst FK-Verletzung 23503 (wie purgeBlueLines
+    // in e2e/discogs.spec.ts).
+    await db
+      .delete(schema.recordEmbeddings)
+      .where(and(eq(schema.recordEmbeddings.tenantId, tenantId), inArray(schema.recordEmbeddings.recordId, staleIds)));
+  }
   if (staleIds.length > 0) {
     await db
       .delete(schema.records)

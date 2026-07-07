@@ -14,6 +14,9 @@ import type { WishlistMatchPayload } from './jobs/wishlistMatch';
 // Type-only import (erased at compile time) — keeps the queue registration and the real
 // handler sharing ONE payload type without pulling the job module's @/db → @/env chain.
 import type { WishlistNotifyPayload } from './jobs/wishlistNotify';
+// Type-only import (erased at compile time) — keeps the queue registration and the real
+// handler sharing ONE payload type without pulling the job module's @/db → @/env chain.
+import type { EmbeddingRefreshPayload } from './jobs/embeddingRefresh';
 
 /**
  * Canonical queue name registry.
@@ -28,6 +31,7 @@ export const QUEUE = {
   discogsListingCreate: 'tenant.discogs.listing.create',
   wishlistMatch: 'tenant.wishlist.match',
   wishlistNotify: 'tenant.wishlist.notify',
+  embeddingRefresh: 'tenant.embedding.refresh',
 } as const;
 
 /**
@@ -123,6 +127,21 @@ export async function startWorker(): Promise<void> {
     },
   );
   console.log(`[worker] Handler registered for queue: ${QUEUE.wishlistNotify}`);
+
+  // Per-tenant embedding refresh job (Slice 7): re-embed a record's KI-Suche document.
+  await boss.createQueue(QUEUE.embeddingRefresh);
+  console.log(`[worker] Queue created/verified: ${QUEUE.embeddingRefresh}`);
+
+  await boss.work<EmbeddingRefreshPayload>(
+    QUEUE.embeddingRefresh,
+    async (jobs: PgBoss.Job<EmbeddingRefreshPayload>[]) => {
+      const { handleEmbeddingRefresh } = await import('./jobs/embeddingRefresh');
+      for (const job of jobs) {
+        await handleEmbeddingRefresh(job);
+      }
+    },
+  );
+  console.log(`[worker] Handler registered for queue: ${QUEUE.embeddingRefresh}`);
 
   const shutdown = async (signal: string): Promise<void> => {
     console.log(`[worker] Received ${signal}. Stopping pg-boss...`);
