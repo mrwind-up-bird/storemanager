@@ -60,6 +60,13 @@ export const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string().min(1).optional(),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
 
+  // ── Embeddings / KI-Suche ─────────────────────────────────
+  EMBEDDINGS_DRIVER: z.enum(['fake', 'http']).default('fake'),
+  /** Pflicht bei EMBEDDINGS_DRIVER=http — geprüft in parseEnv (fail-closed on boot). */
+  EMBEDDINGS_API_KEY: z.string().min(1).optional(),
+  EMBEDDINGS_MODEL: z.string().default('text-embedding-3-small'),
+  EMBEDDINGS_API_URL: z.string().url().default('https://api.openai.com/v1'),
+
   // ── Pool / timeouts ───────────────────────────────────────
   DB_POOL_MAX: z.coerce.number().int().positive().default(10),
   DB_STATEMENT_TIMEOUT_MS: z.coerce.number().int().nonnegative().default(10_000),
@@ -79,6 +86,9 @@ export function parseEnv(source: NodeJS.ProcessEnv): Env {
     throw new Error(
       'BILLING_DRIVER=stripe erfordert STRIPE_SECRET_KEY und STRIPE_WEBHOOK_SECRET (src/env.ts).',
     );
+  }
+  if (parsed.EMBEDDINGS_DRIVER === 'http' && !parsed.EMBEDDINGS_API_KEY) {
+    throw new Error('EMBEDDINGS_DRIVER=http erfordert EMBEDDINGS_API_KEY (src/env.ts).');
   }
   return parsed;
 }
