@@ -11,7 +11,7 @@ let ownerUrl: string;
 let appUrl: string;
 
 beforeAll(async () => {
-  container = await new PostgreSqlContainer('postgres:17').start();
+  container = await new PostgreSqlContainer('pgvector/pgvector:pg17').start();
 
   // Bootstrap the two app roles as the superuser — mirrors docker/postgres/init/01-roles.sql.
   const admin = new Pool({ connectionString: container.getConnectionUri() });
@@ -20,6 +20,8 @@ beforeAll(async () => {
   await admin.query(`ALTER DATABASE ${container.getDatabase()} OWNER TO qr_owner`);
   await admin.query(`ALTER SCHEMA public OWNER TO qr_owner`);
   await admin.query(`GRANT ALL ON SCHEMA public TO qr_owner`);
+  // pgvector: als Superuser anlegen, BEVOR runMigrations (qr_owner ist NOSUPERUSER) den vector-Typ nutzt (Slice 7 / 0013).
+  await admin.query(`CREATE EXTENSION IF NOT EXISTS vector`);
   await admin.end();
 
   const host = container.getHost();
