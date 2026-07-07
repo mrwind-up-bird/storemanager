@@ -60,6 +60,9 @@ describe('kiSearch', () => {
 
   it('Facetten-Vorfilter schränkt hart ein (genre=Electronic → nur Kraftwerk)', async () => {
     const { rows } = await kiSearch({ tenantId, userId: null }, { query: buildEmbeddingDocument(coltrane), filters: { genre: 'Electronic' } });
+    // Nicht-vakuos: exakt die eine Kraftwerk-Kopie muss durch den Facetten-Vorfilter kommen —
+    // eine Regression, die alle Zeilen auf leer fallen ließe, würde .every() sonst still passieren.
+    expect(rows).toHaveLength(1);
     expect(rows.every((r) => r.artist === 'Kraftwerk')).toBe(true);
   });
 
