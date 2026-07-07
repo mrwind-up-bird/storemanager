@@ -1,4 +1,4 @@
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { sql } from 'drizzle-orm';
 import { withSuperadmin } from '@/db/tenant';
 import { enqueueEmbeddingRefresh } from '@/lib/jobs';
@@ -22,11 +22,26 @@ export async function backfillEmbeddings(): Promise<void> {
   console.log(`[embeddings:backfill] ${missing.rows.length} Record(s) eingereiht`);
 }
 
-const invokedDirectly =
-  process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
-if (invokedDirectly) {
-  backfillEmbeddings().then(() => process.exit(0)).catch((e) => {
-    console.error('[embeddings:backfill] failed:', e);
-    process.exit(1);
-  });
+// ---------------------------------------------------------------------------
+// CLI entry guard — run backfillEmbeddings() only when executed directly, not on import.
+// Mirrors scripts/seed.ts's isSeedDirectInvocation (see there for the full esbuild-cjs
+// rationale): under `node /app/embeddings-backfill.cjs` (esbuild --format=cjs bundle),
+// import.meta.url is empty, so the bundle is ALWAYS treated as the process entrypoint.
+// ---------------------------------------------------------------------------
+const backfillMetaUrl: string | undefined = import.meta.url;
+
+function isBackfillDirectInvocation(): boolean {
+  // esbuild cjs bundle (node embeddings-backfill.cjs): import.meta.url is empty → entrypoint.
+  if (!backfillMetaUrl) return true;
+  const self = fileURLToPath(backfillMetaUrl);
+  return process.argv[1] === self || process.argv[1] === self.replace(/\.ts$/, '.js');
+}
+
+if (isBackfillDirectInvocation()) {
+  backfillEmbeddings()
+    .then(() => process.exit(0))
+    .catch((e: unknown) => {
+      console.error('[embeddings:backfill] failed:', e);
+      process.exit(1);
+    });
 }

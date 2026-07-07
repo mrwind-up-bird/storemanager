@@ -408,11 +408,12 @@ async function ensureRecord(
     artist: rec.artist, title: rec.title, label: rec.label, genre: rec.genre ?? [],
     format: rec.format ?? 'Vinyl', releaseYear: rec.releaseYear, country: rec.country,
   });
-  const [vec] = await getEmbeddingsAdapter().embed([doc]);
+  const adapter = getEmbeddingsAdapter();
+  const [vec] = await adapter.embed([doc]);
   const literal = `[${vec!.join(',')}]`;
   await db.execute(sql`
     INSERT INTO record_embeddings (tenant_id, record_id, embedding, content_hash, model)
-    VALUES (${tenantId}, ${recordId}, ${literal}::vector(1536), ${sha256Hex(doc)}, ${getEmbeddingsAdapter().model})
+    VALUES (${tenantId}, ${recordId}, ${literal}::vector(1536), ${sha256Hex(doc)}, ${adapter.model})
     ON CONFLICT (tenant_id, record_id) DO UPDATE
       SET embedding = EXCLUDED.embedding, content_hash = EXCLUDED.content_hash, model = EXCLUDED.model, updated_at = now()
   `);

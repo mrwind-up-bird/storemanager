@@ -68,9 +68,10 @@ RUN pnpm build
 #    server build, which lacks createContext and breaks next/navigation's module init).
 #  - Entrypoints exec via `require('<file>').<fn>()` because esbuild's cjs format leaves
 #    `import.meta.url` empty, defeating the scripts' own `import.meta` "run if main" guards.
-RUN pnpm exec esbuild src/db/migrate.ts   --bundle --platform=node --format=cjs --alias:server-only=./docker/stubs/server-only.js --outfile=dist/migrate.cjs \
- && pnpm exec esbuild scripts/seed.ts     --bundle --platform=node --format=cjs --alias:server-only=./docker/stubs/server-only.js --outfile=dist/seed.cjs \
- && pnpm exec esbuild src/worker/index.ts --bundle --platform=node --format=cjs --alias:server-only=./docker/stubs/server-only.js --outfile=dist/worker.cjs
+RUN pnpm exec esbuild src/db/migrate.ts             --bundle --platform=node --format=cjs --alias:server-only=./docker/stubs/server-only.js --outfile=dist/migrate.cjs \
+ && pnpm exec esbuild scripts/seed.ts               --bundle --platform=node --format=cjs --alias:server-only=./docker/stubs/server-only.js --outfile=dist/seed.cjs \
+ && pnpm exec esbuild src/worker/index.ts           --bundle --platform=node --format=cjs --alias:server-only=./docker/stubs/server-only.js --outfile=dist/worker.cjs \
+ && pnpm exec esbuild scripts/embeddings-backfill.ts --bundle --platform=node --format=cjs --alias:server-only=./docker/stubs/server-only.js --outfile=dist/embeddings-backfill.cjs
 
 # ──────────────────── Stage 3: runner ────────────────────
 FROM node:22-alpine AS runner
@@ -87,10 +88,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
-# Self-contained runtime scripts (migrate / seed / worker).
-COPY --from=builder --chown=nextjs:nodejs /app/dist/migrate.cjs ./migrate.cjs
-COPY --from=builder --chown=nextjs:nodejs /app/dist/seed.cjs    ./seed.cjs
-COPY --from=builder --chown=nextjs:nodejs /app/dist/worker.cjs  ./worker.cjs
+# Self-contained runtime scripts (migrate / seed / worker / embeddings-backfill).
+COPY --from=builder --chown=nextjs:nodejs /app/dist/migrate.cjs             ./migrate.cjs
+COPY --from=builder --chown=nextjs:nodejs /app/dist/seed.cjs                ./seed.cjs
+COPY --from=builder --chown=nextjs:nodejs /app/dist/worker.cjs              ./worker.cjs
+COPY --from=builder --chown=nextjs:nodejs /app/dist/embeddings-backfill.cjs ./embeddings-backfill.cjs
 
 # Drizzle migration SQL — migrate.cjs reads `${process.cwd()}/drizzle` at runtime (cwd=/app).
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
