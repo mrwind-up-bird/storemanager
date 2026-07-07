@@ -194,5 +194,23 @@ Additive Erweiterung der bestehenden Suchleiste (`src/app/(app)/inventar/_compon
 - Dachdokument: `docs/superpowers/specs/2026-06-25-qrecords-v2-architecture-overview.md` (§5 Roadmap Slice 7 — hier zerlegt in Slices 7–10)
 - Muster: Billing-Adapter (`src/lib/billing/{index,fake,stripe,types}.ts`), Discogs-Adapter (`src/lib/discogs/`), Gating (`src/lib/gating.ts` + `analytik` Upsell), Tenant-Kontext (`src/db/tenant.ts`), Inventar-Query (`src/lib/inventory.ts`), Ankauf (`src/lib/ankauf.ts`), Worker/Jobs (`src/worker/index.ts`, `src/lib/jobs.ts`), Migrations-/RLS-Konvention (`drizzle/0011_slice6_rls.sql`), Env-Driver-Muster (`src/env.ts`)
 - Interface-Stub (ersetzt, nicht implementiert): `src/lib/integrations/index.ts:61–69` (`AiSearchAdapter`)
-- pgvector: Extension `vector`, Operator `<=>` (Cosine mit `vector_cosine_ops`), HNSW-Index; Image `pgvector/pgvector:pg16`
+- pgvector: Extension `vector`, Operator `<=>` (Cosine mit `vector_cosine_ops`), HNSW-Index; Image `pgvector/pgvector:pg17` (siehe §14)
 - Provider: OpenAI `text-embedding-3-small` (1536-dim); Alternative bei multilingualem Bedarf: Voyage `voyage-3` (reiner Config-Swap am `EmbeddingsAdapter`)
+
+## 14. Korrekturen nach Ground-Truth (2026-07-07)
+
+Die Umsetzung (Plan `docs/superpowers/plans/2026-07-07-…-slice7-…md`, SDD T1–T11) hat mehrere Spec-Annahmen gegen das echte v2-Repo verifiziert und korrigiert. Diese Sektion hält den Design-of-Record ehrlich.
+
+**Vor der Umsetzung (Ground-Truth-Fan-out) erzwungen:**
+1. **`CREATE EXTENSION vector` ist KEINE Migration (0013).** Migrationen laufen als `qr_owner` (NOSUPERUSER); die Extension braucht SUPERUSER. Sie liegt im Init-Pfad (`docker/postgres/init/02-extensions.sql`) + im Testcontainer-Admin-Pool (`tests/helpers/db.ts` **und** `tests/migration.integration.test.ts`) VOR `runMigrations`. `docker/entrypoint-web.sh` prüft `pg_extension` fail-closed.
+2. **DB-Image = `pgvector/pgvector:pg17`** (Compose + Testcontainers), nicht `postgres:16`. Kein `-alpine`-Tag für pgvector.
+3. **Migrationen laufen im `migrate`-Compose-Service / `runMigrations`** (Drizzle-Migrator liest `_journal.json`), nicht im Entrypoint. Handgeschriebene Einträge brauchen strikt steigendes `when`.
+4. **Kein `requireFeature`-Helper** — Gating inline (Render-Branch analytik-Muster in page.tsx + fail-closed Re-Check in `kiSearch`).
+5. **Neuer `sha256Hex`-Helper** (kein generischer sha256; `recordHash` hat andere Shape) + **selbst-definierter `vector1536` customType** (kein Präzedenzfall) — DDL via `db:generate` (0013), HNSW-Index handangehängt.
+6. **`kiSuche` fließt nur, wenn `mergeEntitlements` (gating.ts) den Key explizit setzt** (`kiSuche: pf.kiSuche === true`) — sonst still false trotz DB-Wert.
+
+**Während der Umsetzung entdeckt (E2E gegen den echten Stack):**
+7. **`kiSearch` darf den Freitext NICHT als Keyword-Vorfilter anwenden.** Die Seite reicht `filters` (inkl. `q`) an `kiSearch`; `basePreds` würde `q` als `ILIKE` anwenden → jede semantische Vibe-Query, die kein Literal-Substring ist, liefert 0 Zeilen. `kiSearch` strippt `q` vor `basePreds` (Freitext = semantische Query; nur Facetten format/genre/condition/status sind harte Vorfilter).
+8. **`record_embeddings.record_id → records.id` bleibt `ON DELETE no action`** (Haus-Konvention wie `purchases`/`wishlist_matches`) — Record-Kinder werden explizit child-first gelöscht (E2E-Cleanup `purgeBlueLines` löscht jetzt record_embeddings vor records), KEIN CASCADE. Die App hat keinen Record-Delete-Pfad.
+9. **Runtime-Fakt server-only:** `server-only` wirft unter reinem `tsx`; seed/worker/migrate/**embeddings-backfill** laufen als esbuild-CJS-Bundles mit `--alias:server-only`-Stub (Dockerfile). `embeddings:backfill` wurde als 4. Bundle in das Runner-Image aufgenommen; echtes Kommando: `docker compose run --rm worker node /app/embeddings-backfill.cjs` (nicht `pnpm embeddings:backfill`/tsx). Entry-Guard spiegelt `seed.ts` (self-run unter leerem `import.meta.url`).
+10. **Score-Badge rendert in beiden Layouts** (Desktop-Tabelle + `.qr-mobile-only`-Karte); E2E scoped auf die sichtbare `tbody`.
