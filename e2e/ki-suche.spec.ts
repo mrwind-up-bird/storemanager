@@ -44,7 +44,10 @@ test.describe('KI-Suche (/inventar)', () => {
     await page.waitForURL(/[?&]q=jazz/i);
 
     await expect.poll(() => page.locator('tbody tr').count()).toBeGreaterThan(0);
-    await expect(page.getByTestId('ki-score').first()).toBeVisible();
+    // Das Relevanz-Badge rendert in BEIDEN Layouts (Desktop-Tabelle + .qr-mobile-only-Karte);
+    // die mobile Karte steht im DOM zuerst, ist aber am Desktop-Viewport display:none. Auf die
+    // sichtbare Desktop-Tabelle (tbody) scopen, sonst trifft .first() das versteckte Mobile-Badge.
+    await expect(page.locator('tbody').getByTestId('ki-score').first()).toBeVisible();
 
     // Facette Status "im Lager" (status=verfuegbar) schränkt die sichtbaren Zeilen weiter ein.
     const before = await page.locator('tbody tr').count();
