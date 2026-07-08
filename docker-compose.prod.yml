@@ -7,8 +7,10 @@
 #   IMAGE_TAG=<sha> docker compose -f docker-compose.prod.yml up -d --remove-orphans
 #   docker compose -f docker-compose.prod.yml --profile bootstrap run --rm bootstrap   # once
 #
-# Traefik HostRegexp below is v3 syntax. For Traefik v2 use:
-#   traefik.http.routers.qrsm-web.rule: "HostRegexp(`{sub:[a-z0-9-]+}.qrsm.store`)"
+# TLS: the shared Traefik uses TLS-ALPN-01 (per-host certs), NOT DNS-01 — so hosts are
+# ENUMERATED in Host() rules (no wildcard cert). To add a tenant: add Host(`<slug>.qrsm.store`)
+# to the qrsm-web router rule and redeploy. (A true *.qrsm.store wildcard would need a DNS-01
+# resolver added to the shared Traefik — deferred.)
 
 x-app-image: &app-image ghcr.io/mrwind-up-bird/storemanager:${IMAGE_TAG:-latest}
 
@@ -91,14 +93,12 @@ services:
     labels:
       traefik.enable: "true"
       traefik.docker.network: "nyxcore_nyxcore-net"
-      # Every single-label *.qrsm.store host (tenants + admin) → the app.
-      traefik.http.routers.qrsm-web.rule: "HostRegexp(`^[a-z0-9-]+\\.qrsm\\.store$`)"
-      traefik.http.routers.qrsm-web.priority: "1"
+      # Enumerated hosts (per-host TLS-ALPN-01 certs). admin = platform zone; demo = first tenant.
+      # Add Host(`<slug>.qrsm.store`) here + redeploy to bring a new tenant online.
+      traefik.http.routers.qrsm-web.rule: "Host(`admin.qrsm.store`) || Host(`demo.qrsm.store`)"
       traefik.http.routers.qrsm-web.entrypoints: "websecure"
       traefik.http.routers.qrsm-web.tls: "true"
       traefik.http.routers.qrsm-web.tls.certresolver: "letsencrypt"
-      traefik.http.routers.qrsm-web.tls.domains[0].main: "qrsm.store"
-      traefik.http.routers.qrsm-web.tls.domains[0].sans: "*.qrsm.store"
       traefik.http.routers.qrsm-web.middlewares: "security-headers@file,gzip-compress@file"
       traefik.http.routers.qrsm-web.service: "qrsm-web-svc"
       traefik.http.services.qrsm-web-svc.loadbalancer.server.port: "3000"
@@ -132,14 +132,11 @@ services:
     labels:
       traefik.enable: "true"
       traefik.docker.network: "nyxcore_nyxcore-net"
-      # Bare root + www → coming-soon. Priority 100 beats the web regexp for these two hosts.
+      # Bare root + www → coming-soon (per-host TLS-ALPN-01 certs).
       traefik.http.routers.qrsm-splash.rule: "Host(`qrsm.store`) || Host(`www.qrsm.store`)"
-      traefik.http.routers.qrsm-splash.priority: "100"
       traefik.http.routers.qrsm-splash.entrypoints: "websecure"
       traefik.http.routers.qrsm-splash.tls: "true"
       traefik.http.routers.qrsm-splash.tls.certresolver: "letsencrypt"
-      traefik.http.routers.qrsm-splash.tls.domains[0].main: "qrsm.store"
-      traefik.http.routers.qrsm-splash.tls.domains[0].sans: "*.qrsm.store"
       traefik.http.routers.qrsm-splash.middlewares: "security-headers@file,gzip-compress@file"
       traefik.http.routers.qrsm-splash.service: "qrsm-splash-svc"
       traefik.http.services.qrsm-splash-svc.loadbalancer.server.port: "80"
