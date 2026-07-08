@@ -79,6 +79,11 @@ jobs:
           MAIL_HOST: localhost
           MAIL_PORT: '1025'
           MAIL_FROM: noreply@localhost
+          # Always-required by src/env.ts; the /api/billing/webhook route pulls @/env during
+          # build-time page-data collection, so `next build` needs them (placeholders — the
+          # Dockerfile builder sets its own).
+          DISCOGS_CONSUMER_KEY: build-time-placeholder-discogs-key
+          DISCOGS_CONSUMER_SECRET: build-time-placeholder-discogs-secret
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
