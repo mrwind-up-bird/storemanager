@@ -20,6 +20,8 @@ dist/
 !.env.example
 # Dev-only compose env (committed on purpose; contains no real secrets).
 !.env.compose
+# Production env TEMPLATE (placeholders only; the real .env stays on the server).
+!.env.prod.example
 .mcp.json
 
 # Design handoff: keep extracted reference, ignore the bulky source zip
