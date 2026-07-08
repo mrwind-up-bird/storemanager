@@ -1,6 +1,6 @@
 # q·records storemanager — PRODUCTION stack for qrsm.store on the shared nyxcore host.
 # Image-pull model: CI builds & pushes to GHCR; this file only pulls & runs.
-# Deploy dir: /opt/q-records-storemanager  ·  secrets: ./.env (server-only, NOT in git)
+# Deploy dir: /opt/storemanager  ·  secrets: ./.env (server-only, NOT in git)
 #
 #   docker login ghcr.io                                              # one-time, on the server
 #   IMAGE_TAG=<sha> docker compose -f docker-compose.prod.yml pull

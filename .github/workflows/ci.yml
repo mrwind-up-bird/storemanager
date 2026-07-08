@@ -175,6 +175,9 @@ jobs:
     needs: [build, e2e]
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     environment: production
+    permissions:
+      contents: read
+      packages: read
     concurrency:
       group: deploy-qrsm-store
       cancel-in-progress: false
@@ -205,7 +208,7 @@ jobs:
           rsync -azR \
             -e "ssh -i ~/.ssh/id_deploy -p ${DEPLOY_PORT:-22}" \
             docker-compose.prod.yml docker/postgres/init splash \
-            "${DEPLOY_USER:-root}@${DEPLOY_HOST:-46.224.105.254}:/opt/q-records-storemanager/"
+            "${DEPLOY_USER:-root}@${DEPLOY_HOST:-46.224.105.254}:/opt/storemanager/"
 
       - name: Pull image, up, health-check
         env:
@@ -213,14 +216,20 @@ jobs:
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
           IMAGE_TAG: ${{ github.sha }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           ssh -i ~/.ssh/id_deploy -p "${DEPLOY_PORT:-22}" \
             "${DEPLOY_USER:-root}@${DEPLOY_HOST:-46.224.105.254}" \
-            IMAGE_TAG="$IMAGE_TAG" 'bash -seuo pipefail' <<'REMOTE'
-          cd /opt/q-records-storemanager
+            IMAGE_TAG="$IMAGE_TAG" GHCR_USER="$GHCR_USER" GHCR_TOKEN="$GHCR_TOKEN" 'bash -seuo pipefail' <<'REMOTE'
+          cd /opt/storemanager
           export IMAGE_TAG="${IMAGE_TAG:-latest}"
+          # Authenticate the pull with the workflow's own GITHUB_TOKEN (packages:read) — no
+          # persistent registry creds on the host. Logged out again right after the pull.
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
           docker compose -f docker-compose.prod.yml pull
+          docker logout ghcr.io >/dev/null 2>&1 || true
           docker compose -f docker-compose.prod.yml up -d --remove-orphans
           docker image prune -f >/dev/null 2>&1 || true
           for i in $(seq 1 20); do
