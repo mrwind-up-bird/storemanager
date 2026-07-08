@@ -10,7 +10,7 @@
 # Traefik HostRegexp below is v3 syntax. For Traefik v2 use:
 #   traefik.http.routers.qrsm-web.rule: "HostRegexp(`{sub:[a-z0-9-]+}.qrsm.store`)"
 
-x-app-image: &app-image ghcr.io/mrwind-up-bird/q-records-storemanager:${IMAGE_TAG:-latest}
+x-app-image: &app-image ghcr.io/mrwind-up-bird/storemanager:${IMAGE_TAG:-latest}
 
 x-logging: &default-logging
   driver: json-file

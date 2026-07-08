@@ -14,7 +14,7 @@
 
 - **Base branch:** `feat/deploy-qrsm-store`, based on `feat/v2-slice7-…` (needs pgvector + embeddings; NOT on `main` yet). Deploy goes live only when this reaches `main`.
 - **Node 22 · pnpm 10.28.1** (`corepack prepare pnpm@10.28.1`).
-- **Image ref:** `ghcr.io/mrwind-up-bird/q-records-storemanager` (lowercase; = `github.repository`). Compose pins `:${IMAGE_TAG:-latest}`.
+- **Image ref:** `ghcr.io/mrwind-up-bird/storemanager` (lowercase; = `github.repository`). Compose pins `:${IMAGE_TAG:-latest}`.
 - **Network:** external `nyxcore_nyxcore-net` (compose alias `nyxcore-net`).
 - **Runtime env (prod):** `ROOT_DOMAIN=qrsm.store`, `APP_PROTOCOL=https`, `APP_PORT=443`, `TRUST_PROXY=1`. `src/env.ts` `parseEnv()` is fail-closed on boot.
 - **No host port bindings** in the prod compose (Traefik reaches services over the docker network). **Never `down -v`** in prod.
@@ -455,7 +455,7 @@ Create `docker-compose.prod.yml`:
 # Traefik HostRegexp below is v3 syntax. For Traefik v2 use:
 #   traefik.http.routers.qrsm-web.rule: "HostRegexp(`{sub:[a-z0-9-]+}.qrsm.store`)"
 
-x-app-image: &app-image ghcr.io/mrwind-up-bird/q-records-storemanager:${IMAGE_TAG:-latest}
+x-app-image: &app-image ghcr.io/mrwind-up-bird/storemanager:${IMAGE_TAG:-latest}
 
 x-logging: &default-logging
   driver: json-file
@@ -690,7 +690,7 @@ PLATFORM_ADMIN_PASSWORD=CHANGE_ME_min_12_chars
 Run (uses `.env.prod.example` as a dummy env-file just to validate interpolation; no containers start):
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env.prod.example config >/tmp/qrsm.rendered.yml \
-  && grep -q "ghcr.io/mrwind-up-bird/q-records-storemanager:latest" /tmp/qrsm.rendered.yml \
+  && grep -q "ghcr.io/mrwind-up-bird/storemanager:latest" /tmp/qrsm.rendered.yml \
   && grep -q "nyxcore_nyxcore-net" /tmp/qrsm.rendered.yml \
   && grep -q "qrsm-web-svc" /tmp/qrsm.rendered.yml \
   && ! grep -qE "^\s+ports:" /tmp/qrsm.rendered.yml \

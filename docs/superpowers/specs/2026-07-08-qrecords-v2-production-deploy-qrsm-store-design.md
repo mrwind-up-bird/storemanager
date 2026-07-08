@@ -14,7 +14,7 @@ Storemanager is a **dynamic multi-tenant** Next.js 15 SaaS:
 - `<tenant>.qrsm.store` → a store; `admin.qrsm.store` → the platform (superadmin) zone; bare root + reserved subdomains (`www app api auth static _next cdn mail assets`) → 404 (`src/lib/subdomain.ts`, `src/middleware.ts`).
 - Tenants are created **at runtime** through the platform zone (Slice 6 onboarding/superadmin/billing), so the subdomain set is open-ended → a **wildcard** domain/cert is required.
 - Needs **pgvector** + two DB roles (`qr_owner` BYPASSRLS for migrations, `qr_app` NOBYPASSRLS bound by RLS) with a fail-closed boot guard (`docker/entrypoint-web.sh`) → cannot ride the shared platform Postgres; brings its **own** `db`.
-- Ships as a **Next standalone image**; the Dockerfile's stated deploy model is *"CI builds & pushes this image; servers only `docker compose up`."* CI already pushes `ghcr.io/mrwind-up-bird/q-records-storemanager:{sha,latest}` on `main`.
+- Ships as a **Next standalone image**; the Dockerfile's stated deploy model is *"CI builds & pushes this image; servers only `docker compose up`."* CI already pushes `ghcr.io/mrwind-up-bird/storemanager:{sha,latest}` on `main`.
 
 The host already runs a shared stack under `/opt/nyxcore` (Traefik with **Let's Encrypt via Hetzner DNS-01**, `postgres`, `redis`, `docker-mailserver` as `mailserver`, Prometheus/Grafana/Loki), all on the external docker network `nyxcore_nyxcore-net`. The landingpage joins that network and is Traefik-routed by labels.
 
@@ -48,7 +48,7 @@ Dedicated compose stack in `/opt/q-records-storemanager/`, joined to `nyxcore_ny
 | Service | Image | Role | Ports | Traefik |
 |---|---|---|---|---|
 | `db` | `pgvector/pgvector:pg17` | own Postgres, named volume `qrsm_db_data`, init SQL mounted | internal only | no |
-| `migrate` | `ghcr.io/mrwind-up-bird/q-records-storemanager:latest` | one-shot `migrate.cjs`, `restart:no` | — | no |
+| `migrate` | `ghcr.io/mrwind-up-bird/storemanager:latest` | one-shot `migrate.cjs`, `restart:no` | — | no |
 | `web` | same GHCR image | boot-guard → `node server.js` | internal `:3000` | **yes** (wildcard) |
 | `worker` | same GHCR image | pg-boss worker, `restart:unless-stopped` | — | no |
 | `splash` | `nginx:alpine` | static coming-soon on bare root + www | internal `:80` | **yes** (apex/www) |
@@ -124,7 +124,7 @@ Single-label only, matching the app (`parseTenantSlug` returns `none` for nested
 Key differences from the dev `docker-compose.yml`:
 
 - `db`: `pgvector/pgvector:pg17`, `env` `POSTGRES_DB=qrecords`, `POSTGRES_USER=postgres`, `POSTGRES_PASSWORD`/`QR_OWNER_PASSWORD`/`QR_APP_PASSWORD` from `.env`; mounts `./docker/postgres/init:/docker-entrypoint-initdb.d:ro` and `qrsm_db_data:/var/lib/postgresql/data`; healthcheck `pg_isready`; **no host ports** (dev's `55432` mapping is E2E-only and dropped).
-- `migrate`/`web`/`worker`/`bootstrap`: `image: ghcr.io/mrwind-up-bird/q-records-storemanager:latest`, **no `build:`**, `env_file: .env`.
+- `migrate`/`web`/`worker`/`bootstrap`: `image: ghcr.io/mrwind-up-bird/storemanager:latest`, **no `build:`**, `env_file: .env`.
 - `web`: healthcheck `wget /api/auth/session`; Traefik labels (§5); `TRUST_PROXY=1`; no host ports.
 - `worker`: `command: /app/entrypoint-worker.sh`, `restart:unless-stopped`.
 - `bootstrap`: `command: node /app/bootstrap-prod.cjs`, `profiles:[bootstrap]`, `restart:no`.
