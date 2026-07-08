@@ -19,7 +19,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
-    "embeddings:backfill": "tsx scripts/embeddings-backfill.ts"
+    "embeddings:backfill": "tsx scripts/embeddings-backfill.ts",
+    "bootstrap:prod": "tsx scripts/bootstrap-prod.ts"
   },
   "dependencies": {
     "barcode-detector": "^3.2.0",
