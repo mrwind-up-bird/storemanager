@@ -5,6 +5,7 @@ on:
     branches: [main, 'feat/**']
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -166,3 +167,69 @@ jobs:
       - name: Tear down
         if: always()
         run: docker compose down -v
+
+  # ───────────────────────────── Deploy to qrsm.store (main only) ─────────────────────────────
+  deploy:
+    name: Deploy (GHCR pull + compose)
+    runs-on: ubuntu-latest
+    needs: [build, e2e]
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    environment: production
+    concurrency:
+      group: deploy-qrsm-store
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -p "${DEPLOY_PORT:-22}" -H "${DEPLOY_HOST:-46.224.105.254}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Rsync deploy bundle to server
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+        run: |
+          set -euo pipefail
+          # Additive (no --delete), -R preserves the docker/postgres/init path. Server-only
+          # files (.env, the db volume) are never sent and never removed.
+          rsync -azR \
+            -e "ssh -i ~/.ssh/id_deploy -p ${DEPLOY_PORT:-22}" \
+            docker-compose.prod.yml docker/postgres/init splash \
+            "${DEPLOY_USER:-root}@${DEPLOY_HOST:-46.224.105.254}:/opt/q-records-storemanager/"
+
+      - name: Pull image, up, health-check
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy -p "${DEPLOY_PORT:-22}" \
+            "${DEPLOY_USER:-root}@${DEPLOY_HOST:-46.224.105.254}" \
+            IMAGE_TAG="$IMAGE_TAG" 'bash -seuo pipefail' <<'REMOTE'
+          cd /opt/q-records-storemanager
+          export IMAGE_TAG="${IMAGE_TAG:-latest}"
+          docker compose -f docker-compose.prod.yml pull
+          docker compose -f docker-compose.prod.yml up -d --remove-orphans
+          docker image prune -f >/dev/null 2>&1 || true
+          for i in $(seq 1 20); do
+            s="$(docker inspect -f '{{.State.Health.Status}}' qrsm-web 2>/dev/null || echo missing)"
+            echo "health attempt $i: $s"
+            [ "$s" = "healthy" ] && exit 0
+            sleep 6
+          done
+          echo "qrsm-web did not become healthy in time" >&2
+          docker logs --tail 80 qrsm-web || true
+          exit 1
+          REMOTE

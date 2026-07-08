@@ -46,6 +46,12 @@ export const envSchema = z.object({
     (v) => /^[^\s@]+@[^\s@]+$/.test(v),
     'MAIL_FROM must be a valid email address',
   ),
+  /**
+   * Internal-relay escape hatch. '1' → the mailpit adapter skips STARTTLS and self-signed
+   * cert validation (ignoreTLS + rejectUnauthorized:false), for the in-network mailserver hop
+   * ONLY. Default '0' — dev/E2E and any real TLS relay are unaffected.
+   */
+  MAIL_SMTP_INSECURE: z.enum(['0', '1']).default('0'),
 
   // ── Discogs ───────────────────────────────────────────────
   DISCOGS_CONSUMER_KEY: z.string().min(1),

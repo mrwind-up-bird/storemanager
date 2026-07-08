@@ -1,0 +1,166 @@
+# q·records storemanager — PRODUCTION stack for qrsm.store on the shared nyxcore host.
+# Image-pull model: CI builds & pushes to GHCR; this file only pulls & runs.
+# Deploy dir: /opt/q-records-storemanager  ·  secrets: ./.env (server-only, NOT in git)
+#
+#   docker login ghcr.io                                              # one-time, on the server
+#   IMAGE_TAG=<sha> docker compose -f docker-compose.prod.yml pull
+#   IMAGE_TAG=<sha> docker compose -f docker-compose.prod.yml up -d --remove-orphans
+#   docker compose -f docker-compose.prod.yml --profile bootstrap run --rm bootstrap   # once
+#
+# TLS: the shared Traefik uses TLS-ALPN-01 (per-host certs), NOT DNS-01 — so hosts are
+# ENUMERATED in Host() rules (no wildcard cert). To add a tenant: add Host(`<slug>.qrsm.store`)
+# to the qrsm-web router rule and redeploy. (A true *.qrsm.store wildcard would need a DNS-01
+# resolver added to the shared Traefik — deferred.)
+
+x-app-image: &app-image ghcr.io/mrwind-up-bird/storemanager:${IMAGE_TAG:-latest}
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    container_name: qrsm-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: qrecords
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      # Consumed by docker/postgres/init/01-roles.sql. MUST match the URLs in .env.
+      QR_OWNER_PASSWORD: ${QR_OWNER_PASSWORD:?set QR_OWNER_PASSWORD in .env}
+      QR_APP_PASSWORD: ${QR_APP_PASSWORD:?set QR_APP_PASSWORD in .env}
+    volumes:
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+      - qrsm_db_data:/var/lib/postgresql/data
+    networks: [nyxcore-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d qrecords"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits: { cpus: "1.0", memory: 1G }
+        reservations: { cpus: "0.1", memory: 256M }
+
+  migrate:
+    image: *app-image
+    container_name: qrsm-migrate
+    # migrate.cjs is a self-contained cjs bundle; invoke runMigrations() explicitly.
+    command:
+      - node
+      - -e
+      - require('/app/migrate.cjs').runMigrations().then(()=>process.exit(0)).catch((e)=>{console.error(e);process.exit(1)})
+    env_file: .env
+    environment:
+      NODE_ENV: production
+    depends_on:
+      db: { condition: service_healthy }
+    networks: [nyxcore-net]
+    restart: "no"
+    logging: *default-logging
+
+  web:
+    image: *app-image
+    container_name: qrsm-web
+    command: ["/app/entrypoint-web.sh"]
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      db: { condition: service_healthy }
+    networks: [nyxcore-net]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/api/auth/session || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+    logging: *default-logging
+    deploy:
+      resources:
+        limits: { cpus: "1.0", memory: 768M }
+        reservations: { cpus: "0.1", memory: 192M }
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "nyxcore_nyxcore-net"
+      # Enumerated hosts (per-host TLS-ALPN-01 certs). admin = platform zone; demo = first tenant.
+      # Add Host(`<slug>.qrsm.store`) here + redeploy to bring a new tenant online.
+      traefik.http.routers.qrsm-web.rule: "Host(`admin.qrsm.store`) || Host(`demo.qrsm.store`)"
+      traefik.http.routers.qrsm-web.entrypoints: "websecure"
+      traefik.http.routers.qrsm-web.tls: "true"
+      traefik.http.routers.qrsm-web.tls.certresolver: "letsencrypt"
+      traefik.http.routers.qrsm-web.middlewares: "security-headers@file,gzip-compress@file"
+      traefik.http.routers.qrsm-web.service: "qrsm-web-svc"
+      traefik.http.services.qrsm-web-svc.loadbalancer.server.port: "3000"
+
+  worker:
+    image: *app-image
+    container_name: qrsm-worker
+    command: ["/app/entrypoint-worker.sh"]
+    env_file: .env
+    environment:
+      NODE_ENV: production
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      db: { condition: service_healthy }
+    networks: [nyxcore-net]
+    restart: unless-stopped
+    logging: *default-logging
+    deploy:
+      resources:
+        limits: { cpus: "0.5", memory: 512M }
+        reservations: { cpus: "0.05", memory: 128M }
+
+  splash:
+    image: nginx:alpine
+    container_name: qrsm-splash
+    restart: unless-stopped
+    volumes:
+      - ./splash:/usr/share/nginx/html:ro
+    networks: [nyxcore-net]
+    logging: *default-logging
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "nyxcore_nyxcore-net"
+      # Bare root + www → coming-soon (per-host TLS-ALPN-01 certs).
+      traefik.http.routers.qrsm-splash.rule: "Host(`qrsm.store`) || Host(`www.qrsm.store`)"
+      traefik.http.routers.qrsm-splash.entrypoints: "websecure"
+      traefik.http.routers.qrsm-splash.tls: "true"
+      traefik.http.routers.qrsm-splash.tls.certresolver: "letsencrypt"
+      traefik.http.routers.qrsm-splash.middlewares: "security-headers@file,gzip-compress@file"
+      traefik.http.routers.qrsm-splash.service: "qrsm-splash-svc"
+      traefik.http.services.qrsm-splash-svc.loadbalancer.server.port: "80"
+
+  # One-shot superadmin bootstrap. Never runs on a plain `up` (profile-gated).
+  bootstrap:
+    image: *app-image
+    container_name: qrsm-bootstrap
+    profiles: ["bootstrap"]
+    command: ["node", "/app/bootstrap-prod.cjs"]
+    env_file: .env
+    environment:
+      NODE_ENV: production
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      db: { condition: service_healthy }
+    networks: [nyxcore-net]
+    restart: "no"
+    logging: *default-logging
+
+networks:
+  nyxcore-net:
+    external: true
+    name: nyxcore_nyxcore-net
+
+volumes:
+  qrsm_db_data:
