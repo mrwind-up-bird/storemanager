@@ -296,6 +296,8 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 `docker-mailserver:25` may advertise STARTTLS with a self-signed cert; nodemailer's default `rejectUnauthorized:true` would then reject the upgrade and credential mail would throw. Add an off-by-default `MAIL_SMTP_INSECURE` that skips STARTTLS for the in-network relay only. Zero behavior change when unset (dev/E2E unaffected).
 
+> **As-built deviation (verified during execution):** (1) The pure `mailpitTransportOptions` builder was extracted into its own env-free module `src/lib/email/smtpOptions.ts` — importing it from `mailpit.ts` would eagerly load `@/env`, whose `parseEnv` throws at import in the test process (the codebase convention, per `tests/helpers/db.ts`, is to never statically import env-loading modules in a spec). The test imports the pure module. (2) The return type is `SMTPTransport.Options` (`import type SMTPTransport from 'nodemailer/lib/smtp-transport'`), not `Parameters<typeof nodemailer.createTransport>[0]` — the latter resolves to the base `TransportOptions` union which lacks `host`/`port` and fails typecheck.
+
 **Files:**
 - Modify: `src/env.ts` (Mail section)
 - Modify: `src/lib/email/mailpit.ts`
