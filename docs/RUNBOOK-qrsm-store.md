@@ -6,27 +6,30 @@ Spec: `docs/superpowers/specs/2026-07-08-qrecords-v2-production-deploy-qrsm-stor
 ## One-time bootstrap (ordered)
 
 ### 1. DNS (IONOS DNS console)
-`qrsm.store` DNS is managed at **IONOS** (registrar + nameservers), NOT Hetzner. TLS is
-per-host TLS-ALPN-01 with **enumerated** `Host()` routers (docker-compose.prod.yml lines
-10-13, 98) — there is **no** wildcard cert, so there is no wildcard A record. Every host
-that appears in a `Host()` rule needs its own A record. Add, in the IONOS zone:
+`qrsm.store` DNS is managed at **IONOS** (registrar + nameservers `ui-dns.*`), NOT Hetzner. The
+zone uses a **wildcard `A` record**, so every subdomain already resolves to the host — DNS needs
+**no** per-tenant change:
 
 ```
-A     qrsm.store        46.224.105.254
-A     www.qrsm.store    46.224.105.254
-A     admin.qrsm.store  46.224.105.254
-A     demo.qrsm.store   46.224.105.254
-# …one A record per additional tenant host you enumerate in the qrsm-web Host() rule.
+A     qrsm.store      46.224.105.254     # apex
+A     *.qrsm.store    46.224.105.254     # wildcard — any <slug>.qrsm.store resolves
 ```
+
+The enumeration is **not** at the DNS layer. It is at Traefik routing + TLS: TLS is per-host
+TLS-ALPN-01 (**no** wildcard cert), so only hosts named in a `Host()` router rule get routed and
+get a cert (docker-compose.prod.yml lines 10-13, 98). A subdomain resolving in DNS does **not**
+mean it is served — it must also be enumerated in the router.
 
 Verify:
 
 ```bash
-dig +short demo.qrsm.store   # → 46.224.105.254
+dig +short demo.qrsm.store          # → 46.224.105.254
+dig +short anything.qrsm.store      # → 46.224.105.254 (wildcard resolves everything)
 ```
 
-> Adding a tenant is two coupled edits: add its `A` record here **and** add
-> `Host(`<slug>.qrsm.store`)` to the `qrsm-web` router rule, then redeploy.
+> **Adding a tenant is a single edit** at the routing layer: add `Host(`<slug>.qrsm.store`)` to
+> the `qrsm-web` router rule and redeploy. DNS already resolves via the wildcard; the per-host
+> TLS-ALPN-01 cert issues automatically on the first HTTPS request.
 
 ### 2. Mail records (as-built: send FROM nyxcore.cloud)
 qrsm.store mail (MX / SPF / DKIM / DMARC) is **IONOS-managed**. Outbound app mail is **not**
