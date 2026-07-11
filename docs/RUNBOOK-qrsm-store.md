@@ -133,8 +133,12 @@ IMAGE_TAG=<previous-good-sha> docker compose -f docker-compose.prod.yml up -d we
 ## Backups
 
 Production DB backups are handled by `scripts/backup-prod-db.sh` (version-controlled in this
-repo). **It is authored but NOT yet installed on the host** — installing the crontab entry is a
-separate, explicit operator step (below). Until then, no automatic backups are running.
+repo). **They are LIVE**: the script is installed at `/opt/storemanager/scripts/backup-prod-db.sh`
+and a root crontab entry runs it nightly at **03:15** (`>> /var/log/qrsm-backup.log`), verified
+producing valid `pg_restore`-able dumps. The script auto-deploys with every push to `main` — it
+is part of the CI rsync bundle (`ci.yml` → `scripts/backup-prod-db.sh`), so a redeploy keeps the
+host copy in sync with the repo. The crontab entry itself is host state and is **not** managed by
+CI — see the (re)install steps below for a rebuilt host.
 
 **What the script does.** It runs `pg_dump -Fc` (custom, compressed, `pg_restore`-able format)
 against the running `qrsm-db` Postgres container and writes a timestamped dump into
@@ -143,15 +147,14 @@ from the container's own `POSTGRES_*` env (never passed in the host argv). It wr
 `.part` temp file and atomically renames on success, then prunes its own `qrsm-*.dump` files
 older than **14 days** (retention, overridable via `RETENTION_DAYS`).
 
-**Install (one-time, on the host).** The script ships in the deploy bundle at
-`/opt/storemanager/scripts/backup-prod-db.sh`. Ensure it is executable, then add the crontab
-entry — nightly at 03:15:
+**(Re)install the crontab (only needed on a rebuilt host).** CI ships the script to
+`/opt/storemanager/scripts/backup-prod-db.sh` (executable bit preserved via `rsync -a`), but the
+crontab entry is host state. On a fresh host, add it back — nightly at 03:15:
 
 ```bash
-chmod +x /opt/storemanager/scripts/backup-prod-db.sh
 crontab -e
 # add:
-15 3 * * *  cd /opt/storemanager && ./scripts/backup-prod-db.sh >> /var/log/qrsm-backup.log 2>&1
+15 3 * * * /opt/storemanager/scripts/backup-prod-db.sh >> /var/log/qrsm-backup.log 2>&1
 ```
 
 **Restore** (into the running pg container; **DESTRUCTIVE** — `--clean --if-exists` drops and
