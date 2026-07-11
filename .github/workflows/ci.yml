@@ -208,11 +208,14 @@ jobs:
           DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
         run: |
           set -euo pipefail
-          # Additive (no --delete), -R preserves the docker/postgres/init path. Server-only
-          # files (.env, the db volume) are never sent and never removed.
+          # Additive (no --delete), -R recreates each source's path under the destination
+          # (docker/postgres/init, scripts/backup-prod-db.sh); -a keeps the executable bit
+          # (backup-prod-db.sh is 100755 in git). Only the operator backup script is shipped
+          # from scripts/ — the dev/build tooling there has no place on the prod host.
+          # Server-only files (.env, the db volume) are never sent and never removed.
           rsync -azR \
             -e "ssh -i ~/.ssh/id_deploy -p ${DEPLOY_PORT:-22}" \
-            docker-compose.prod.yml docker/postgres/init splash \
+            docker-compose.prod.yml docker/postgres/init splash scripts/backup-prod-db.sh \
             "${DEPLOY_USER:-root}@${DEPLOY_HOST:-46.224.105.254}:/opt/storemanager/"
 
       - name: Pull image, up, health-check
