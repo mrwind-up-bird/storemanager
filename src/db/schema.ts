@@ -179,8 +179,20 @@ export const records = pgTable(
       .array()
       .notNull()
       .default(sql`ARRAY[]::text[]`),
+    // ── Design-Update: Klassifizierung (Edit-Record-Modal) — Sub-Genres/Stilrichtungen
+    //    + freie Tags. Additiv, nullable-frei via Default [] (Bestandszeilen bleiben gültig). ──
+    styles: text('styles')
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::text[]`),
+    tags: text('tags')
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::text[]`),
     coverImage: text('cover_image'),
     discogsId: integer('discogs_id'),
+    /** Freie Beschreibung/Notizen zum Release (Edit-Record-Modal · Plattendaten). Nullable. */
+    notes: text('notes'),
     /** sha256 hex — dedup key; see src/db/hash.ts */
     hash: varchar('hash', { length: 64 }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
@@ -251,6 +263,8 @@ export const purchases = pgTable(
     status: recordStatusEnum('status').notNull().default('verfuegbar'),
     conditionRecord: smallint('condition_record'),
     conditionCover: smallint('condition_cover'),
+    /** Per-Exemplar-Bemerkung (Kratzer, fehlende Inserts …) — Preistabelle-Bemerkungsfeld (Spec). Nullable. */
+    notes: text('notes'),
     discogsListingId: text('discogs_listing_id'),
     discogsListingStatus: discogsListingStatusEnum('discogs_listing_status')
       .notNull()

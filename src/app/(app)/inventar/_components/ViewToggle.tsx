@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { InventoryList } from './InventoryList';
 import { InventoryTiles } from './InventoryTiles';
@@ -58,7 +59,7 @@ export function ViewToggle({ rows, total, kiUnavailable }: ViewToggleProps) {
           Bitte versuche es in Kürze erneut oder nutze die klassische Suche.
         </p>
         {/* Link löscht mode (+ alle anderen Params) — springt zurück in die klassische Suche */}
-        <a
+        <Link
           href="/inventar"
           className="focus-ring-button"
           style={{
@@ -77,7 +78,7 @@ export function ViewToggle({ rows, total, kiUnavailable }: ViewToggleProps) {
           }}
         >
           Zur klassischen Suche
-        </a>
+        </Link>
       </div>
     );
   }
@@ -120,7 +121,7 @@ export function ViewToggle({ rows, total, kiUnavailable }: ViewToggleProps) {
           über die Discogs-Suche ankaufen.
         </p>
         {/* Link clears all params — works as a plain anchor for the reset */}
-        <a
+        <Link
           href="/inventar"
           className="focus-ring-button"
           style={{
@@ -139,7 +140,7 @@ export function ViewToggle({ rows, total, kiUnavailable }: ViewToggleProps) {
           }}
         >
           Filter zurücksetzen
-        </a>
+        </Link>
       </div>
     );
   }

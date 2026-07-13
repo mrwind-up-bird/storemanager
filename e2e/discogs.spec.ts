@@ -66,9 +66,10 @@ async function purgeBlueLines(tenantId: number): Promise<void> {
 }
 
 /**
- * Drive the connected Ankauf flow from the /ankauf search form:
- * search → pick the result card → fill EK/VK → (optional listing toggle) → submit.
- * Resolves once the modal has closed (the modal closes only on a successful Ankauf).
+ * Drive the connected Ankauf flow (1A "Zeilen-Flow"): in the first item row, search → pick the
+ * result → fill EK/VK → (optional listing toggle); then set the seller name and submit the whole
+ * form. A single item is booked as a 1-item collection, so submit lands on /ankauf/sammlungen —
+ * this resolves once that navigation completes (the copy is revalidated into /inventar server-side).
  */
 async function ankaufFromSearch(
   page: Page,
@@ -77,32 +78,32 @@ async function ankaufFromSearch(
   await page.goto(`${DEMO_URL}/ankauf`);
   await page.waitForLoadState('domcontentloaded');
 
-  // Connected tenant → search form (not the connect prompt).
-  await expect(page.getByTestId('discogs-search-form')).toBeVisible();
+  // Connected tenant → the 1A Ankauf flow (not the connect prompt).
+  await expect(page.getByTestId('ankauf-screen')).toBeVisible();
 
-  await page.getByPlaceholder(/Auf Discogs suchen/i).fill(opts.searchTerm);
-  await page.getByRole('button', { name: 'Suchen' }).click();
+  const row = page.getByTestId('ankauf-item-row').first();
+  await row.getByTestId('ankauf-search-input').fill(opts.searchTerm);
+  await row.getByRole('button', { name: 'Suchen' }).click();
 
-  await expect(page.getByTestId('discogs-results')).toBeVisible();
-  const card = page.getByTestId('discogs-result-card').filter({ hasText: opts.cardText });
-  await expect(card).toBeVisible();
-  await card.getByTestId('ankauf-open').click();
-
-  const modal = page.getByTestId('ankauf-modal');
-  await expect(modal).toBeVisible();
+  const result = row.getByTestId('ankauf-result').filter({ hasText: opts.cardText }).first();
+  await expect(result).toBeVisible();
+  await result.click();
 
   // Fill VK explicitly (sets vkDirty) so the async Discogs price-suggestion effect
   // can't race-overwrite our value before submit.
-  await modal.getByTestId('ek-input').fill(opts.ek);
-  await modal.getByTestId('vk-input').fill(opts.vk);
+  await row.getByTestId('ankauf-ek-input').fill(opts.ek);
+  await row.getByTestId('ankauf-vk-input').fill(opts.vk);
 
   if (opts.listOnDiscogs) {
-    await modal.getByTestId('list-on-discogs-toggle').click();
-    await expect(modal.getByTestId('list-on-discogs-toggle')).toHaveAttribute('aria-checked', 'true');
+    await row.getByTestId('ankauf-list-toggle').click();
+    await expect(row.getByTestId('ankauf-list-toggle')).toHaveAttribute('aria-checked', 'true');
   }
 
-  await modal.getByTestId('ankauf-submit').click();
-  await expect(modal).toBeHidden();
+  // Seller name is required to submit the Ankaufsbeleg.
+  await page.getByTestId('ankauf-seller-input').fill('E2E Verkäufer:in');
+
+  await page.getByTestId('ankauf-submit').click();
+  await page.waitForURL(/\/ankauf\/sammlungen/);
 }
 
 test.describe('Discogs Ankauf (C12)', () => {
@@ -120,8 +121,8 @@ test.describe('Discogs Ankauf (C12)', () => {
     await page.waitForLoadState('domcontentloaded');
 
     await expect(page.getByTestId('connect-discogs-prompt')).toBeVisible();
-    // The search form must NOT render when there is no connection (fail-closed).
-    await expect(page.getByTestId('discogs-search-form')).toHaveCount(0);
+    // The Ankauf flow must NOT render when there is no connection (fail-closed).
+    await expect(page.getByTestId('ankauf-screen')).toHaveCount(0);
   });
 
   // ── 2. connected tenant can search ────────────────────────────────────────
@@ -130,17 +131,18 @@ test.describe('Discogs Ankauf (C12)', () => {
     await page.goto(`${DEMO_URL}/ankauf`);
     await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.getByTestId('discogs-search-form')).toBeVisible();
+    await expect(page.getByTestId('ankauf-screen')).toBeVisible();
     await expect(page.getByTestId('connect-discogs-prompt')).toHaveCount(0);
 
-    await page.getByPlaceholder(/Auf Discogs suchen/i).fill('blue');
-    await page.getByRole('button', { name: 'Suchen' }).click();
+    const row = page.getByTestId('ankauf-item-row').first();
+    await row.getByTestId('ankauf-search-input').fill('blue');
+    await row.getByRole('button', { name: 'Suchen' }).click();
 
-    await expect(page.getByTestId('discogs-results')).toBeVisible();
-    expect(await page.getByTestId('discogs-result-card').count()).toBeGreaterThanOrEqual(1);
+    await expect(row.getByTestId('ankauf-result').first()).toBeVisible();
+    expect(await row.getByTestId('ankauf-result').count()).toBeGreaterThanOrEqual(1);
     // The fixture "Blue Lines" release is among the results.
     await expect(
-      page.getByTestId('discogs-result-card').filter({ hasText: BLUE_LINES }),
+      row.getByTestId('ankauf-result').filter({ hasText: BLUE_LINES }),
     ).toBeVisible();
   });
 
@@ -258,15 +260,14 @@ test.describe('Discogs Ankauf (C12)', () => {
     await page.goto(`${DEMO_URL}/ankauf`);
     await page.waitForLoadState('domcontentloaded');
 
-    // Search (searchDiscogs server action) + open the modal (getPriceSuggestion server action).
-    await page.getByPlaceholder(/Auf Discogs suchen/i).fill('blue');
-    await page.getByRole('button', { name: 'Suchen' }).click();
-    await expect(page.getByTestId('discogs-results')).toBeVisible();
+    // Search (searchDiscogs server action) + pick the result (fires getPriceSuggestion server action).
+    const row = page.getByTestId('ankauf-item-row').first();
+    await row.getByTestId('ankauf-search-input').fill('blue');
+    await row.getByRole('button', { name: 'Suchen' }).click();
+    await expect(row.getByTestId('ankauf-result').first()).toBeVisible();
 
-    const card = page.getByTestId('discogs-result-card').filter({ hasText: BLUE_LINES });
-    await card.getByTestId('ankauf-open').click();
-    await expect(page.getByTestId('ankauf-modal')).toBeVisible();
-    // Let the price-suggestion server-action response arrive and be captured.
+    await row.getByTestId('ankauf-result').filter({ hasText: BLUE_LINES }).first().click();
+    // Identity view is shown; let the price-suggestion server-action response arrive and be captured.
     await page.waitForTimeout(2_000);
 
     // The rendered /ankauf DOM must not contain the token/secret plaintext.

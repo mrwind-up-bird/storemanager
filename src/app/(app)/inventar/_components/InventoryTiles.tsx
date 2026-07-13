@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { InventoryRow } from '@/lib/inventory';
 import type { Condition } from '@/components/ui/ConditionPill';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -26,6 +27,7 @@ export function InventoryTiles({ rows }: InventoryTilesProps) {
         <article
           key={row.copyId}
           style={{
+            position: 'relative',
             border: '1px solid var(--border)',
             borderRadius: 'var(--r-lg)',
             background: 'var(--surface)',
@@ -36,6 +38,15 @@ export function InventoryTiles({ rows }: InventoryTilesProps) {
             opacity: row.status === 'verkauft' ? 0.62 : undefined,
           }}
         >
+          {/* Stretched-link overlay — the whole tile navigates to the record detail without
+              nesting the interactive <button> inside an <a> (valid HTML + a concise a11y name
+              instead of the entire card text collapsing into one giant link label). */}
+          <Link
+            href={`/inventar/${row.recordId}`}
+            data-testid="tile-detail-link"
+            aria-label={`${row.title} – ${row.artist}, Details öffnen`}
+            style={{ position: 'absolute', inset: 0, zIndex: 1, borderRadius: 'var(--r-lg)' }}
+          />
           {/* Card header — single format-coloured disc via CoverPlaceholder */}
           <div style={{ position: 'relative' }}>
             <CoverPlaceholder aspectRatio={1.9} labelColor={discColor(row.format)} />
@@ -158,6 +169,8 @@ export function InventoryTiles({ rows }: InventoryTilesProps) {
                 type="button"
                 disabled
                 style={{
+                  position: 'relative',
+                  zIndex: 2,
                   minHeight: 34,
                   padding: '0 12px',
                   border: 'none',

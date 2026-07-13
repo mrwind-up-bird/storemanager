@@ -64,29 +64,27 @@ test.describe('Slice 5 — Mobile Shell + Scanner + PWA (390×844)', () => {
 
     await login(page, DEMO_URL, DEMO_EMAIL, DEMO_PASSWORD);
     await page.goto(`${DEMO_URL}/ankauf`);
-    await page.getByRole('button', { name: 'Barcode scannen' }).click();
+    const row = page.getByTestId('ankauf-item-row').first();
+    // Per-row Barcode-Scan-Button öffnet das ScannerSheet.
+    await row.getByRole('button', { name: 'Barcode scannen' }).click();
     await expect(page.getByTestId('scanner-sheet')).toBeVisible();
     // Headless hat keine Kamera → einer der beiden C8-Fehlertexte MUSS erscheinen.
     await expect(page.getByRole('alert').filter({ hasText: /Kamera/ })).toBeVisible();
     await page.getByTestId('scanner-manual-input').fill(FAKE_BARCODE_HIT);
     await page.getByTestId('scanner-manual-submit').click();
-    await expect(page.getByTestId('discogs-result-card')).toHaveCount(2);
+    // onDetectEan schließt das Sheet und füllt die Zeilen-Trefferliste per Barcode-Suche.
+    await expect(row.getByTestId('ankauf-result')).toHaveCount(2);
 
-    // Ankauf des ersten Treffers (Kind of Blue) — AnkaufModal-Interaktion, Selektoren
-    // wörtlich aus e2e/discogs.spec.ts (ankaufFromSearch): EK ausfüllen, VK-Vorschlag
-    // stehen lassen (nicht anfassen — median kommt mit dem Suchtreffer, der Vorschlag
-    // ist schon beim Öffnen des Modals gesetzt), Zustand default, Submit.
-    await page.getByTestId('discogs-result-card').first().getByTestId('ankauf-open').click();
-
-    const modal = page.getByTestId('ankauf-modal');
-    await expect(modal).toBeVisible();
-
-    await modal.getByTestId('ek-input').fill('3');
+    // Ankauf des ersten Treffers (Kind of Blue) im Zeilen-Flow: Treffer wählen, EK ausfüllen,
+    // VK-Vorschlag (median-Fallback) stehen lassen, Verkäufer:in setzen, buchen.
+    await row.getByTestId('ankauf-result').first().click();
+    await row.getByTestId('ankauf-ek-input').fill('3');
     // VK-Vorschlag steht bereits (median-Fallback, synchron aus dem Suchtreffer) — nicht anfassen.
-    await expect(modal.getByTestId('vk-input')).not.toHaveValue('');
+    await expect(row.getByTestId('ankauf-vk-input')).not.toHaveValue('');
+    await page.getByTestId('ankauf-seller-input').fill('E2E Verkäufer:in');
 
-    await modal.getByTestId('ankauf-submit').click();
-    await expect(modal).toBeHidden();
+    await page.getByTestId('ankauf-submit').click();
+    await page.waitForURL(/\/ankauf\/sammlungen/);
 
     await expect
       .poll(() => purchasesCount(tenantId), { timeout: 15_000 })

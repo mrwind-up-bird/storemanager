@@ -147,6 +147,12 @@ body {
     overflow-y: auto;
   }
   .qr-analytik-grid { grid-template-columns: 1fr !important; }
+  /* Ankauf summary bar: desktop keeps position:sticky;bottom:0 (inline) — there is no
+     tabbar there. On mobile a floating bottom bar either hides behind the fixed
+     BottomTabBar (bottom:0) or, if lifted above it, overlays the item-row search results
+     on the short viewport. So drop it into normal flow at the end of the form; the
+     .app-main bottom padding (96px + safe-area) already clears the tabbar. */
+  .ankauf-summary-bar { position: static !important; }
 }
 @media (min-width: 768px) {
   .app-header-mobile { display: none !important; }

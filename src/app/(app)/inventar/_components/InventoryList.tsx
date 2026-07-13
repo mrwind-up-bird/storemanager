@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import type { InventoryRow } from '@/lib/inventory';
 import type { Condition } from '@/components/ui/ConditionPill';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -168,7 +169,7 @@ export function InventoryList({ rows, total }: InventoryListProps) {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
                 <span style={{ minWidth: 0 }}>
-                  <strong style={{ fontWeight: 700 }}>{row.title}</strong>
+                  <Link href={`/inventar/${row.recordId}`} style={{ color: 'inherit', textDecoration: 'none' }}><strong style={{ fontWeight: 700 }}>{row.title}</strong></Link>
                   <br />
                   <span style={{ color: 'var(--text-2)', fontSize: 13 }}>{row.artist}</span>
                 </span>
@@ -286,7 +287,7 @@ export function InventoryList({ rows, total }: InventoryListProps) {
                         }}
                       />
                       <span style={{ minWidth: 0 }}>
-                        <strong style={{ fontWeight: 700 }}>{row.title}</strong>
+                        <Link href={`/inventar/${row.recordId}`} style={{ color: 'inherit', textDecoration: 'none' }}><strong style={{ fontWeight: 700 }}>{row.title}</strong></Link>
                         {row.score != null && <ScoreBadge score={row.score} />}
                         <br />
                         <span style={{ color: 'var(--text-2)', fontSize: 13 }}>{row.artist}</span>
