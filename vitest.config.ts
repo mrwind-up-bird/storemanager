@@ -19,7 +19,13 @@ export default defineConfig({
     ],
     // jest-dom matchers extend vitest's `expect`; RTL tests call cleanup() in their own afterEach.
     // jsdom-webstorage: fixes Node.js 22 compat — see tests/__setup__/jsdom-webstorage.ts
-    setupFiles: ['@testing-library/jest-dom/vitest', './tests/__setup__/jsdom-webstorage.ts'],
+    // pg-idle-error-guard: patches pg prototypes so an idle-connection 57P01 at testcontainer
+    // teardown can't escalate to an uncaughtException that fails the whole run — see the file.
+    setupFiles: [
+      '@testing-library/jest-dom/vitest',
+      './tests/__setup__/jsdom-webstorage.ts',
+      './tests/__setup__/pg-idle-error-guard.ts',
+    ],
     // jsdom needs a URL so Web Storage (localStorage/sessionStorage) is enabled.
     // Without this, Node.js 22's experimental localStorage shadows jsdom's implementation.
     environmentOptions: {
