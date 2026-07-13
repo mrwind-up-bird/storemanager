@@ -1,12 +1,12 @@
 // src/app/(app)/ankauf/page.tsx
-// RSC: auth gate → tenant → discogs connection check → render ConnectPrompt or SearchForm.
+// RSC: auth gate → tenant → discogs connection check → render ConnectPrompt or the 1A AnkaufFlow.
 // Banner support: ?connected=1 (success) / ?error=connect (OAuth failure).
 
 import { requireSession } from '@/auth/session';
 import { getCurrentTenant } from '@/lib/tenant';
 import { getConnection } from '@/lib/discogs-connection';
 import { ConnectPrompt } from './_components/ConnectPrompt';
-import { SearchForm } from './_components/SearchForm';
+import { AnkaufFlow } from './_components/AnkaufFlow';
 
 export default async function AnkaufPage({
   searchParams,
@@ -31,7 +31,7 @@ export default async function AnkaufPage({
         display: 'flex',
         flexDirection: 'column',
         gap: 16,
-        maxWidth: 1200,
+        maxWidth: 1220,
       }}
     >
       {/* Banner: OAuth callback success */}
@@ -72,12 +72,8 @@ export default async function AnkaufPage({
         </div>
       )}
 
-      {/* Main content: connect prompt or search form */}
-      {!conn ? (
-        <ConnectPrompt />
-      ) : (
-        <SearchForm connected username={conn.discogsUsername} />
-      )}
+      {/* Main content: connect prompt or the 1A Ankauf flow */}
+      {!conn ? <ConnectPrompt /> : <AnkaufFlow />}
     </div>
   );
 }

@@ -206,20 +206,22 @@ test.describe('Slice 3 — Verkauf/POS + Wunschlisten', () => {
 
     await login(page, DEMO_URL, DEMO_EMAIL, DEMO_PASSWORD);
 
-    // (a) Ankauf "Kind of Blue" (Miles Davis) via the Slice-2 fake Discogs flow.
-    //     The Discogs search input is type="search" → ARIA role is 'searchbox', not 'textbox'.
+    // (a) Ankauf "Kind of Blue" (Miles Davis) via the 1A Ankauf-Zeilen-Flow. Single item is booked
+    //     as a 1-item collection → submit navigates to /ankauf/sammlungen; the wishlist-match job is
+    //     enqueued by createCollectionAction just like the old single-item path.
     await page.goto(`${DEMO_URL}/ankauf`);
-    await page.getByTestId('discogs-search-form').getByRole('searchbox').first().fill('blue');
-    await page.getByTestId('discogs-search-form').getByRole('button', { name: /such/i }).click();
-    const results = page.getByTestId('discogs-results');
-    await expect(results).toBeVisible();
-    const kob = results.getByTestId('discogs-result-card').filter({ hasText: /kind of blue/i }).first();
-    await kob.getByTestId('ankauf-open').click();
-    const ankauf = page.getByTestId('ankauf-modal');
-    await expect(ankauf).toBeVisible();
-    await ankauf.getByTestId('ek-input').fill('8.00');
-    await ankauf.getByTestId('ankauf-submit').click();
-    await expect(ankauf).toBeHidden();
+    const row = page.getByTestId('ankauf-item-row').first();
+    await row.getByTestId('ankauf-search-input').fill('blue');
+    await row.getByRole('button', { name: 'Suchen' }).click();
+    const kob = row.getByTestId('ankauf-result').filter({ hasText: /kind of blue/i }).first();
+    await expect(kob).toBeVisible();
+    await kob.click();
+    await row.getByTestId('ankauf-ek-input').fill('8.00');
+    // VK auto-suggests from the Discogs median/price-suggestion — wait until it's populated.
+    await expect(row.getByTestId('ankauf-vk-input')).not.toHaveValue('');
+    await page.getByTestId('ankauf-seller-input').fill('E2E Verkäufer:in');
+    await page.getByTestId('ankauf-submit').click();
+    await page.waitForURL(/\/ankauf\/sammlungen/);
 
     // (b) The async match job creates exactly one new pending match for the Miles Davis wishlist.
     await expect
