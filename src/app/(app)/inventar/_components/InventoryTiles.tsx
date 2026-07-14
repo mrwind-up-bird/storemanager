@@ -4,6 +4,7 @@ import type { Condition } from '@/components/ui/ConditionPill';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ConditionPill } from '@/components/ui/ConditionPill';
 import { CoverPlaceholder } from '@/components/ui/CoverPlaceholder';
+import { ScoreBadge } from './ScoreBadge';
 
 /** CD → --info, everything else (Vinyl, Kassette, null) → --accent */
 const discColor = (format: string | null) =>
@@ -93,23 +94,7 @@ export function InventoryTiles({ rows }: InventoryTilesProps) {
                   }}
                 >
                   {row.title}
-                  {row.score != null && (
-                    <span
-                      data-testid="ki-score"
-                      aria-label={`Relevanz: ${Math.round(row.score * 100)} Prozent`}
-                      style={{
-                        marginLeft: 8,
-                        padding: '1px 6px',
-                        borderRadius: 'var(--r-pill)',
-                        background: 'var(--accent-soft)',
-                        color: 'var(--accent-ink)',
-                        fontWeight: 600,
-                        fontSize: 12,
-                      }}
-                    >
-                      {Math.round(row.score * 100)}%
-                    </span>
-                  )}
+                  {row.score != null && <ScoreBadge score={row.score} />}
                 </div>
                 <div
                   style={{
