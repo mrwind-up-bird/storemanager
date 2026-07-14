@@ -3,7 +3,6 @@ import { and, asc, eq, gte, sql, type SQL } from 'drizzle-orm';
 import { withTenant } from '@/db/tenant';
 import { records, purchases, recordEmbeddings, type RecordStatus } from '@/db/schema';
 import { getEmbeddingsAdapter } from '@/lib/embeddings';
-import { EmbeddingsConfigError } from '@/lib/embeddings/types';
 import { getEntitlements } from '@/lib/gating';
 
 export type InventoryStatus = RecordStatus; // 'verfuegbar'|'reserviert'|'verkauft'|'verliehen'
@@ -246,11 +245,12 @@ export async function kiSearch(
     const [embedded] = await getEmbeddingsAdapter().embed([query]);
     vec = embedded!;
   } catch (err) {
-    if (err instanceof EmbeddingsConfigError) {
-      console.error('[kiSearch] embeddings unavailable', err);
-      return { rows: [], unavailable: true }; // sauberer Fehlerzustand, kein 500, kein Leak
-    }
-    throw err;
+    // JEDER Adapter-Fehler ist ein Infra-/Config-Problem, kein User-Fehler: fehlende Config,
+    // Provider-5xx, Netzwerk/Timeout, Malformed-Response, falsche Dimension. Alle → sauberer
+    // "nicht verfügbar"-Zustand statt 500/Leak. (Der ::vector-Cast liegt bewusst im withTenant-
+    // Block DAHINTER — DB-Fehler dürfen NICHT als "unavailable" maskiert werden.)
+    console.error('[kiSearch] embeddings unavailable', err);
+    return { rows: [], unavailable: true };
   }
   const literal = `[${vec.join(',')}]`;
 

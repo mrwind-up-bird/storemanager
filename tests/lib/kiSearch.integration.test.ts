@@ -111,4 +111,22 @@ describe('kiSearch', () => {
     const { rows } = await kiSearch({ tenantId, userId: null }, { query: vibe, filters: { q: vibe } });
     expect(rows.length).toBeGreaterThan(0);
   });
+
+  it('Resilienz: ein Adapter-Fehler (Netzwerk/Timeout, kein EmbeddingsConfigError) → unavailable statt 500', async () => {
+    // Prod fährt den echten http-OpenAI-Driver. Ein Netzwerk-/Timeout-/Parse-Fehler wirft KEINEN
+    // EmbeddingsConfigError, sondern einen generischen Error — der darf die Server-Action nicht
+    // mit 500 sprengen, sondern muss zum sauberen "nicht verfügbar"-Zustand degradieren.
+    const adapter = getEmbeddingsAdapter();
+    const spy = vi.spyOn(adapter, 'embed').mockRejectedValueOnce(new Error('ECONNRESET'));
+    try {
+      const result = await kiSearch(
+        { tenantId, userId: null },
+        { query: buildEmbeddingDocument(coltrane), filters: {} },
+      );
+      expect(result.unavailable).toBe(true);
+      expect(result.rows).toHaveLength(0);
+    } finally {
+      spy.mockRestore(); // Mock-Leak-Guard (vgl. Slice-7 T5): nie in Folge-Tests durchsickern lassen.
+    }
+  });
 });

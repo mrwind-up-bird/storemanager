@@ -10,6 +10,7 @@ import { ConditionPill } from '@/components/ui/ConditionPill';
 import { Checkbox } from '@/components/ui';
 import { SellModal } from './SellModal';
 import { LabelPrintModal } from './LabelPrintModal';
+import { ScoreBadge } from './ScoreBadge';
 import { reserve, cancelReservation } from '@/app/(app)/kasse/actions';
 import { toCents } from '@/lib/money';
 import { DEFAULT_CONDITION_RECORD } from '@/lib/pricing';
@@ -20,24 +21,6 @@ export interface InventoryListProps {
   total: number; // from inventoryAggregates.total (ignores status tab) → footer
 }
 
-/** KI-Suche (Slice 7): Relevanz-Badge, gerendert wo immer row.score gesetzt ist. */
-const ScoreBadge = ({ score }: { score: number }) => (
-  <span
-    data-testid="ki-score"
-    aria-label={`Relevanz: ${Math.round(score * 100)} Prozent`}
-    style={{
-      marginLeft: 8,
-      padding: '1px 6px',
-      borderRadius: 'var(--r-pill)',
-      background: 'var(--accent-soft)',
-      color: 'var(--accent-ink)',
-      fontWeight: 600,
-      fontSize: 12,
-    }}
-  >
-    {Math.round(score * 100)}%
-  </span>
-);
 
 const HEAD_CELL: React.CSSProperties = {
   padding: '12px 12px',
