@@ -29,10 +29,24 @@ export function ViewToggle({
 }: ViewToggleProps) {
   const [view, setView] = useState<'list' | 'tiles'>('list');
   const searchParams = useSearchParams();
-  const [rows, setRows] = useState(initialRows);
+  const [extraRows, setExtraRows] = useState<(InventoryRow & { score?: number })[]>([]);
+  const [prevInitial, setPrevInitial] = useState(initialRows);
   const [cursor, setCursor] = useState<string | null>(initialCursor);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  // A fresh SSR payload (filter/status/search/mode change OR a revalidate/refresh after a
+  // mutation like reserve/sell/cancel — see kasse/actions.ts revalidatePath('/inventar')) hands
+  // us a new `initialRows` array identity. Detecting that during render (React's documented
+  // "adjust state on prop change" pattern) resets the load-more accumulation so the fresh rows
+  // are shown immediately, without relying on a remount key that would also wipe view/selection
+  // state. Load-more itself only ever touches extraRows, so it never re-triggers this branch.
+  if (prevInitial !== initialRows) {
+    setPrevInitial(initialRows);
+    setExtraRows([]);
+    setCursor(initialCursor);
+  }
+  const rows = [...initialRows, ...extraRows];
 
   const onLoadMore = async () => {
     if (!cursor || loadingMore) return;
@@ -40,7 +54,7 @@ export function ViewToggle({
     setLoadError(null);
     const result = await loadMoreInventory({ params: searchParams.toString(), cursor });
     if (result.ok) {
-      setRows((prev) => [...prev, ...result.rows]);
+      setExtraRows((prev) => [...prev, ...result.rows]);
       setCursor(result.nextCursor);
     } else {
       setLoadError('Weitere Einträge konnten nicht geladen werden. Bitte erneut versuchen.');

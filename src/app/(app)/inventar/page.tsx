@@ -81,7 +81,6 @@ export default async function InventarPage({
 
       {/* List/tile toggle + active view + empty state (KI-unavailable state, Score-Badge) */}
       <ViewToggle
-        key={JSON.stringify({ ...filters, mode: kiMode ? 'ki' : 'classic', q: query })}
         rows={rows}
         total={aggs.total}
         kiUnavailable={kiUnavailable}

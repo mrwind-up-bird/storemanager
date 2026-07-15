@@ -443,4 +443,35 @@ describe('ViewToggle — Mehr laden', () => {
     );
     expect(screen.getByTestId('load-more')).toBeInTheDocument(); // cursor unchanged → still there
   });
+
+  // Review finding C1: a fresh SSR payload (e.g. router.refresh() after revalidatePath('/inventar')
+  // post-reserve/sell/cancel, WITHOUT any filter change) used to be silently ignored because
+  // ViewToggle accumulated rows in useState(initialRows) and page.tsx no longer remounts it via a
+  // reset key. Locks the derive-from-props reset: a rerender with a new `rows` array identity must
+  // (a) show the updated row content and (b) drop any load-more accumulation from before.
+  it('resets accumulated rows when a fresh rows prop arrives (e.g. post-mutation revalidate), even without a remount', async () => {
+    const user = userEvent.setup();
+    const extraRow: InventoryRow = { ...ROWS[0], copyId: 99999, title: 'Nachgeladen' };
+    mockLoadMore.mockResolvedValueOnce({ ok: true, rows: [extraRow], nextCursor: null });
+
+    const { rerender } = render(
+      <ViewToggle rows={ROWS} total={ROWS.length + 1} initialCursor="cur-1" />,
+    );
+
+    await user.click(screen.getByTestId('load-more'));
+    await waitFor(() => expect(screen.getAllByText('Nachgeladen').length).toBeGreaterThan(0));
+
+    // Simulate a revalidate/refresh after a mutation: SAME component instance (rerender, not a
+    // remount — no key prop involved), a NEW rows array identity, first row's status flipped.
+    const revalidatedRows: InventoryRow[] = [
+      { ...ROWS[0], status: 'reserviert' },
+      ROWS[1],
+    ];
+    rerender(<ViewToggle rows={revalidatedRows} total={ROWS.length} initialCursor="cur-1" />);
+
+    // (a) updated row content from the fresh props is shown (StatusBadge label for 'reserviert').
+    await waitFor(() => expect(screen.getAllByText('Reserviert').length).toBeGreaterThan(0));
+    // (b) the previously-appended extra row is gone — accumulation reset, not silently kept stale.
+    expect(screen.queryAllByText('Nachgeladen').length).toBe(0);
+  });
 });
