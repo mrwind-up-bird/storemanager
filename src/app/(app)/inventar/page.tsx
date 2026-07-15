@@ -45,6 +45,7 @@ export default async function InventarPage({
   // Branch on kiMode (a plain boolean) — cleaner than sniffing the union.
   let rows: (InventoryRow & { score?: number })[];
   let kiUnavailable = false;
+  let initialCursor: string | null = null;
   if (kiMode) {
     const r = rowsResult as { rows: (InventoryRow & { score?: number })[]; unavailable?: boolean };
     rows = r.rows;
@@ -52,6 +53,7 @@ export default async function InventarPage({
   } else {
     const r = rowsResult as import('@/lib/inventory').ListInventoryResult;
     rows = r.rows;
+    initialCursor = r.nextCursor;
   }
   const isAdmin = user.role === 'admin' || user.isSuperadmin;
 
@@ -78,7 +80,13 @@ export default async function InventarPage({
       <StatusTabs byStatus={aggs.byStatus} total={aggs.total} />
 
       {/* List/tile toggle + active view + empty state (KI-unavailable state, Score-Badge) */}
-      <ViewToggle rows={rows} total={aggs.total} kiUnavailable={kiUnavailable} />
+      <ViewToggle
+        key={JSON.stringify({ ...filters, mode: kiMode ? 'ki' : 'classic', q: query })}
+        rows={rows}
+        total={aggs.total}
+        kiUnavailable={kiUnavailable}
+        initialCursor={initialCursor}
+      />
     </div>
   );
 }

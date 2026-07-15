@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { InventoryList } from './InventoryList';
 import { InventoryTiles } from './InventoryTiles';
+import { loadMoreInventory } from '../actions';
 import type { InventoryRow } from '@/lib/inventory';
 
 const VIEW_OPTIONS = [
@@ -16,10 +18,35 @@ export interface ViewToggleProps {
   rows: (InventoryRow & { score?: number })[];
   total: number;
   kiUnavailable?: boolean;
+  initialCursor?: string | null;
 }
 
-export function ViewToggle({ rows, total, kiUnavailable }: ViewToggleProps) {
+export function ViewToggle({
+  rows: initialRows,
+  total,
+  kiUnavailable,
+  initialCursor = null,
+}: ViewToggleProps) {
   const [view, setView] = useState<'list' | 'tiles'>('list');
+  const searchParams = useSearchParams();
+  const [rows, setRows] = useState(initialRows);
+  const [cursor, setCursor] = useState<string | null>(initialCursor);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const onLoadMore = async () => {
+    if (!cursor || loadingMore) return;
+    setLoadingMore(true);
+    setLoadError(null);
+    const result = await loadMoreInventory({ params: searchParams.toString(), cursor });
+    if (result.ok) {
+      setRows((prev) => [...prev, ...result.rows]);
+      setCursor(result.nextCursor);
+    } else {
+      setLoadError('Weitere Einträge konnten nicht geladen werden. Bitte erneut versuchen.');
+    }
+    setLoadingMore(false);
+  };
 
   // KI-Suche (Slice 7): Embeddings-Adapter nicht konfiguriert/erreichbar — sauberer
   // Fehlerzustand statt leerem "Kein Treffer" (der falsch suggerieren würde, es gäbe keine Treffer).
@@ -159,6 +186,44 @@ export function ViewToggle({ rows, total, kiUnavailable }: ViewToggleProps) {
         <InventoryList rows={rows} total={total} />
       ) : (
         <InventoryTiles rows={rows} />
+      )}
+      {cursor && (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 8,
+            padding: '4px 0 8px',
+          }}
+        >
+          {loadError && (
+            <p role="alert" style={{ margin: 0, fontSize: '12.5px', color: 'var(--bad)' }}>
+              {loadError}
+            </p>
+          )}
+          <button
+            type="button"
+            data-testid="load-more"
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            className="focus-ring-button"
+            style={{
+              minHeight: 40,
+              padding: '0 20px',
+              border: '1.5px solid var(--border-strong)',
+              borderRadius: 'var(--r-pill)',
+              background: 'var(--surface)',
+              color: 'var(--text)',
+              fontFamily: 'var(--font-body)',
+              fontWeight: 700,
+              fontSize: 13,
+              cursor: loadingMore ? 'progress' : 'pointer',
+            }}
+          >
+            {loadingMore ? 'Lädt …' : 'Mehr laden'}
+          </button>
+        </div>
       )}
     </div>
   );
