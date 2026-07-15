@@ -50,6 +50,17 @@ export const FREESHOP_TENANT: ProvisionInput = {
   plan: 'free',
 };
 
+// Vierter Seed-Tenant NUR für die Paging-E2E (Task 6): > 1 Seite (50) an Kopien, damit der
+// /inventar "Mehr laden"-Flow (keyset pagination) E2E-testbar ist. Seed-only (dev/compose/e2e) —
+// Prod wird über bootstrap-prod.ts provisioniert und ist unbetroffen.
+export const STRESS_TENANT: ProvisionInput = {
+  slug: 'stress',
+  name: 'Stress Store',
+  adminEmail: 'admin@stress.test',
+  primaryColor: DEFAULT_PRIMARY_COLOR,
+  plan: 'big',
+};
+
 export const PLATFORM_ADMIN_EMAIL = 'platform@qrecords.test';
 
 // ---------------------------------------------------------------------------
@@ -314,6 +325,40 @@ export const FREESHOP_PURCHASES: PurchaseSpec[] = [
 ];
 
 export const FREESHOP_PERMALINKS: PermalinkSpec[] = []; // provisionTenant legt 'lager' an — reicht.
+
+// ---------------------------------------------------------------------------
+// Datasets — stress tenant (Task 6: > 1 Seite (50) an verfügbaren Kopien für die
+// /inventar "Mehr laden"-E2E). Jeder Record braucht einen eindeutigen Titel/Artist,
+// sonst kollidiert der von ensureRecord() berechnete Hash (title/artist/country/year/label).
+// ---------------------------------------------------------------------------
+
+const STRESS_COUNT = 70; // > page size 50 → one "Mehr laden" then exhausted (70 < 2×50)
+const STRESS_GENRES = ['Jazz', 'Rock', 'Electronic', 'Pop', 'Reggae'];
+const STRESS_FORMATS = ['Vinyl', 'CD', 'Kassette'];
+
+export const STRESS_RECORDS: RecordSeed[] = Array.from({ length: STRESS_COUNT }, (_, i) => {
+  const n = String(i).padStart(3, '0');
+  return {
+    title: `Stress Title ${n}`,
+    artist: `Stress Artist ${n}`,
+    label: ['StressLabel'],
+    country: 'US',
+    releaseYear: 1970 + (i % 50),
+    format: STRESS_FORMATS[i % STRESS_FORMATS.length],
+    genre: [STRESS_GENRES[i % STRESS_GENRES.length]!],
+  };
+});
+
+export const STRESS_PURCHASES: PurchaseSpec[] = Array.from({ length: STRESS_COUNT }, (_, i) => ({
+  recordIndex: i,
+  ek: '5.00',
+  vk: '15.00',
+  status: 'verfuegbar',
+  conditionRecord: 5,
+  conditionCover: 5,
+}));
+
+export const STRESS_PERMALINKS: PermalinkSpec[] = [];
 
 // ---------------------------------------------------------------------------
 // Internal helpers (not exported — use seedTenantInventory from tests)
@@ -1001,6 +1046,16 @@ async function main(): Promise<void> {
     console.log(`[seed] Seeding inventory for "${FREESHOP_TENANT.slug}"...`);
     await seedTenantInventory(ownerPool, freeId, FREESHOP_RECORDS, FREESHOP_PURCHASES, FREESHOP_PERMALINKS);
     await markTenantOnboarded(ownerPool, freeId);
+
+    // ── stress tenant (Paging-E2E, Task 6) ─────────────────────────────────
+    const { tenantId: stressId, usedPassword: stressPw } = await ensureTenant(STRESS_TENANT, ownerPool);
+    printCredentials(STRESS_TENANT, stressPw, protocol, rootDomain);
+    // Kein sendCredentialMail — vermeidet Mail-Rauschen für den reinen Paging-Stress-Tenant.
+
+    console.log(`[seed] Seeding inventory for "${STRESS_TENANT.slug}"...`);
+    await seedTenantInventory(ownerPool, stressId, STRESS_RECORDS, STRESS_PURCHASES, STRESS_PERMALINKS);
+    await ownerPool.query(`UPDATE tenants SET plan = $1 WHERE id = $2`, [STRESS_TENANT.plan, stressId]);
+    await markTenantOnboarded(ownerPool, stressId);
 
     // ── Platform-User (Spec §5) ────────────────────────────────────────────
     await ensurePlatformUser(ownerPool, PLATFORM_ADMIN_EMAIL, process.env['SEED_ADMIN_PASSWORD']);

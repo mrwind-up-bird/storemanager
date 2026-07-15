@@ -29,8 +29,23 @@ vi.mock('@/app/(app)/kasse/actions', () => ({
   cancelReservation,
 }));
 
-// InventoryList calls useRouter().refresh() on action failure.
-vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: mockRefresh }) }));
+const mockLoadMore = vi.hoisted(() =>
+  vi.fn(
+    async (): Promise<
+      | { ok: true; rows: InventoryRow[]; nextCursor: string | null }
+      | { ok: false; reason: 'validation' | 'error'; message?: string }
+    > => ({ ok: true, rows: [], nextCursor: null }),
+  ),
+);
+
+// InventoryList calls useRouter().refresh(); ViewToggle reads useSearchParams() for load-more.
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: mockRefresh }),
+  useSearchParams: () => new URLSearchParams('status=verfuegbar'),
+}));
+
+// ViewToggle imports loadMoreInventory from ../actions (a 'use server' module) — mock it.
+vi.mock('@/app/(app)/inventar/actions', () => ({ loadMoreInventory: mockLoadMore }));
 
 // InventoryList's "Etiketten drucken" flow renders LabelPrintModal, which loads jsPDF/qrcode via
 // dynamic import() inside its submit handler — mock both the same way label-print-modal.test.tsx
@@ -63,6 +78,8 @@ beforeEach(() => {
   mockRefresh.mockReset();
   reserve.mockResolvedValue({ ok: true });
   cancelReservation.mockResolvedValue({ ok: true });
+  mockLoadMore.mockReset();
+  mockLoadMore.mockResolvedValue({ ok: true, rows: [], nextCursor: null });
   Object.values(mockDoc).forEach((fn) => fn.mockClear());
   (QRCode.toDataURL as ReturnType<typeof vi.fn>).mockClear();
 });
@@ -382,5 +399,79 @@ describe('ViewToggle — kiUnavailable', () => {
     expect(screen.getByText('KI-Suche momentan nicht verfügbar')).toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
     expect(screen.queryByText('Kein Treffer im Sortiment')).not.toBeInTheDocument();
+  });
+});
+
+// ── ViewToggle — Mehr laden (keyset paging, Task 5) ─────────────────────────────
+
+describe('ViewToggle — Mehr laden', () => {
+  it('renders no "Mehr laden" button when initialCursor is null', () => {
+    render(<ViewToggle rows={ROWS} total={ROWS.length} initialCursor={null} />);
+    expect(screen.queryByTestId('load-more')).toBeNull();
+  });
+
+  it('shows the button for a non-null cursor, appends rows on click, and hides it when exhausted', async () => {
+    const user = userEvent.setup();
+    const extraRow: InventoryRow = { ...ROWS[0], copyId: 99999, title: 'Nachgeladen' };
+    mockLoadMore.mockResolvedValueOnce({ ok: true, rows: [extraRow], nextCursor: null });
+
+    render(<ViewToggle rows={ROWS} total={ROWS.length + 1} initialCursor="cur-1" />);
+
+    const btn = screen.getByTestId('load-more');
+    expect(btn).toBeInTheDocument();
+
+    await user.click(btn);
+
+    // Action called with the current searchParams string + the cursor.
+    expect(mockLoadMore).toHaveBeenCalledWith({ params: 'status=verfuegbar', cursor: 'cur-1' });
+    // Appended row is now visible — InventoryList renders both a desktop table row and a
+    // mobile card per row (see "InventoryList" describe block above), so use getAllByText.
+    await waitFor(() => expect(screen.getAllByText('Nachgeladen').length).toBeGreaterThan(0));
+    // … and the button is gone (nextCursor was null).
+    expect(screen.queryByTestId('load-more')).toBeNull();
+  });
+
+  it('surfaces an inline error and keeps the button on action failure', async () => {
+    const user = userEvent.setup();
+    mockLoadMore.mockResolvedValueOnce({ ok: false, reason: 'error' });
+
+    render(<ViewToggle rows={ROWS} total={ROWS.length + 1} initialCursor="cur-1" />);
+    await user.click(screen.getByTestId('load-more'));
+
+    await waitFor(() =>
+      expect(screen.getByText(/konnten nicht geladen werden/i)).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId('load-more')).toBeInTheDocument(); // cursor unchanged → still there
+  });
+
+  // Review finding C1: a fresh SSR payload (e.g. router.refresh() after revalidatePath('/inventar')
+  // post-reserve/sell/cancel, WITHOUT any filter change) used to be silently ignored because
+  // ViewToggle accumulated rows in useState(initialRows) and page.tsx no longer remounts it via a
+  // reset key. Locks the derive-from-props reset: a rerender with a new `rows` array identity must
+  // (a) show the updated row content and (b) drop any load-more accumulation from before.
+  it('resets accumulated rows when a fresh rows prop arrives (e.g. post-mutation revalidate), even without a remount', async () => {
+    const user = userEvent.setup();
+    const extraRow: InventoryRow = { ...ROWS[0], copyId: 99999, title: 'Nachgeladen' };
+    mockLoadMore.mockResolvedValueOnce({ ok: true, rows: [extraRow], nextCursor: null });
+
+    const { rerender } = render(
+      <ViewToggle rows={ROWS} total={ROWS.length + 1} initialCursor="cur-1" />,
+    );
+
+    await user.click(screen.getByTestId('load-more'));
+    await waitFor(() => expect(screen.getAllByText('Nachgeladen').length).toBeGreaterThan(0));
+
+    // Simulate a revalidate/refresh after a mutation: SAME component instance (rerender, not a
+    // remount — no key prop involved), a NEW rows array identity, first row's status flipped.
+    const revalidatedRows: InventoryRow[] = [
+      { ...ROWS[0], status: 'reserviert' },
+      ROWS[1],
+    ];
+    rerender(<ViewToggle rows={revalidatedRows} total={ROWS.length} initialCursor="cur-1" />);
+
+    // (a) updated row content from the fresh props is shown (StatusBadge label for 'reserviert').
+    await waitFor(() => expect(screen.getAllByText('Reserviert').length).toBeGreaterThan(0));
+    // (b) the previously-appended extra row is gone — accumulation reset, not silently kept stale.
+    expect(screen.queryAllByText('Nachgeladen').length).toBe(0);
   });
 });

@@ -8,12 +8,15 @@ import { Pool } from 'pg';
 
 export const DEMO_URL = 'http://demo.localhost:3000';
 export const VINYLCAVE_URL = 'http://vinylcave.localhost:3000';
+export const STRESS_URL = 'http://stress.localhost:3000';
 export const MAILPIT_API = 'http://localhost:8025/api/v1';
 
 export const DEMO_EMAIL = process.env.E2E_DEMO_EMAIL ?? 'admin@demo.test';
 export const DEMO_PASSWORD = process.env.E2E_DEMO_PASSWORD ?? 'E2eDevPassword1!';
 export const VC_EMAIL = process.env.E2E_VC_EMAIL ?? 'admin@vinylcave.test';
 export const VC_PASSWORD = process.env.E2E_VC_PASSWORD ?? 'E2eDevPassword1!';
+export const STRESS_EMAIL = process.env.E2E_STRESS_EMAIL ?? 'admin@stress.test';
+export const STRESS_PASSWORD = process.env.E2E_STRESS_PASSWORD ?? 'E2eDevPassword1!';
 
 /**
  * Log in on a tenant and assert the dashboard (authenticated shell) rendered.

@@ -46,6 +46,39 @@ const CONDITION_BANDS: Record<ConditionBand, number> = { mint_nm: 6, vgplus: 5, 
 const KNOWN_FORMATS = ['Vinyl', 'CD', 'Kassette'] as const;
 const STATUS_VALUES: readonly InventoryStatus[] = ['verfuegbar', 'reserviert', 'verkauft', 'verliehen'];
 
+/** Default page size for the classic inventory list ("Mehr laden" lädt je 50). */
+export const INVENTORY_PAGE_SIZE = 50;
+
+/** Opaque keyset position — the (artist, title, copyId) of the last row of a page. */
+export type InventoryCursor = { artist: string; title: string; copyId: number };
+
+export type ListInventoryResult = { rows: InventoryRow[]; nextCursor: string | null };
+
+/** base64url of [artist, title, copyId]. Opaque to callers; only carries sort position. */
+export function encodeCursor(c: InventoryCursor): string {
+  return Buffer.from(JSON.stringify([c.artist, c.title, c.copyId]), 'utf8').toString('base64url');
+}
+
+/** Inverse of encodeCursor. Returns null for anything malformed — a bad cursor is treated
+ *  as "no cursor" (first page); it can never leak across tenants (RLS + tenant preds still apply). */
+export function decodeCursor(raw: string): InventoryCursor | null {
+  try {
+    const parsed = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'));
+    if (
+      Array.isArray(parsed) &&
+      parsed.length === 3 &&
+      typeof parsed[0] === 'string' &&
+      typeof parsed[1] === 'string' &&
+      Number.isInteger(parsed[2])
+    ) {
+      return { artist: parsed[0], title: parsed[1], copyId: parsed[2] };
+    }
+  } catch {
+    // malformed → treat as no cursor
+  }
+  return null;
+}
+
 /** base predicates (tenant + q + format + genre + condition) — the status tab is NEVER part of this set. */
 function basePreds(tenantId: number, f: InventoryFilters): SQL[] {
   const preds: SQL[] = [
@@ -68,11 +101,21 @@ function basePreds(tenantId: number, f: InventoryFilters): SQL[] {
 export async function listInventory(
   ctx: { tenantId: number; userId: number | null },
   f: InventoryFilters,
-): Promise<InventoryRow[]> {
+  opts?: { limit?: number | 'all'; cursor?: string },
+): Promise<ListInventoryResult> {
+  const limit = opts?.limit ?? INVENTORY_PAGE_SIZE;
+  const cursor = opts?.cursor ? decodeCursor(opts.cursor) : null;
   return withTenant({ tenantId: ctx.tenantId, userId: ctx.userId }, async (tx) => {
     const preds = basePreds(ctx.tenantId, f);
     if (f.status) preds.push(eq(purchases.status, f.status));
-    return tx
+    if (cursor) {
+      // Keyset: strictly after the last row, in the SAME total order as the ORDER BY below.
+      // Row-value comparison uses the columns' default collation → consistent with the sort.
+      preds.push(
+        sql`(${records.artist}, ${records.title}, ${purchases.id}) > (${cursor.artist}, ${cursor.title}, ${cursor.copyId}::int)`,
+      );
+    }
+    const query = tx
       .select({
         copyId: purchases.id,
         recordId: records.id,
@@ -93,7 +136,24 @@ export async function listInventory(
       .from(purchases)
       .innerJoin(records, eq(records.id, purchases.recordId))
       .where(and(...preds))
-      .orderBy(asc(records.artist), asc(records.title));
+      .orderBy(asc(records.artist), asc(records.title), asc(purchases.id));
+
+    // 'all' is an explicit unbounded escape hatch (e.g. Kasse needs the complete sellable set
+    // for client-side search) — no SQL LIMIT, no next page.
+    if (limit === 'all') {
+      const rows = await query;
+      return { rows, nextCursor: null };
+    }
+
+    const rows = await query.limit(limit + 1);
+    const hasMore = rows.length > limit;
+    const pageRows = hasMore ? rows.slice(0, limit) : rows;
+    const last = pageRows[pageRows.length - 1];
+    const nextCursor =
+      hasMore && last
+        ? encodeCursor({ artist: last.artist, title: last.title, copyId: last.copyId })
+        : null;
+    return { rows: pageRows, nextCursor };
   });
 }
 
@@ -104,43 +164,40 @@ export async function inventoryAggregates(
   return withTenant({ tenantId: ctx.tenantId, userId: ctx.userId }, async (tx) => {
     const preds = basePreds(ctx.tenantId, f); // NB: status intentionally excluded
 
-    // byStatus + total — counts within the q+filter set, grouped by status.
-    const statusRows = await tx
-      .select({ status: purchases.status, count: sql<number>`count(*)::int` })
+    // total + per-status counts + valueAvailable + formatSplit in ONE pass —
+    // no more pulling thousands of rows to sum in JS.
+    const [agg] = await tx
+      .select({
+        total: sql<number>`count(*)::int`,
+        verfuegbar: sql<number>`count(*) filter (where ${purchases.status} = 'verfuegbar')::int`,
+        reserviert: sql<number>`count(*) filter (where ${purchases.status} = 'reserviert')::int`,
+        verkauft: sql<number>`count(*) filter (where ${purchases.status} = 'verkauft')::int`,
+        verliehen: sql<number>`count(*) filter (where ${purchases.status} = 'verliehen')::int`,
+        valueAvailable: sql<number>`coalesce(sum(${purchases.targetPrice}) filter (where ${purchases.status} = 'verfuegbar'), 0)::float8`,
+        splitVinyl: sql<number>`count(*) filter (where ${purchases.status} = 'verfuegbar' and ${records.format} = 'Vinyl')::int`,
+        splitCd: sql<number>`count(*) filter (where ${purchases.status} = 'verfuegbar' and ${records.format} = 'CD')::int`,
+      })
       .from(purchases)
       .innerJoin(records, eq(records.id, purchases.recordId))
-      .where(and(...preds))
-      .groupBy(purchases.status);
+      .where(and(...preds));
 
     const byStatus: Record<InventoryStatus, number> = {
-      verfuegbar: 0,
-      reserviert: 0,
-      verkauft: 0,
-      verliehen: 0,
+      verfuegbar: agg.verfuegbar,
+      reserviert: agg.reserviert,
+      verkauft: agg.verkauft,
+      verliehen: agg.verliehen,
     };
-    let total = 0;
-    for (const r of statusRows) {
-      byStatus[r.status] = r.count;
-      total += r.count;
-    }
+    const total = agg.total;
+    const valueAvailable = Number(agg.valueAvailable);
+    // "other" = alle verfügbaren Kopien minus Vinyl minus CD (NULL-Format zählt zu other,
+    // NULL-sicher durch Subtraktion statt NOT IN).
+    const formatSplit = {
+      vinyl: agg.splitVinyl,
+      cd: agg.splitCd,
+      other: agg.verfuegbar - agg.splitVinyl - agg.splitCd,
+    };
 
-    // valueAvailable + formatSplit — verfuegbar copies only, within the same q+filter set.
-    const availRows = await tx
-      .select({ format: records.format, vk: purchases.targetPrice })
-      .from(purchases)
-      .innerJoin(records, eq(records.id, purchases.recordId))
-      .where(and(...preds, eq(purchases.status, 'verfuegbar')));
-
-    let valueAvailable = 0;
-    const formatSplit = { vinyl: 0, cd: 0, other: 0 };
-    for (const r of availRows) {
-      if (r.vk) valueAvailable += Number(r.vk);
-      if (r.format === 'Vinyl') formatSplit.vinyl += 1;
-      else if (r.format === 'CD') formatSplit.cd += 1;
-      else formatSplit.other += 1;
-    }
-
-    // genreOptions — distinct genres present for the tenant, independent of the active filters.
+    // genreOptions — distinct genres for the tenant, independent of the active filters.
     const genreRes = await tx.execute(
       sql`SELECT DISTINCT unnest(genre) AS g FROM records WHERE tenant_id = ${ctx.tenantId} ORDER BY g`,
     );
@@ -180,6 +237,19 @@ export function parseInventoryFilters(
   }
 
   return out;
+}
+
+/** Server-action core for "Mehr laden": re-derives the filters from the raw query string
+ *  (single source of truth = parseInventoryFilters) and returns the next keyset page.
+ *  Auth-agnostic — the calling server action enforces session/role/CSRF. */
+export async function paginateInventory(
+  ctx: { tenantId: number; userId: number | null },
+  paramsString: string,
+  cursor: string,
+): Promise<ListInventoryResult> {
+  const sp = Object.fromEntries(new URLSearchParams(paramsString));
+  const filters = parseInventoryFilters(sp);
+  return listInventory(ctx, filters, { cursor });
 }
 
 /** Minimal row for the mobile sell flows — deliberately WITHOUT purchase price (EK stays server-side). */

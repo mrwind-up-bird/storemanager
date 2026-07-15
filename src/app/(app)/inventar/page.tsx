@@ -41,12 +41,20 @@ export default async function InventarPage({
     inventoryAggregates(ctx, filters),
     kiMode ? kiSearch(ctx, { query, filters }) : listInventory(ctx, filters),
   ]);
-  // kiSearch() → { rows, unavailable? }, listInventory() → InventoryRow[] — per Array.isArray
-  // unterscheiden statt casten (kiMode selbst ist ein boolean, keine literal-narrowbare Diskriminante).
-  const rows: (InventoryRow & { score?: number })[] = Array.isArray(rowsResult)
-    ? rowsResult
-    : rowsResult.rows;
-  const kiUnavailable = Array.isArray(rowsResult) ? false : (rowsResult.unavailable ?? false);
+  // listInventory() → { rows, nextCursor }; kiSearch() → { rows, unavailable? }.
+  // Branch on kiMode (a plain boolean) — cleaner than sniffing the union.
+  let rows: (InventoryRow & { score?: number })[];
+  let kiUnavailable = false;
+  let initialCursor: string | null = null;
+  if (kiMode) {
+    const r = rowsResult as { rows: (InventoryRow & { score?: number })[]; unavailable?: boolean };
+    rows = r.rows;
+    kiUnavailable = r.unavailable ?? false;
+  } else {
+    const r = rowsResult as import('@/lib/inventory').ListInventoryResult;
+    rows = r.rows;
+    initialCursor = r.nextCursor;
+  }
   const isAdmin = user.role === 'admin' || user.isSuperadmin;
 
   return (
@@ -72,7 +80,12 @@ export default async function InventarPage({
       <StatusTabs byStatus={aggs.byStatus} total={aggs.total} />
 
       {/* List/tile toggle + active view + empty state (KI-unavailable state, Score-Badge) */}
-      <ViewToggle rows={rows} total={aggs.total} kiUnavailable={kiUnavailable} />
+      <ViewToggle
+        rows={rows}
+        total={aggs.total}
+        kiUnavailable={kiUnavailable}
+        initialCursor={initialCursor}
+      />
     </div>
   );
 }

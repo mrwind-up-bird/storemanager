@@ -1,0 +1,2 @@
+CREATE INDEX "records_tenant_artist_title_idx" ON "records" USING btree ("tenant_id","artist","title","id");--> statement-breakpoint
+CREATE INDEX "records_tenant_format_idx" ON "records" USING btree ("tenant_id","format");

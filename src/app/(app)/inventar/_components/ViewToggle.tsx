@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { InventoryList } from './InventoryList';
 import { InventoryTiles } from './InventoryTiles';
+import { loadMoreInventory } from '../actions';
 import type { InventoryRow } from '@/lib/inventory';
 
 const VIEW_OPTIONS = [
@@ -16,10 +18,49 @@ export interface ViewToggleProps {
   rows: (InventoryRow & { score?: number })[];
   total: number;
   kiUnavailable?: boolean;
+  initialCursor?: string | null;
 }
 
-export function ViewToggle({ rows, total, kiUnavailable }: ViewToggleProps) {
+export function ViewToggle({
+  rows: initialRows,
+  total,
+  kiUnavailable,
+  initialCursor = null,
+}: ViewToggleProps) {
   const [view, setView] = useState<'list' | 'tiles'>('list');
+  const searchParams = useSearchParams();
+  const [extraRows, setExtraRows] = useState<(InventoryRow & { score?: number })[]>([]);
+  const [prevInitial, setPrevInitial] = useState(initialRows);
+  const [cursor, setCursor] = useState<string | null>(initialCursor);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // A fresh SSR payload (filter/status/search/mode change OR a revalidate/refresh after a
+  // mutation like reserve/sell/cancel — see kasse/actions.ts revalidatePath('/inventar')) hands
+  // us a new `initialRows` array identity. Detecting that during render (React's documented
+  // "adjust state on prop change" pattern) resets the load-more accumulation so the fresh rows
+  // are shown immediately, without relying on a remount key that would also wipe view/selection
+  // state. Load-more itself only ever touches extraRows, so it never re-triggers this branch.
+  if (prevInitial !== initialRows) {
+    setPrevInitial(initialRows);
+    setExtraRows([]);
+    setCursor(initialCursor);
+  }
+  const rows = [...initialRows, ...extraRows];
+
+  const onLoadMore = async () => {
+    if (!cursor || loadingMore) return;
+    setLoadingMore(true);
+    setLoadError(null);
+    const result = await loadMoreInventory({ params: searchParams.toString(), cursor });
+    if (result.ok) {
+      setExtraRows((prev) => [...prev, ...result.rows]);
+      setCursor(result.nextCursor);
+    } else {
+      setLoadError('Weitere Einträge konnten nicht geladen werden. Bitte erneut versuchen.');
+    }
+    setLoadingMore(false);
+  };
 
   // KI-Suche (Slice 7): Embeddings-Adapter nicht konfiguriert/erreichbar — sauberer
   // Fehlerzustand statt leerem "Kein Treffer" (der falsch suggerieren würde, es gäbe keine Treffer).
@@ -159,6 +200,44 @@ export function ViewToggle({ rows, total, kiUnavailable }: ViewToggleProps) {
         <InventoryList rows={rows} total={total} />
       ) : (
         <InventoryTiles rows={rows} />
+      )}
+      {cursor && (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 8,
+            padding: '4px 0 8px',
+          }}
+        >
+          {loadError && (
+            <p role="alert" style={{ margin: 0, fontSize: '12.5px', color: 'var(--bad)' }}>
+              {loadError}
+            </p>
+          )}
+          <button
+            type="button"
+            data-testid="load-more"
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            className="focus-ring-button"
+            style={{
+              minHeight: 40,
+              padding: '0 20px',
+              border: '1.5px solid var(--border-strong)',
+              borderRadius: 'var(--r-pill)',
+              background: 'var(--surface)',
+              color: 'var(--text)',
+              fontFamily: 'var(--font-body)',
+              fontWeight: 700,
+              fontSize: 13,
+              cursor: loadingMore ? 'progress' : 'pointer',
+            }}
+          >
+            {loadingMore ? 'Lädt …' : 'Mehr laden'}
+          </button>
+        </div>
       )}
     </div>
   );

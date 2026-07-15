@@ -255,7 +255,7 @@ export async function searchAvailableCopies(
   const parsed = copyQuerySchema.safeParse(query);
   if (!parsed.success) return { ok: false, reason: 'validation' };
   try {
-    const rows = await listInventory(
+    const { rows } = await listInventory(
       { tenantId: user.tenantId, userId: user.id },
       { q: parsed.data, status: 'verfuegbar' },
     );
