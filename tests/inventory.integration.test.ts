@@ -18,6 +18,7 @@ let tenantA: number;
 let tenantB: number;
 let tenantC: number; // ILIKE metachar escaping tests
 let tenantD: number; // genreOptions isolation + formatSplit other bucket
+let tenantE: number; // NULL target_price → valueAvailable coalesce path
 
 async function insertRecord(
   tenantId: number,
@@ -138,6 +139,24 @@ beforeAll(async () => {
     format: 'Kassette', genre: ['Reggae'], releaseYear: 1974, country: 'JM', hash: 'd1',
   });
   await insertPurchase(tenantD, d1, { status: 'verfuegbar', conditionRecord: 6, conditionCover: 6, ek: '8.00', vk: '15.00' });
+
+  // ── Tenant E: one verfuegbar copy with NULL target_price (coalesce → 0) ─────
+  tenantE = (await seedTenant({ slug: 'nullvk', name: 'NullVK Store' })).tenantId;
+  const e1 = await insertRecord(tenantE, {
+    title: 'Untitled', artist: 'Unknown', label: ['NoLabel'],
+    format: 'Vinyl', genre: ['Jazz'], releaseYear: 1990, country: 'US', hash: 'e1',
+  });
+  await withOwner((tx) =>
+    tx.insert(purchases).values({
+      tenantId: tenantE,
+      recordId: e1,
+      status: 'verfuegbar',
+      conditionRecord: 5,
+      conditionCover: 5,
+      purchasePrice: '5.00',
+      targetPrice: null, // the coalesce path under test
+    }),
+  );
 }, 180_000);
 
 afterAll(async () => {
@@ -346,5 +365,14 @@ describe('listInventory — keyset pagination', () => {
     const page = await listInventory({ tenantId: tenantA, userId: null }, {}, { limit: 'all' });
     expect(page.rows).toHaveLength(5);
     expect(page.nextCursor).toBeNull();
+  });
+});
+
+describe('inventoryAggregates — NULL target_price', () => {
+  it('valueAvailable is 0 when the only verfuegbar copy has NULL vk (coalesce)', async () => {
+    const agg = await inventoryAggregates({ tenantId: tenantE, userId: null }, {});
+    expect(agg.byStatus.verfuegbar).toBe(1);
+    expect(agg.valueAvailable).toBe(0);
+    expect(agg.formatSplit).toEqual({ vinyl: 1, cd: 0, other: 0 });
   });
 });

@@ -164,43 +164,40 @@ export async function inventoryAggregates(
   return withTenant({ tenantId: ctx.tenantId, userId: ctx.userId }, async (tx) => {
     const preds = basePreds(ctx.tenantId, f); // NB: status intentionally excluded
 
-    // byStatus + total — counts within the q+filter set, grouped by status.
-    const statusRows = await tx
-      .select({ status: purchases.status, count: sql<number>`count(*)::int` })
+    // total + per-status counts + valueAvailable + formatSplit in ONE pass —
+    // no more pulling thousands of rows to sum in JS.
+    const [agg] = await tx
+      .select({
+        total: sql<number>`count(*)::int`,
+        verfuegbar: sql<number>`count(*) filter (where ${purchases.status} = 'verfuegbar')::int`,
+        reserviert: sql<number>`count(*) filter (where ${purchases.status} = 'reserviert')::int`,
+        verkauft: sql<number>`count(*) filter (where ${purchases.status} = 'verkauft')::int`,
+        verliehen: sql<number>`count(*) filter (where ${purchases.status} = 'verliehen')::int`,
+        valueAvailable: sql<number>`coalesce(sum(${purchases.targetPrice}) filter (where ${purchases.status} = 'verfuegbar'), 0)::float8`,
+        splitVinyl: sql<number>`count(*) filter (where ${purchases.status} = 'verfuegbar' and ${records.format} = 'Vinyl')::int`,
+        splitCd: sql<number>`count(*) filter (where ${purchases.status} = 'verfuegbar' and ${records.format} = 'CD')::int`,
+      })
       .from(purchases)
       .innerJoin(records, eq(records.id, purchases.recordId))
-      .where(and(...preds))
-      .groupBy(purchases.status);
+      .where(and(...preds));
 
     const byStatus: Record<InventoryStatus, number> = {
-      verfuegbar: 0,
-      reserviert: 0,
-      verkauft: 0,
-      verliehen: 0,
+      verfuegbar: agg.verfuegbar,
+      reserviert: agg.reserviert,
+      verkauft: agg.verkauft,
+      verliehen: agg.verliehen,
     };
-    let total = 0;
-    for (const r of statusRows) {
-      byStatus[r.status] = r.count;
-      total += r.count;
-    }
+    const total = agg.total;
+    const valueAvailable = Number(agg.valueAvailable);
+    // "other" = alle verfügbaren Kopien minus Vinyl minus CD (NULL-Format zählt zu other,
+    // NULL-sicher durch Subtraktion statt NOT IN).
+    const formatSplit = {
+      vinyl: agg.splitVinyl,
+      cd: agg.splitCd,
+      other: agg.verfuegbar - agg.splitVinyl - agg.splitCd,
+    };
 
-    // valueAvailable + formatSplit — verfuegbar copies only, within the same q+filter set.
-    const availRows = await tx
-      .select({ format: records.format, vk: purchases.targetPrice })
-      .from(purchases)
-      .innerJoin(records, eq(records.id, purchases.recordId))
-      .where(and(...preds, eq(purchases.status, 'verfuegbar')));
-
-    let valueAvailable = 0;
-    const formatSplit = { vinyl: 0, cd: 0, other: 0 };
-    for (const r of availRows) {
-      if (r.vk) valueAvailable += Number(r.vk);
-      if (r.format === 'Vinyl') formatSplit.vinyl += 1;
-      else if (r.format === 'CD') formatSplit.cd += 1;
-      else formatSplit.other += 1;
-    }
-
-    // genreOptions — distinct genres present for the tenant, independent of the active filters.
+    // genreOptions — distinct genres for the tenant, independent of the active filters.
     const genreRes = await tx.execute(
       sql`SELECT DISTINCT unnest(genre) AS g FROM records WHERE tenant_id = ${ctx.tenantId} ORDER BY g`,
     );
