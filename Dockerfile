@@ -72,6 +72,7 @@ RUN pnpm exec esbuild src/db/migrate.ts             --bundle --platform=node --f
  && pnpm exec esbuild scripts/seed.ts               --bundle --platform=node --format=cjs --alias:server-only=./docker/stubs/server-only.js --outfile=dist/seed.cjs \
  && pnpm exec esbuild src/worker/index.ts           --bundle --platform=node --format=cjs --alias:server-only=./docker/stubs/server-only.js --outfile=dist/worker.cjs \
  && pnpm exec esbuild scripts/embeddings-backfill.ts --bundle --platform=node --format=cjs --alias:server-only=./docker/stubs/server-only.js --outfile=dist/embeddings-backfill.cjs \
+ && pnpm exec esbuild scripts/import-qrecords.ts     --bundle --platform=node --format=cjs --alias:server-only=./docker/stubs/server-only.js --outfile=dist/import-qrecords.cjs \
  && pnpm exec esbuild scripts/bootstrap-prod.ts        --bundle --platform=node --format=cjs --alias:server-only=./docker/stubs/server-only.js --outfile=dist/bootstrap-prod.cjs
 
 # ──────────────────── Stage 3: runner ────────────────────
@@ -94,6 +95,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/dist/migrate.cjs             ./mi
 COPY --from=builder --chown=nextjs:nodejs /app/dist/seed.cjs                ./seed.cjs
 COPY --from=builder --chown=nextjs:nodejs /app/dist/worker.cjs              ./worker.cjs
 COPY --from=builder --chown=nextjs:nodejs /app/dist/embeddings-backfill.cjs ./embeddings-backfill.cjs
+COPY --from=builder --chown=nextjs:nodejs /app/dist/import-qrecords.cjs     ./import-qrecords.cjs
 COPY --from=builder --chown=nextjs:nodejs /app/dist/bootstrap-prod.cjs       ./bootstrap-prod.cjs
 
 # Drizzle migration SQL — migrate.cjs reads `${process.cwd()}/drizzle` at runtime (cwd=/app).
