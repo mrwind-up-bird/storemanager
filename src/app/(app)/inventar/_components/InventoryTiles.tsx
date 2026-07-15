@@ -3,8 +3,8 @@ import type { InventoryRow } from '@/lib/inventory';
 import type { Condition } from '@/components/ui/ConditionPill';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ConditionPill } from '@/components/ui/ConditionPill';
-import { CoverPlaceholder } from '@/components/ui/CoverPlaceholder';
 import { ScoreBadge } from './ScoreBadge';
+import { TileCover } from './TileCover';
 
 /** CD → --info, everything else (Vinyl, Kassette, null) → --accent */
 const discColor = (format: string | null) =>
@@ -48,9 +48,13 @@ export function InventoryTiles({ rows }: InventoryTilesProps) {
             aria-label={`${row.title} – ${row.artist}, Details öffnen`}
             style={{ position: 'absolute', inset: 0, zIndex: 1, borderRadius: 'var(--r-lg)' }}
           />
-          {/* Card header — single format-coloured disc via CoverPlaceholder */}
+          {/* Card header — real Discogs cover when present, else format-coloured placeholder */}
           <div style={{ position: 'relative' }}>
-            <CoverPlaceholder aspectRatio={1.9} labelColor={discColor(row.format)} />
+            <TileCover
+              src={row.coverImage}
+              alt={`${row.title} – ${row.artist}`}
+              discColor={discColor(row.format)}
+            />
             {/* StatusBadge overlay — top-left, backdrop-blur */}
             <span
               style={{
