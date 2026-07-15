@@ -14,6 +14,9 @@ test.describe('Lagerbestand paging (/inventar)', () => {
   test('first page caps at 50 rows and "Mehr laden" appends the rest', async ({ page }) => {
     await page.goto(`${STRESS_URL}/inventar`);
     await page.waitForLoadState('domcontentloaded');
+    // Tiles is the default view; switch to Liste so `tbody tr` is the stable row selector.
+    await page.getByRole('radiogroup', { name: /ansicht wechseln/i }).getByText(/liste/i).click();
+    await expect(page.locator('table')).toBeVisible();
 
     // First page: exactly the page size (50), not all 70.
     await expect

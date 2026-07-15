@@ -27,7 +27,7 @@ export function ViewToggle({
   kiUnavailable,
   initialCursor = null,
 }: ViewToggleProps) {
-  const [view, setView] = useState<'list' | 'tiles'>('list');
+  const [view, setView] = useState<'list' | 'tiles'>('tiles');
   const searchParams = useSearchParams();
   const [extraRows, setExtraRows] = useState<(InventoryRow & { score?: number })[]>([]);
   const [prevInitial, setPrevInitial] = useState(initialRows);

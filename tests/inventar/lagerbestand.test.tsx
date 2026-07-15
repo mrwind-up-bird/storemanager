@@ -318,26 +318,27 @@ describe('InventoryTiles', () => {
 // ── ViewToggle ─────────────────────────────────────────────────────────────────
 
 describe('ViewToggle', () => {
-  it('defaults to list view — renders a table', () => {
+  it('defaults to tile view — renders article cards, no table', () => {
     render(<ViewToggle rows={ROWS} total={ROWS.length} />);
+    expect(screen.getAllByRole('article')).toHaveLength(ROWS.length);
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+
+  it('switches to list view on Liste click — shows a table, no article cards', async () => {
+    const user = userEvent.setup();
+    render(<ViewToggle rows={ROWS} total={ROWS.length} />);
+    await user.click(screen.getByRole('radio', { name: /Liste/i }));
     expect(screen.getByRole('table')).toBeInTheDocument();
     expect(screen.queryAllByRole('article')).toHaveLength(0);
   });
 
-  it('switches to tile view on Kacheln click — shows article cards, no table', async () => {
+  it('switches back to tiles on Kacheln click', async () => {
     const user = userEvent.setup();
     render(<ViewToggle rows={ROWS} total={ROWS.length} />);
-    await user.click(screen.getByRole('radio', { name: /Kacheln/i }));
-    expect(screen.queryByRole('table')).not.toBeInTheDocument();
-    expect(screen.getAllByRole('article')).toHaveLength(ROWS.length);
-  });
-
-  it('switches back to list on Liste click', async () => {
-    const user = userEvent.setup();
-    render(<ViewToggle rows={ROWS} total={ROWS.length} />);
-    await user.click(screen.getByRole('radio', { name: /Kacheln/i }));
     await user.click(screen.getByRole('radio', { name: /Liste/i }));
-    expect(screen.getByRole('table')).toBeInTheDocument();
+    await user.click(screen.getByRole('radio', { name: /Kacheln/i }));
+    expect(screen.getAllByRole('article')).toHaveLength(ROWS.length);
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
   it('shows SegmentedControl radiogroup for view toggle', () => {

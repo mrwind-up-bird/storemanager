@@ -23,43 +23,46 @@ test.describe('Lagerbestand (/inventar)', () => {
     await login(page, DEMO_URL, DEMO_EMAIL, DEMO_PASSWORD);
   });
 
-  test('renders seeded copies in list view with Treffer count visible', async ({ page }) => {
+  test('renders seeded copies in tile view (default) with Treffer count visible', async ({ page }) => {
     await page.goto(`${DEMO_URL}/inventar`);
     await page.waitForLoadState('domcontentloaded');
 
-    // Default view: table is rendered with at least one seeded copy.
-    await expect(page.locator('table')).toBeVisible();
-    await expect(page.locator('tbody tr').first()).toBeVisible();
-    expect(await page.locator('tbody tr').count()).toBeGreaterThan(0);
+    // Default view is now tiles: the tile grid is rendered with at least one seeded copy.
+    await expect(page.locator('[data-testid="inventory-tiles"]')).toBeVisible();
+    expect(await page.getByRole('article').count()).toBeGreaterThan(0);
 
     // FilterBar right side shows the "N Treffer" server-computed count.
     await expect(page.getByText(/treffer/i).first()).toBeVisible();
   });
 
-  test('ViewToggle switches list → tiles → list', async ({ page }) => {
+  test('ViewToggle switches tiles → list → tiles', async ({ page }) => {
     await page.goto(`${DEMO_URL}/inventar`);
     await page.waitForLoadState('domcontentloaded');
 
     const toggle = page.getByRole('radiogroup', { name: /ansicht wechseln/i });
 
-    // Start in list view: table visible, tiles absent.
-    await expect(page.locator('table')).toBeVisible();
-    await expect(page.locator('[data-testid="inventory-tiles"]')).toHaveCount(0);
-
-    // Switch to tiles.
-    await toggle.getByText(/kacheln/i).click();
+    // Start in tile view (default): tiles visible, table absent.
     await expect(page.locator('[data-testid="inventory-tiles"]')).toBeVisible();
     await expect(page.locator('table')).toHaveCount(0);
 
-    // Switch back to list.
+    // Switch to list.
     await toggle.getByText(/liste/i).click();
     await expect(page.locator('table')).toBeVisible();
     await expect(page.locator('[data-testid="inventory-tiles"]')).toHaveCount(0);
+
+    // Switch back to tiles.
+    await toggle.getByText(/kacheln/i).click();
+    await expect(page.locator('[data-testid="inventory-tiles"]')).toBeVisible();
+    await expect(page.locator('table')).toHaveCount(0);
   });
 
   test('format filter sets URL param and returns matching rows (Vinyl > 0)', async ({ page }) => {
     await page.goto(`${DEMO_URL}/inventar`);
     await page.waitForLoadState('domcontentloaded');
+    // Tiles is the default view now; switch to Liste for the table-based row assertions.
+    // (ViewToggle no longer remounts on filter navigation, so this choice persists across filters.)
+    await page.getByRole('radiogroup', { name: /ansicht wechseln/i }).getByText(/liste/i).click();
+    await expect(page.locator('table')).toBeVisible();
     const totalRows = await page.locator('tbody tr').count();
     expect(totalRows).toBeGreaterThan(0);
 
@@ -81,6 +84,9 @@ test.describe('Lagerbestand (/inventar)', () => {
   }) => {
     await page.goto(`${DEMO_URL}/inventar`);
     await page.waitForLoadState('domcontentloaded');
+    // Tiles is the default view now; switch to Liste for the table-based row assertions.
+    await page.getByRole('radiogroup', { name: /ansicht wechseln/i }).getByText(/liste/i).click();
+    await expect(page.locator('table')).toBeVisible();
     const totalRows = await page.locator('tbody tr').count();
 
     // The "im Lager" tab label carries its own count, e.g. "im Lager 11".
@@ -103,6 +109,9 @@ test.describe('Lagerbestand (/inventar)', () => {
   test('search input narrows rows and sets q URL param', async ({ page }) => {
     await page.goto(`${DEMO_URL}/inventar`);
     await page.waitForLoadState('domcontentloaded');
+    // Tiles is the default view now; switch to Liste for the table-based row assertions.
+    await page.getByRole('radiogroup', { name: /ansicht wechseln/i }).getByText(/liste/i).click();
+    await expect(page.locator('table')).toBeVisible();
     const totalBefore = await page.locator('tbody tr').count();
 
     // FilterBar search field — placeholder verbatim from design handoff. Debounced ?q= push.
