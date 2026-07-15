@@ -99,6 +99,10 @@ test.describe('Slice 5 — Mobile Shell + Scanner + PWA (390×844)', () => {
     await login(page, DEMO_URL, DEMO_EMAIL, DEMO_PASSWORD);
     // Das in Szenario 3 angekaufte Exemplar ist verfügbar + hat einen VK-Preis.
     await page.goto(`${DEMO_URL}/inventar?q=Kind%20of%20Blue&status=verfuegbar`);
+    // Die Bestand-Karten (inventory-mobile-card) rendern in der Listenansicht — Kacheln ist jetzt
+    // Default. Auf mobilem Viewport ist die Desktop-Tabelle display:none, daher NUR umschalten
+    // (kein table-Visible-Check) und dann auf die mobile Karte prüfen.
+    await page.getByRole('radiogroup', { name: /ansicht wechseln/i }).getByText(/liste/i).click();
     const card = page.getByTestId('inventory-mobile-card').first();
     await expect(card).toBeVisible();
     await card.getByRole('button', { name: 'Verkaufen' }).click();

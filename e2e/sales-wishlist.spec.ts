@@ -46,6 +46,13 @@ async function firstSellButton(page: Page) {
   return page.locator('button:enabled:visible').filter({ hasText: /^Verkaufen$/i }).first();
 }
 
+/** Kacheln ist jetzt die Default-Ansicht; die Row-Actions (Verkaufen/Reservieren) sind nur in der
+ *  Listenansicht aktiv. Vor jeder Inventar-Interaktion (und nach jedem reload) hierher umschalten. */
+async function switchToList(page: Page) {
+  await page.getByRole('radiogroup', { name: /ansicht wechseln/i }).getByText(/liste/i).click();
+  await expect(page.locator('table')).toBeVisible();
+}
+
 test.describe('Slice 3 — Verkauf/POS + Wunschlisten', () => {
   test('1. sell a single copy from the inventory row → verkauft + one transaction', async ({ page }) => {
     const tenantId = await demoTenantId();
@@ -53,6 +60,7 @@ test.describe('Slice 3 — Verkauf/POS + Wunschlisten', () => {
 
     await login(page, DEMO_URL, DEMO_EMAIL, DEMO_PASSWORD);
     await page.goto(`${DEMO_URL}/inventar`);
+    await switchToList(page);
 
     await (await firstSellButton(page)).click();
     const modal = page.getByTestId('sell-modal');
@@ -185,6 +193,7 @@ test.describe('Slice 3 — Verkauf/POS + Wunschlisten', () => {
 
     await login(page, DEMO_URL, DEMO_EMAIL, DEMO_PASSWORD);
     await page.goto(`${DEMO_URL}/inventar`);
+    await switchToList(page);
 
     // Reserve the first available copy.
     await page.getByTestId('reserve-action').first().click();
@@ -194,6 +203,7 @@ test.describe('Slice 3 — Verkauf/POS + Wunschlisten', () => {
 
     // Cancel the reservation → back to verfügbar.
     await page.reload();
+    await switchToList(page);
     await page.getByTestId('reserve-cancel-action').first().click();
     await expect
       .poll(async () => (await salesCounts(tenantId)).reserviert)

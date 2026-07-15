@@ -167,6 +167,9 @@ test.describe('Slice 4 — Analytik + Batch-Ankauf + Etiketten', () => {
     test.setTimeout(60_000);
     await login(page, DEMO_URL, DEMO_EMAIL, DEMO_PASSWORD);
     await page.goto(`${DEMO_URL}/inventar`);
+    // Die Etikett-Checkboxen leben in der Listenansicht (InventoryList) — Kacheln ist jetzt Default.
+    await page.getByRole('radiogroup', { name: /ansicht wechseln/i }).getByText(/liste/i).click();
+    await expect(page.locator('table')).toBeVisible();
 
     // Select one row for printing via its accessible name (no registry testid). Finding F2:
     // the row checkbox now carries its name via aria-label instead of visible label text, so a
