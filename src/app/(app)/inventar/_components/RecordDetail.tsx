@@ -46,6 +46,7 @@ export function RecordDetail({ detail, canEdit }: RecordDetailProps) {
     detail.releaseYear,
     detail.label.join(' / ') || null,
     detail.country,
+    detail.genre.join(' / ') || null,
     detail.format,
     `#${detail.id}`,
   ]
@@ -65,17 +66,8 @@ export function RecordDetail({ detail, canEdit }: RecordDetailProps) {
     router.refresh();
   };
 
-  const metaGrid: [string, string][] = [
-    ['ID', String(detail.id)],
-    ['Jahr', detail.releaseYear != null ? String(detail.releaseYear) : '—'],
-    ['Label', detail.label.join(', ') || '—'],
-    ['Land', detail.country ?? '—'],
-    ['Genre', detail.genre.join(', ') || '—'],
-    ['Format', detail.format ?? '—'],
-  ];
-
   return (
-    <div style={{ width: '100%', maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 18, margin: '0 auto' }}>
+    <div style={{ width: '100%', maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 14, margin: '0 auto' }}>
       {/* eyebrow + back */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 500, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--accent)' }}>
@@ -87,12 +79,12 @@ export function RecordDetail({ detail, canEdit }: RecordDetailProps) {
       {/* MASTER CARD */}
       <article style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', background: 'var(--surface)', boxShadow: 'var(--shadow-2)', overflow: 'hidden' }}>
         {/* cover */}
-        <div style={{ position: 'relative', aspectRatio: 1.85, overflow: 'hidden', background: 'var(--surface-2)' }}>
+        <div style={{ position: 'relative', aspectRatio: 2.1, overflow: 'hidden', background: 'var(--surface-2)' }}>
           {detail.coverImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={detail.coverImage} alt={`${detail.title} – Cover`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
-            <CoverPlaceholder aspectRatio={1.85} labelColor={discColor(detail.format)} />
+            <CoverPlaceholder aspectRatio={2.1} labelColor={discColor(detail.format)} />
           )}
           <span style={{ position: 'absolute', top: 14, left: 14, display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 13px', borderRadius: 'var(--r-pill)', background: inStock > 0 ? 'var(--ok-soft)' : 'var(--surface-3)', color: inStock > 0 ? 'var(--ok)' : 'var(--text-2)', border: `1px solid color-mix(in srgb, ${inStock > 0 ? 'var(--ok)' : 'var(--text-3)'} 30%, transparent)`, fontSize: 12.5, fontWeight: 700, backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}>
             <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', background: inStock > 0 ? 'var(--ok)' : 'var(--text-3)' }} />
@@ -105,9 +97,9 @@ export function RecordDetail({ detail, canEdit }: RecordDetailProps) {
           )}
         </div>
 
-        <div style={{ padding: 'clamp(18px,4vw,26px)' }}>
+        <div style={{ padding: 'clamp(15px,3.5vw,20px)' }}>
           {/* action buttons */}
-          <div style={{ display: 'flex', gap: 9, marginBottom: 18 }}>
+          <div style={{ display: 'flex', gap: 9, marginBottom: 15 }}>
             {canEdit && (
               <button type="button" onClick={() => setEditOpen(true)} aria-label="Artikel bearbeiten" data-testid="record-edit-open" className="focus-ring-button" style={{ minHeight: 'var(--tap)', padding: '0 16px', flex: 'none', border: 'none', borderRadius: 'var(--r-md)', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <span aria-hidden="true">✎</span> Bearbeiten
@@ -122,21 +114,11 @@ export function RecordDetail({ detail, canEdit }: RecordDetailProps) {
 
           <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(26px,5vw,38px)', lineHeight: 1.03, letterSpacing: '-.025em', margin: 0, textWrap: 'balance' }}>{detail.title}</h1>
           <div style={{ fontSize: 'clamp(16px,2.6vw,20px)', fontWeight: 700, color: 'var(--accent-ink)', marginTop: 5 }}>{detail.artist}</div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--text-3)', marginTop: 14 }}>{metaLine}</div>
-
-          {/* metadata grid */}
-          <dl style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 24px', margin: '20px 0 0' }}>
-            {metaGrid.map(([k, v]) => (
-              <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <dt style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-3)' }}>{k}</dt>
-                <dd style={{ margin: 0, fontFamily: 'var(--font-mono)', fontSize: 14, color: 'var(--text)' }}>{v}</dd>
-              </div>
-            ))}
-          </dl>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--text-3)', marginTop: 12, lineHeight: 1.5 }}>{metaLine}</div>
 
           {/* styles */}
           {detail.styles.length > 0 && (
-            <div style={{ marginTop: 18 }}>
+            <div style={{ marginTop: 16 }}>
               <div style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-3)', marginBottom: 9 }}>Stile</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {detail.styles.map((st) => (
@@ -149,8 +131,8 @@ export function RecordDetail({ detail, canEdit }: RecordDetailProps) {
       </article>
 
       {/* LAGERBESTAND */}
-      <section style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', background: 'var(--surface)', boxShadow: 'var(--shadow-1)', padding: 'clamp(18px,4vw,24px)' }}>
-        <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, marginBottom: 16 }}>
+      <section style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', background: 'var(--surface)', boxShadow: 'var(--shadow-1)', padding: 'clamp(15px,3.5vw,20px)' }}>
+        <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, marginBottom: 14 }}>
           <div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 21, letterSpacing: '-.01em', margin: 0 }}>Lagerbestand</h2>
             <p style={{ color: 'var(--text-2)', fontSize: 13.5, margin: '4px 0 0' }}>Physische Exemplare dieses Titels</p>
