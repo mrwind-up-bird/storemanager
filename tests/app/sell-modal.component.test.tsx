@@ -43,6 +43,7 @@ const baseRow: InventoryRow = {
   conditionRecord: 5,
   conditionCover: 5,
   discogsId: null,
+  coverImage: null,
 };
 
 beforeEach(() => {

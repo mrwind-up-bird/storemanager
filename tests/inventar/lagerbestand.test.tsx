@@ -4,7 +4,7 @@
 /// <reference types="@testing-library/jest-dom/vitest" />
 
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
-import { render, screen, cleanup, waitFor, within } from '@testing-library/react';
+import { render, screen, cleanup, waitFor, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // vi.hoisted refs so we can control return values per test.
@@ -101,6 +101,7 @@ const ROWS: InventoryRow[] = [
     conditionRecord: 5,
     conditionCover: 5,
     discogsId: 249232,
+    coverImage: 'https://i.discogs.com/violator.jpg',
   },
   {
     copyId: 2,
@@ -118,6 +119,7 @@ const ROWS: InventoryRow[] = [
     conditionRecord: 4,
     conditionCover: 3,
     discogsId: null,
+    coverImage: null,
   },
 ];
 
@@ -474,5 +476,29 @@ describe('ViewToggle — Mehr laden', () => {
     await waitFor(() => expect(screen.getAllByText('Reserviert').length).toBeGreaterThan(0));
     // (b) the previously-appended extra row is gone — accumulation reset, not silently kept stale.
     expect(screen.queryAllByText('Nachgeladen').length).toBe(0);
+  });
+});
+
+// ── InventoryTiles cover image ─────────────────────────────────────────────────
+
+describe('InventoryTiles — cover image', () => {
+  it('renders the real cover <img> when coverImage is set, placeholder otherwise', () => {
+    render(<InventoryTiles rows={ROWS} />);
+    // ROWS[0] (Violator) has a cover URL → exactly one <img>; ROWS[1] (null) → hatched placeholder.
+    const imgs = screen.getAllByRole('img');
+    expect(imgs).toHaveLength(1);
+    expect(imgs[0]).toHaveAttribute('src', 'https://i.discogs.com/violator.jpg');
+    expect(imgs[0]).toHaveAccessibleName('Violator – Depeche Mode');
+    // The cover-less row still shows the hatched placeholder ("cover" label).
+    expect(screen.getByText('cover')).toBeInTheDocument();
+  });
+
+  it('falls back to the placeholder when the cover image fails to load', () => {
+    render(<InventoryTiles rows={[ROWS[0]]} />);
+    const img = screen.getByRole('img');
+    fireEvent.error(img);
+    // After onError the <img> is replaced by the placeholder.
+    expect(screen.queryByRole('img')).toBeNull();
+    expect(screen.getByText('cover')).toBeInTheDocument();
   });
 });

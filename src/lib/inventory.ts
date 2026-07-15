@@ -32,6 +32,7 @@ export type InventoryRow = {
   conditionRecord: number | null;
   conditionCover: number | null;
   discogsId: number | null;
+  coverImage: string | null; // Discogs cover URL (imported from v1) — null → placeholder
 };
 
 export type InventoryAggregates = {
@@ -132,6 +133,7 @@ export async function listInventory(
         conditionRecord: purchases.conditionRecord,
         conditionCover: purchases.conditionCover,
         discogsId: records.discogsId,
+        coverImage: records.coverImage,
       })
       .from(purchases)
       .innerJoin(records, eq(records.id, purchases.recordId))
@@ -350,6 +352,7 @@ export async function kiSearch(
         conditionRecord: purchases.conditionRecord,
         conditionCover: purchases.conditionCover,
         discogsId: records.discogsId,
+        coverImage: records.coverImage,
         score: sql<number>`1 - (${distance})`,
       })
       .from(purchases)
