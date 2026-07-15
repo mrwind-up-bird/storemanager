@@ -43,6 +43,11 @@ test.describe('KI-Suche (/inventar)', () => {
     await searchField.press('Enter');
     await page.waitForURL(/[?&]q=jazz/i);
 
+    // KI-Ergebnisse rendern als Kacheln (Default-Ansicht). Auf Liste umschalten, damit die
+    // tbody-gescopten Assertions unten greifen (der Umschalter erscheint, sobald Treffer da sind).
+    await page.getByRole('radiogroup', { name: /ansicht wechseln/i }).getByText(/liste/i).click();
+    await expect(page.locator('table')).toBeVisible();
+
     await expect.poll(() => page.locator('tbody tr').count()).toBeGreaterThan(0);
     // Das Relevanz-Badge rendert in BEIDEN Layouts (Desktop-Tabelle + .qr-mobile-only-Karte);
     // die mobile Karte steht im DOM zuerst, ist aber am Desktop-Viewport display:none. Auf die

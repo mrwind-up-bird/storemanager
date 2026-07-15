@@ -179,6 +179,9 @@ test.describe('Discogs Ankauf (C12)', () => {
     // And it is visible in inventory with the entered EK/VK and the "im Lager" badge.
     await page.goto(`${DEMO_URL}/inventar?q=${encodeURIComponent(BLUE_LINES)}`);
     await page.waitForLoadState('domcontentloaded');
+    // Tiles is the default view; switch to Liste for the tbody row lookup.
+    await page.getByRole('radiogroup', { name: /ansicht wechseln/i }).getByText(/liste/i).click();
+    await expect(page.locator('table')).toBeVisible();
 
     const row = page
       .locator('tbody tr')
