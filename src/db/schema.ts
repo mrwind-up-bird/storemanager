@@ -200,6 +200,16 @@ export const records = pgTable(
   },
   (t) => ({
     hashTenantUnique: unique('records_hash_tenant').on(t.hash, t.tenantId),
+    // Deckt Tenant-Filter + (artist,title)-Sort + Keyset-Cursor (…, id) in EINEM Index —
+    // der Haupt-Hebel gegen den vollen Seq-Scan/Sort auf /inventar.
+    tenantArtistTitleIdx: index('records_tenant_artist_title_idx').on(
+      t.tenantId,
+      t.artist,
+      t.title,
+      t.id,
+    ),
+    // Format-Facette (Alle Formate / Vinyl / CD / Kassette).
+    tenantFormatIdx: index('records_tenant_format_idx').on(t.tenantId, t.format),
   }),
 );
 
