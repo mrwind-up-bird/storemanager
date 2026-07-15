@@ -10,6 +10,7 @@ import { getEntitlements } from '@/lib/gating';
 import { updateRecord, RecordHashConflictError } from '@/lib/records';
 import { updatePurchase, addCopy, duplicateCopy, deleteCopy, CopyEditError } from '@/lib/copies';
 import { enqueueEmbeddingRefresh, enqueueWishlistMatch, enqueueDiscogsListing } from '@/lib/jobs';
+import { paginateInventory, type InventoryRow } from '@/lib/inventory';
 
 // ── shared field rules ───────────────────────────────────────────────────────
 const decimalString = z.string().trim().regex(MONEY_STRING_RE);
@@ -221,4 +222,30 @@ export async function deleteCopyAction(input: unknown): Promise<{ ok: true } | A
     return { ok: false, reason: 'error' };
   }
   return { ok: true };
+}
+
+// ── "Mehr laden" — nächste Keyset-Seite der Lagerbestand-Liste ────────────────
+const loadMoreSchema = z.object({
+  params: z.string().max(2000), // searchParams.toString() vom Client (server-seitig re-validiert)
+  cursor: z.string().min(1).max(2000),
+});
+
+export async function loadMoreInventory(
+  input: unknown,
+): Promise<{ ok: true; rows: InventoryRow[]; nextCursor: string | null } | ActionErr> {
+  const user = await requireSession();
+  if (user.role === 'kunde') forbidden();
+  if (!(await isValidOrigin())) return { ok: false, reason: 'error', message: 'Ungültige Herkunft (Origin).' };
+
+  const parsed = loadMoreSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, reason: 'validation', message: 'Ungültige Eingaben.' };
+
+  const ctx = { tenantId: user.tenantId, userId: user.id };
+  try {
+    const { rows, nextCursor } = await paginateInventory(ctx, parsed.data.params, parsed.data.cursor);
+    return { ok: true, rows, nextCursor };
+  } catch (err) {
+    console.error('[inventar] loadMoreInventory failed', err);
+    return { ok: false, reason: 'error' };
+  }
 }

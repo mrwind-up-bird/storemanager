@@ -239,6 +239,19 @@ export function parseInventoryFilters(
   return out;
 }
 
+/** Server-action core for "Mehr laden": re-derives the filters from the raw query string
+ *  (single source of truth = parseInventoryFilters) and returns the next keyset page.
+ *  Auth-agnostic — the calling server action enforces session/role/CSRF. */
+export async function paginateInventory(
+  ctx: { tenantId: number; userId: number | null },
+  paramsString: string,
+  cursor: string,
+): Promise<ListInventoryResult> {
+  const sp = Object.fromEntries(new URLSearchParams(paramsString));
+  const filters = parseInventoryFilters(sp);
+  return listInventory(ctx, filters, { cursor });
+}
+
 /** Minimal row for the mobile sell flows — deliberately WITHOUT purchase price (EK stays server-side). */
 export type CopyHit = {
   purchaseId: number;

@@ -12,6 +12,7 @@ let inventoryAggregates: (typeof import('@/lib/inventory'))['inventoryAggregates
 let parseInventoryFilters: (typeof import('@/lib/inventory'))['parseInventoryFilters'];
 let encodeCursor: (typeof import('@/lib/inventory'))['encodeCursor'];
 let decodeCursor: (typeof import('@/lib/inventory'))['decodeCursor'];
+let paginateInventory: (typeof import('@/lib/inventory'))['paginateInventory'];
 
 let teardown: (() => Promise<void>) | undefined;
 let tenantA: number;
@@ -80,7 +81,7 @@ beforeAll(async () => {
   vi.resetModules();
   ({ withOwner } = await import('@/db/tenant'));
   ({ records, purchases } = await import('@/db/schema'));
-  ({ listInventory, inventoryAggregates, parseInventoryFilters, encodeCursor, decodeCursor } =
+  ({ listInventory, inventoryAggregates, parseInventoryFilters, encodeCursor, decodeCursor, paginateInventory } =
     await import('@/lib/inventory'));
 
   tenantA = (await seedTenant({ slug: 'demo', name: 'Demo Store' })).tenantId;
@@ -374,5 +375,29 @@ describe('inventoryAggregates — NULL target_price', () => {
     expect(agg.byStatus.verfuegbar).toBe(1);
     expect(agg.valueAvailable).toBe(0);
     expect(agg.formatSplit).toEqual({ vinyl: 1, cd: 0, other: 0 });
+  });
+});
+
+describe('paginateInventory — re-derives filters from the query string', () => {
+  it('applies the params filter and continues from a cursor without overlap', async () => {
+    const first = await listInventory({ tenantId: tenantA, userId: null }, { format: 'Vinyl' }, { limit: 2 });
+    expect(first.rows).toHaveLength(2); // Vinyl has 4 copies (a1×2 + a3×2)
+    expect(first.nextCursor).not.toBeNull();
+
+    const next = await paginateInventory(
+      { tenantId: tenantA, userId: null },
+      'format=Vinyl',
+      first.nextCursor!,
+    );
+    expect(next.rows).toHaveLength(2); // the remaining 2 Vinyl copies
+    const firstIds = new Set(first.rows.map((r) => r.copyId));
+    expect(next.rows.every((r) => !firstIds.has(r.copyId))).toBe(true);
+    expect(next.nextCursor).toBeNull();
+  });
+
+  it('ignores non-whitelisted params (server-side re-validation)', async () => {
+    // evil status is dropped by parseInventoryFilters → full tenant set, not a filtered/injected one
+    const page = await paginateInventory({ tenantId: tenantA, userId: null }, 'status=evil', '');
+    expect(page.rows.length).toBeGreaterThan(0);
   });
 });
