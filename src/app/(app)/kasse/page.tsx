@@ -12,8 +12,10 @@ export default async function KassePage() {
   const tenant = await getCurrentTenant();
   const ctx = { tenantId: tenant.id, userId: user.id };
 
+  // Kasse needs the complete sellable set for client-side search (it's not paginated) — a
+  // paginated/server-search POS is a separate follow-up. Opt out of the default 50-row cap.
   const [{ rows: allRows }, quickItems] = await Promise.all([
-    listInventory(ctx, {}),
+    listInventory(ctx, {}, { limit: 'all' }),
     listActiveQuickItems(ctx),
   ]);
   // Kasse offers only sellable copies (verfügbar/reserviert) — same gate performSale enforces server-side.

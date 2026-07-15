@@ -101,7 +101,7 @@ function basePreds(tenantId: number, f: InventoryFilters): SQL[] {
 export async function listInventory(
   ctx: { tenantId: number; userId: number | null },
   f: InventoryFilters,
-  opts?: { limit?: number; cursor?: string },
+  opts?: { limit?: number | 'all'; cursor?: string },
 ): Promise<ListInventoryResult> {
   const limit = opts?.limit ?? INVENTORY_PAGE_SIZE;
   const cursor = opts?.cursor ? decodeCursor(opts.cursor) : null;
@@ -115,7 +115,7 @@ export async function listInventory(
         sql`(${records.artist}, ${records.title}, ${purchases.id}) > (${cursor.artist}, ${cursor.title}, ${cursor.copyId}::int)`,
       );
     }
-    const rows = await tx
+    const query = tx
       .select({
         copyId: purchases.id,
         recordId: records.id,
@@ -136,9 +136,16 @@ export async function listInventory(
       .from(purchases)
       .innerJoin(records, eq(records.id, purchases.recordId))
       .where(and(...preds))
-      .orderBy(asc(records.artist), asc(records.title), asc(purchases.id))
-      .limit(limit + 1);
+      .orderBy(asc(records.artist), asc(records.title), asc(purchases.id));
 
+    // 'all' is an explicit unbounded escape hatch (e.g. Kasse needs the complete sellable set
+    // for client-side search) — no SQL LIMIT, no next page.
+    if (limit === 'all') {
+      const rows = await query;
+      return { rows, nextCursor: null };
+    }
+
+    const rows = await query.limit(limit + 1);
     const hasMore = rows.length > limit;
     const pageRows = hasMore ? rows.slice(0, limit) : rows;
     const last = pageRows[pageRows.length - 1];

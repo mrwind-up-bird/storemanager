@@ -341,4 +341,10 @@ describe('listInventory — keyset pagination', () => {
     );
     expect(garbage.rows.map((r) => r.copyId)).toEqual(page.rows.map((r) => r.copyId));
   });
+
+  it('limit "all" returns every row with a null cursor (unbounded restore)', async () => {
+    const page = await listInventory({ tenantId: tenantA, userId: null }, {}, { limit: 'all' });
+    expect(page.rows).toHaveLength(5);
+    expect(page.nextCursor).toBeNull();
+  });
 });
