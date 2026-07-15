@@ -12,7 +12,7 @@ export default async function KassePage() {
   const tenant = await getCurrentTenant();
   const ctx = { tenantId: tenant.id, userId: user.id };
 
-  const [allRows, quickItems] = await Promise.all([
+  const [{ rows: allRows }, quickItems] = await Promise.all([
     listInventory(ctx, {}),
     listActiveQuickItems(ctx),
   ]);

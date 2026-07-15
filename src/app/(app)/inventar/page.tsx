@@ -41,12 +41,18 @@ export default async function InventarPage({
     inventoryAggregates(ctx, filters),
     kiMode ? kiSearch(ctx, { query, filters }) : listInventory(ctx, filters),
   ]);
-  // kiSearch() → { rows, unavailable? }, listInventory() → InventoryRow[] — per Array.isArray
-  // unterscheiden statt casten (kiMode selbst ist ein boolean, keine literal-narrowbare Diskriminante).
-  const rows: (InventoryRow & { score?: number })[] = Array.isArray(rowsResult)
-    ? rowsResult
-    : rowsResult.rows;
-  const kiUnavailable = Array.isArray(rowsResult) ? false : (rowsResult.unavailable ?? false);
+  // listInventory() → { rows, nextCursor }; kiSearch() → { rows, unavailable? }.
+  // Branch on kiMode (a plain boolean) — cleaner than sniffing the union.
+  let rows: (InventoryRow & { score?: number })[];
+  let kiUnavailable = false;
+  if (kiMode) {
+    const r = rowsResult as { rows: (InventoryRow & { score?: number })[]; unavailable?: boolean };
+    rows = r.rows;
+    kiUnavailable = r.unavailable ?? false;
+  } else {
+    const r = rowsResult as import('@/lib/inventory').ListInventoryResult;
+    rows = r.rows;
+  }
   const isAdmin = user.role === 'admin' || user.isSuperadmin;
 
   return (

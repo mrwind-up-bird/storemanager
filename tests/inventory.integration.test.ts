@@ -10,6 +10,8 @@ let purchases: (typeof import('@/db/schema'))['purchases'];
 let listInventory: (typeof import('@/lib/inventory'))['listInventory'];
 let inventoryAggregates: (typeof import('@/lib/inventory'))['inventoryAggregates'];
 let parseInventoryFilters: (typeof import('@/lib/inventory'))['parseInventoryFilters'];
+let encodeCursor: (typeof import('@/lib/inventory'))['encodeCursor'];
+let decodeCursor: (typeof import('@/lib/inventory'))['decodeCursor'];
 
 let teardown: (() => Promise<void>) | undefined;
 let tenantA: number;
@@ -77,7 +79,8 @@ beforeAll(async () => {
   vi.resetModules();
   ({ withOwner } = await import('@/db/tenant'));
   ({ records, purchases } = await import('@/db/schema'));
-  ({ listInventory, inventoryAggregates, parseInventoryFilters } = await import('@/lib/inventory'));
+  ({ listInventory, inventoryAggregates, parseInventoryFilters, encodeCursor, decodeCursor } =
+    await import('@/lib/inventory'));
 
   tenantA = (await seedTenant({ slug: 'demo', name: 'Demo Store' })).tenantId;
   tenantB = (await seedTenant({ slug: 'other', name: 'Other Store' })).tenantId;
@@ -143,13 +146,13 @@ afterAll(async () => {
 
 describe('listInventory — RLS isolation', () => {
   it('returns only tenant A copies and never tenant B copies', async () => {
-    const rows = await listInventory({ tenantId: tenantA, userId: null }, {});
+    const { rows } = await listInventory({ tenantId: tenantA, userId: null }, {});
     expect(rows).toHaveLength(5);
     expect(rows.every((r) => r.title !== 'Blue Train')).toBe(true);
   });
 
   it('interleaved — tenant B sees only its own copy', async () => {
-    const rows = await listInventory({ tenantId: tenantB, userId: null }, {});
+    const { rows } = await listInventory({ tenantId: tenantB, userId: null }, {});
     expect(rows).toHaveLength(1);
     expect(rows[0].title).toBe('Blue Train');
     expect(rows[0].ek).toBe('20.00');
@@ -159,27 +162,27 @@ describe('listInventory — RLS isolation', () => {
 
 describe('listInventory — search + filters', () => {
   it('q matches title/artist/label, case-insensitive', async () => {
-    expect(await listInventory({ tenantId: tenantA, userId: null }, { q: 'MILES' })).toHaveLength(2); // artist
-    expect(await listInventory({ tenantId: tenantA, userId: null }, { q: 'columbia' })).toHaveLength(2); // label
-    expect(await listInventory({ tenantId: tenantA, userId: null }, { q: 'discovery' })).toHaveLength(1); // title
+    expect((await listInventory({ tenantId: tenantA, userId: null }, { q: 'MILES' })).rows).toHaveLength(2); // artist
+    expect((await listInventory({ tenantId: tenantA, userId: null }, { q: 'columbia' })).rows).toHaveLength(2); // label
+    expect((await listInventory({ tenantId: tenantA, userId: null }, { q: 'discovery' })).rows).toHaveLength(1); // title
   });
 
   it('format / genre / condition-band filters select the right subset', async () => {
-    expect(await listInventory({ tenantId: tenantA, userId: null }, { format: 'Vinyl' })).toHaveLength(4); // a1(2)+a3(2)
-    expect(await listInventory({ tenantId: tenantA, userId: null }, { genre: 'Jazz' })).toHaveLength(2); // a1
-    expect(await listInventory({ tenantId: tenantA, userId: null }, { condition: 'mint_nm' })).toHaveLength(2); // cond>=6: 7,6
-    expect(await listInventory({ tenantId: tenantA, userId: null }, { condition: 'vg' })).toHaveLength(4); // cond>=4: 7,6,5,4
+    expect((await listInventory({ tenantId: tenantA, userId: null }, { format: 'Vinyl' })).rows).toHaveLength(4); // a1(2)+a3(2)
+    expect((await listInventory({ tenantId: tenantA, userId: null }, { genre: 'Jazz' })).rows).toHaveLength(2); // a1
+    expect((await listInventory({ tenantId: tenantA, userId: null }, { condition: 'mint_nm' })).rows).toHaveLength(2); // cond>=6: 7,6
+    expect((await listInventory({ tenantId: tenantA, userId: null }, { condition: 'vg' })).rows).toHaveLength(4); // cond>=4: 7,6,5,4
   });
 
   it('status filter selects exactly that status', async () => {
-    const rows = await listInventory({ tenantId: tenantA, userId: null }, { status: 'verkauft' });
+    const { rows } = await listInventory({ tenantId: tenantA, userId: null }, { status: 'verkauft' });
     expect(rows).toHaveLength(1);
     expect(rows[0].status).toBe('verkauft');
     expect(rows[0].title).toBe('Kind of Blue');
   });
 
   it('ek/vk are numeric→string and ordered by artist then title', async () => {
-    const rows = await listInventory({ tenantId: tenantA, userId: null }, {});
+    const { rows } = await listInventory({ tenantId: tenantA, userId: null }, {});
     const artists = rows.map((r) => r.artist);
     expect(artists).toEqual([...artists].sort()); // asc(artist)
     const a1c1 = rows.find((r) => r.title === 'Kind of Blue' && r.status === 'verfuegbar');
@@ -189,7 +192,7 @@ describe('listInventory — search + filters', () => {
   });
 
   it('discogsId is projected from records — present for a1, null for records without one', async () => {
-    const rows = await listInventory({ tenantId: tenantA, userId: null }, {});
+    const { rows } = await listInventory({ tenantId: tenantA, userId: null }, {});
     const kindOfBlue = rows.find((r) => r.title === 'Kind of Blue' && r.status === 'verfuegbar');
     expect(kindOfBlue?.discogsId).toBe(4784);
     const discovery = rows.find((r) => r.title === 'Discovery');
@@ -221,13 +224,13 @@ describe('inventoryAggregates — status tab is IGNORED in counts/value', () => 
 describe('listInventory — ILIKE metacharacter escaping', () => {
   it('literal % in q matches only rows containing %, not all rows (wildcard proof)', async () => {
     // With correct escaping, q='50%' → pattern %50\%% → matches '50% Off' by substring
-    const byFull = await listInventory({ tenantId: tenantC, userId: null }, { q: '50%' });
+    const { rows: byFull } = await listInventory({ tenantId: tenantC, userId: null }, { q: '50%' });
     expect(byFull).toHaveLength(1);
     expect(byFull[0].title).toBe('50% Off');
 
     // With correct escaping, q='%' → pattern %\%% → matches only strings containing a literal %
     // If % were unescaped it would produce %% and match every non-empty string (returns 2 rows).
-    const byWildcard = await listInventory({ tenantId: tenantC, userId: null }, { q: '%' });
+    const { rows: byWildcard } = await listInventory({ tenantId: tenantC, userId: null }, { q: '%' });
     expect(byWildcard).toHaveLength(1);        // only '50% Off' contains a literal percent
     expect(byWildcard[0].title).toBe('50% Off');
   });
@@ -235,7 +238,7 @@ describe('listInventory — ILIKE metacharacter escaping', () => {
   it('literal _ in q returns 0 rows (not wildcard-matching all rows)', async () => {
     // With correct escaping, q='_' → pattern %\_% → matches strings containing a literal underscore.
     // If _ were unescaped it would produce %_% which matches any string with ≥1 character (returns all rows).
-    const rows = await listInventory({ tenantId: tenantC, userId: null }, { q: '_' });
+    const { rows } = await listInventory({ tenantId: tenantC, userId: null }, { q: '_' });
     expect(rows).toHaveLength(0); // no tenantC record title contains a literal underscore
   });
 });
@@ -280,5 +283,62 @@ describe('parseInventoryFilters — strict whitelist', () => {
     expect(f.genre).toBe('Jazz');
     expect(f.condition).toBe('vg');
     expect(f.status).toBe('verkauft');
+  });
+});
+
+describe('cursor encode/decode', () => {
+  it('round-trips artist/title/copyId', () => {
+    const c = { artist: 'Miles Davis', title: 'Kind of Blue', copyId: 42 };
+    expect(decodeCursor(encodeCursor(c))).toEqual(c);
+  });
+
+  it('returns null for malformed input', () => {
+    expect(decodeCursor('%%%')).toBeNull();
+    expect(decodeCursor(Buffer.from('{"x":1}').toString('base64url'))).toBeNull();
+    expect(decodeCursor('')).toBeNull();
+  });
+});
+
+describe('listInventory — keyset pagination', () => {
+  it('paginates tenant A in pages of 2 with no dupes or gaps', async () => {
+    const all = (await listInventory({ tenantId: tenantA, userId: null }, {})).rows;
+    expect(all).toHaveLength(5);
+
+    const collected: typeof all = [];
+    let cursor: string | null = null;
+    let guard = 0;
+    do {
+      const page = await listInventory(
+        { tenantId: tenantA, userId: null },
+        {},
+        { limit: 2, cursor: cursor ?? undefined },
+      );
+      expect(page.rows.length).toBeLessThanOrEqual(2);
+      collected.push(...page.rows);
+      cursor = page.nextCursor;
+    } while (cursor && ++guard < 10);
+
+    expect(cursor).toBeNull();
+    expect(collected.map((r) => r.copyId)).toEqual(all.map((r) => r.copyId)); // same order, no dupes/gaps
+    expect(new Set(collected.map((r) => r.copyId)).size).toBe(5);
+  });
+
+  it('nextCursor is null when the page is not full', async () => {
+    const page = await listInventory({ tenantId: tenantA, userId: null }, {}, { limit: 50 });
+    expect(page.rows).toHaveLength(5);
+    expect(page.nextCursor).toBeNull();
+  });
+
+  it('a full page yields a non-null cursor; garbage cursor falls back to first page', async () => {
+    const page = await listInventory({ tenantId: tenantA, userId: null }, {}, { limit: 2 });
+    expect(page.rows).toHaveLength(2);
+    expect(page.nextCursor).not.toBeNull();
+
+    const garbage = await listInventory(
+      { tenantId: tenantA, userId: null },
+      {},
+      { limit: 2, cursor: 'not-a-cursor' },
+    );
+    expect(garbage.rows.map((r) => r.copyId)).toEqual(page.rows.map((r) => r.copyId));
   });
 });

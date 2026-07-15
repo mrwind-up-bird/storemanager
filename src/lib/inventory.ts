@@ -46,6 +46,39 @@ const CONDITION_BANDS: Record<ConditionBand, number> = { mint_nm: 6, vgplus: 5, 
 const KNOWN_FORMATS = ['Vinyl', 'CD', 'Kassette'] as const;
 const STATUS_VALUES: readonly InventoryStatus[] = ['verfuegbar', 'reserviert', 'verkauft', 'verliehen'];
 
+/** Default page size for the classic inventory list ("Mehr laden" lädt je 50). */
+export const INVENTORY_PAGE_SIZE = 50;
+
+/** Opaque keyset position — the (artist, title, copyId) of the last row of a page. */
+export type InventoryCursor = { artist: string; title: string; copyId: number };
+
+export type ListInventoryResult = { rows: InventoryRow[]; nextCursor: string | null };
+
+/** base64url of [artist, title, copyId]. Opaque to callers; only carries sort position. */
+export function encodeCursor(c: InventoryCursor): string {
+  return Buffer.from(JSON.stringify([c.artist, c.title, c.copyId]), 'utf8').toString('base64url');
+}
+
+/** Inverse of encodeCursor. Returns null for anything malformed — a bad cursor is treated
+ *  as "no cursor" (first page); it can never leak across tenants (RLS + tenant preds still apply). */
+export function decodeCursor(raw: string): InventoryCursor | null {
+  try {
+    const parsed = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'));
+    if (
+      Array.isArray(parsed) &&
+      parsed.length === 3 &&
+      typeof parsed[0] === 'string' &&
+      typeof parsed[1] === 'string' &&
+      Number.isInteger(parsed[2])
+    ) {
+      return { artist: parsed[0], title: parsed[1], copyId: parsed[2] };
+    }
+  } catch {
+    // malformed → treat as no cursor
+  }
+  return null;
+}
+
 /** base predicates (tenant + q + format + genre + condition) — the status tab is NEVER part of this set. */
 function basePreds(tenantId: number, f: InventoryFilters): SQL[] {
   const preds: SQL[] = [
@@ -68,11 +101,21 @@ function basePreds(tenantId: number, f: InventoryFilters): SQL[] {
 export async function listInventory(
   ctx: { tenantId: number; userId: number | null },
   f: InventoryFilters,
-): Promise<InventoryRow[]> {
+  opts?: { limit?: number; cursor?: string },
+): Promise<ListInventoryResult> {
+  const limit = opts?.limit ?? INVENTORY_PAGE_SIZE;
+  const cursor = opts?.cursor ? decodeCursor(opts.cursor) : null;
   return withTenant({ tenantId: ctx.tenantId, userId: ctx.userId }, async (tx) => {
     const preds = basePreds(ctx.tenantId, f);
     if (f.status) preds.push(eq(purchases.status, f.status));
-    return tx
+    if (cursor) {
+      // Keyset: strictly after the last row, in the SAME total order as the ORDER BY below.
+      // Row-value comparison uses the columns' default collation → consistent with the sort.
+      preds.push(
+        sql`(${records.artist}, ${records.title}, ${purchases.id}) > (${cursor.artist}, ${cursor.title}, ${cursor.copyId}::int)`,
+      );
+    }
+    const rows = await tx
       .select({
         copyId: purchases.id,
         recordId: records.id,
@@ -93,7 +136,17 @@ export async function listInventory(
       .from(purchases)
       .innerJoin(records, eq(records.id, purchases.recordId))
       .where(and(...preds))
-      .orderBy(asc(records.artist), asc(records.title));
+      .orderBy(asc(records.artist), asc(records.title), asc(purchases.id))
+      .limit(limit + 1);
+
+    const hasMore = rows.length > limit;
+    const pageRows = hasMore ? rows.slice(0, limit) : rows;
+    const last = pageRows[pageRows.length - 1];
+    const nextCursor =
+      hasMore && last
+        ? encodeCursor({ artist: last.artist, title: last.title, copyId: last.copyId })
+        : null;
+    return { rows: pageRows, nextCursor };
   });
 }
 
